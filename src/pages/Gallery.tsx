@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Camera, Calendar, Ruler, Search, Filter, Trash2 } from "lucide-react";
+import { Camera, Calendar, Ruler, Search, Trash2 } from "lucide-react";
 import { getMeasurements, deleteMeasurement, getPhoto } from "@/utils/storage";
 import { Measurement } from "@/types";
 

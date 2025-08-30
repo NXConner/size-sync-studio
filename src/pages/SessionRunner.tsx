@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { saveSession, getSessions } from "@/utils/storage";
+import { saveSession } from "@/utils/storage";
 import { Session } from "@/types";
 import { Timer, Activity, Pause, Play, LogOut } from "lucide-react";
 

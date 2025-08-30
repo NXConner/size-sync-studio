@@ -4,15 +4,34 @@ import fetch from "node-fetch";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { config, hasRedditCredentials } from "./config.js";
+import crypto from "node:crypto";
 import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
 
 const app = express();
+app.set("trust proxy", 1);
 const port = config.PORT;
 
-app.use(cors());
+const allowedOrigin = config.WEB_ORIGIN;
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!allowedOrigin) return callback(null, true);
+    if (!origin) return callback(null, true);
+    if (origin === allowedOrigin) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
+const isProd = config.NODE_ENV === "production";
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "'unsafe-inline'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", "data:", "https:"],
+  connectSrc: ["'self'", "https:", "http:"],
+};
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: isProd ? { directives: cspDirectives } : false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 app.use(rateLimit({

@@ -481,7 +481,9 @@ export default function Measure() {
     };
 
     saveMeasurement(measurement);
-    await savePhoto(measurement.id, photoBlob);
+    if (photoBlob) {
+      await savePhoto(measurement.id, photoBlob);
+    }
 
     // Compare to latest previous
     const prev = latestPrev;

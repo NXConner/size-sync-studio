@@ -1,9 +1,11 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lightbulb, Target, Maximize, Zap, Calendar, TrendingUp } from "lucide-react";
 
-const lengthTips = [
+type Importance = "high" | "medium" | "low";
+
+const lengthTips: Array<{ title: string; description: string; importance: Importance }> = [
   {
     title: "Consistent Low Pressure",
     description: "Use lower pressure for longer periods rather than high pressure for short bursts",
@@ -31,7 +33,7 @@ const lengthTips = [
   }
 ];
 
-const girthTips = [
+const girthTips: Array<{ title: string; description: string; importance: Importance }> = [
   {
     title: "Ring Positioning",
     description: "Proper ring placement at the base maximizes circumferential expansion",
@@ -59,7 +61,7 @@ const girthTips = [
   }
 ];
 
-const generalTips = [
+const generalTips: Array<{ title: string; description: string; importance: Importance }> = [
   {
     title: "Hydration is Key",
     description: "Stay well-hydrated before and after sessions for optimal tissue health",
@@ -110,7 +112,7 @@ const progressStrategies = [
   }
 ];
 
-const importanceColors = {
+const importanceColors: Record<Importance, string> = {
   high: "bg-destructive/20 text-destructive border-destructive/30",
   medium: "bg-warning/20 text-warning border-warning/30", 
   low: "bg-success/20 text-success border-success/30"

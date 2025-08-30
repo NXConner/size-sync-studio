@@ -16,7 +16,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npm run lint --if-present
+      - run: npm run lint --max-warnings=0 --if-present
+      - run: npm run typecheck
       - run: npm run build
       - name: Build API image
         run: docker build -t sizeseeker-api -f Dockerfile.api .

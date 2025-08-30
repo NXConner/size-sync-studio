@@ -3,8 +3,8 @@ import { SessionPresetCard } from "@/components/SessionPresetCard";
 import { sessionPresets } from "@/data/sessionPresets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
-import { SessionPreset } from "@/types";
+import { Search } from "lucide-react";
+// import { SessionPreset } from "@/types";
 import { useNavigate } from "react-router-dom";
 
 export default function Sessions() {
@@ -22,7 +22,7 @@ export default function Sessions() {
     return matchesSearch && matchesDifficulty && matchesCategory;
   });
 
-  const handleStartSession = (presetId: string) => {
+  const handleStartSession = (_presetId: string) => {
     navigate("/run-session");
   };
 
