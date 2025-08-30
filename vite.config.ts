@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => ({
       telemetry: false,
       sourcemaps: { assets: './dist/**' },
       disable: !process.env.SENTRY_AUTH_TOKEN,
+      release: {
+        name: process.env.GITHUB_SHA || undefined,
+      },
     }),
     mode === "analyze" &&
       visualizer({
