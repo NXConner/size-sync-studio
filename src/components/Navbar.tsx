@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Activity, Shield, Lightbulb, Camera } from "lucide-react";
+import { Home, Activity, Shield, Lightbulb, Camera, Ruler } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -8,6 +8,7 @@ const navigation = [
   { name: "Safety", href: "/safety", icon: Shield },
   { name: "Tips", href: "/tips", icon: Lightbulb },
   { name: "Gallery", href: "/gallery", icon: Camera },
+  { name: "Measure", href: "/measure", icon: Ruler },
 ];
 
 export function Navbar() {

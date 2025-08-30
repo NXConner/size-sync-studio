@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter } from "lucide-react";
 import { SessionPreset } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 export default function Sessions() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -21,8 +23,7 @@ export default function Sessions() {
   });
 
   const handleStartSession = (presetId: string) => {
-    // TODO: Navigate to session runner or start session flow
-    console.log("Starting session with preset:", presetId);
+    navigate("/run-session");
   };
 
   return (

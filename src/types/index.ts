@@ -19,6 +19,19 @@ export interface Session {
   postMeasurement?: Measurement;
   notes?: string;
   status: 'active' | 'completed' | 'cancelled';
+  // Added tracking fields
+  pressureLogs?: Array<{
+    timestamp: string; // ISO time
+    pressure: number; // kPa or chosen unit
+  }>;
+  tubeIntervals?: Array<{
+    start: string; // ISO time in tube start
+    end?: string; // ISO time in tube end
+  }>;
+  breaks?: Array<{
+    start: string; // ISO time break start
+    end?: string; // ISO time break end
+  }>;
 }
 
 export interface SessionPreset {
