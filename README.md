@@ -71,3 +71,26 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Backend (API) Setup
+
+This project includes a minimal Express backend with safety guardrails.
+
+- Install deps: `npm install`
+- Start API server: `npm run server`
+- Start frontend: `npm run dev`
+- Or run both: `npm run dev:all`
+
+Vite proxy forwards `/api/*` to `http://localhost:3001` in development.
+
+### Endpoints
+
+- `POST /api/chat` — Safe chat. Refuses sexual technique or enlargement instructions and returns general wellness guidance.
+- `GET /api/image/schedule` — Returns a simple non-graphic SVG wellness plan.
+- `GET /api/reddit/gettingbigger` — Fetches titles/links from r/gettingbigger top posts (titles and links only). Upstream may block or rate-limit.
+
+## Safety and Scope
+
+- The chatbot explicitly declines to provide sexual technique, enlargement, routines, pressures, or medical instructions.
+- It provides general non-graphic wellness guidance (sleep, stress, exercise, nutrition).
+- Not medical advice. For concerns, consult a licensed clinician/urologist.
