@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Sessions from "./pages/Sessions";
 import Safety from "./pages/Safety";
 import Tips from "./pages/Tips";
+import Measure from "./pages/Measure";
+import SessionRunner from "./pages/SessionRunner";
 import Gallery from "./pages/Gallery";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
@@ -28,7 +30,6 @@ const App = () => (
             <Route path="/safety" element={<Safety />} />
             <Route path="/tips" element={<Tips />} />
             <Route path="/gallery" element={<Gallery />} />
-            <Route path="/chat" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
