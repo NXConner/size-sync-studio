@@ -8,6 +8,7 @@ import { Measurement } from "@/types";
 import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -18,6 +19,7 @@ export default function Measure() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const overlayExportRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [unit, setUnit] = useState<"in" | "cm">("in");
   const [pixelsPerInch, setPixelsPerInch] = useState<number>(96); // default guess
@@ -36,30 +38,46 @@ export default function Measure() {
   const [prevOverlayUrl, setPrevOverlayUrl] = useState<string>("");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(30); // percent
   const [showPrevOverlay, setShowPrevOverlay] = useState<boolean>(false);
+  const [mode, setMode] = useState<"live" | "upload">("live");
+  const [uploadedUrl, setUploadedUrl] = useState<string>("");
+  const [uploadedBlob, setUploadedBlob] = useState<Blob | null>(null);
 
+  // Load previous photos once
   useEffect(() => {
-    const start = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream as MediaStream;
-          await videoRef.current.play();
-          drawOverlayLoop();
-        }
-      } catch (err) {
-        setStreamError("Camera access denied or not available.");
-      }
-    };
-    start();
-    // load previous photos list
     const withPhotos = getMeasurements().filter(m => m.photoUrl);
     setPrevPhotos(withPhotos);
     if (withPhotos.length > 0) setSelectedPrevId(withPhotos[0].id);
+  }, []);
+
+  // Manage camera stream based on mode
+  useEffect(() => {
+    let cancelled = false;
+    const start = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        if (videoRef.current && !cancelled) {
+          videoRef.current.srcObject = stream as MediaStream;
+          await videoRef.current.play();
+        }
+      } catch (err) {
+        if (!cancelled) setStreamError("Camera access denied or not available.");
+      }
+    };
+    if (mode === "live") {
+      start();
+    } else {
+      // stop any active stream when switching away from live
+      const stream = videoRef.current?.srcObject as MediaStream | undefined;
+      stream?.getTracks().forEach((t) => t.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
+    }
     return () => {
+      cancelled = true;
+      if (mode !== "live") return;
       const stream = videoRef.current?.srcObject as MediaStream | undefined;
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [mode]);
 
   // load selected previous overlay image
   useEffect(() => {
@@ -83,19 +101,19 @@ export default function Measure() {
     return () => { if (revokeUrl) URL.revokeObjectURL(revokeUrl); };
   }, [selectedPrevId]);
 
-  // Draw overlay continuously for live measurements
+  // Draw overlay continuously for measurements
   const drawOverlayLoop = () => {
     const overlay = overlayRef.current;
-    const video = videoRef.current;
-    if (!overlay || !video) return;
+    const container = containerRef.current;
+    if (!overlay || !container) return;
 
     const ctx = overlay.getContext("2d");
     if (!ctx) return;
 
     const render = () => {
-      // match overlay size to video element
-      overlay.width = video.clientWidth;
-      overlay.height = video.clientHeight;
+      // match overlay size to media container
+      overlay.width = container.clientWidth;
+      overlay.height = container.clientHeight;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
       // Calibration line
@@ -168,6 +186,16 @@ export default function Measure() {
     requestAnimationFrame(render);
   };
 
+  // Start overlay loop once
+  useEffect(() => {
+    drawOverlayLoop();
+    // cleanup uploaded image URL
+    return () => {
+      if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleOverlayClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -204,19 +232,27 @@ export default function Measure() {
   };
 
   const capture = async () => {
-    const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!canvas) return;
 
-    // draw current frame to canvas
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // export as blob
-    const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), "image/jpeg", 0.9));
+    let photoBlob: Blob | null = null;
+    if (mode === "live") {
+      const video = videoRef.current;
+      if (!video) return;
+      // draw current frame to canvas
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      photoBlob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), "image/jpeg", 0.9));
+    } else {
+      if (!uploadedBlob) {
+        toast({ title: "No image uploaded", description: "Please upload an image first.", variant: "destructive" });
+        return;
+      }
+      photoBlob = uploadedBlob;
+    }
 
     // create measurement entity
     const inches = parseFloat(lengthDisplay);
@@ -231,7 +267,7 @@ export default function Measure() {
     };
 
     saveMeasurement(measurement);
-    await savePhoto(measurement.id, blob);
+    await savePhoto(measurement.id, photoBlob);
 
     // Compare to latest previous
     const prev = latestPrev;
@@ -286,7 +322,15 @@ export default function Measure() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><Ruler className="w-5 h-5" /> Live Measure</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="flex items-center gap-2"><Ruler className="w-5 h-5" /> Measure</CardTitle>
+              <Tabs value={mode} onValueChange={(v) => setMode(v as "live" | "upload")}>
+                <TabsList>
+                  <TabsTrigger value="live">Live</TabsTrigger>
+                  <TabsTrigger value="upload">Upload</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
                 Calibrate
@@ -302,11 +346,34 @@ export default function Measure() {
                 <option value="in">in</option>
                 <option value="cm">cm</option>
               </select>
+              {mode === "upload" && (
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
+                    const url = URL.createObjectURL(file);
+                    setUploadedUrl(url);
+                    setUploadedBlob(file);
+                  }}
+                  className="w-48"
+                />
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="relative w-full">
-              <video ref={videoRef} className="w-full max-h-[70vh] rounded-lg bg-black" playsInline muted />
+            <div className="relative w-full" ref={containerRef}>
+              {mode === "live" ? (
+                <video ref={videoRef} className="w-full max-h-[70vh] rounded-lg bg-black" playsInline muted />
+              ) : uploadedUrl ? (
+                <img src={uploadedUrl} alt="Uploaded" className="w-full max-h-[70vh] rounded-lg bg-black object-contain" />
+              ) : (
+                <div className="w-full max-h-[70vh] h-[50vh] rounded-lg bg-black/60 flex items-center justify-center text-sm text-muted-foreground">
+                  Upload an image to begin measurement
+                </div>
+              )}
               {showPrevOverlay && prevOverlayUrl && (
                 <img src={prevOverlayUrl} alt="Previous overlay" className="absolute left-0 top-0 w-full h-full object-cover pointer-events-none" style={{ opacity: overlayOpacity / 100 }} />
               )}
