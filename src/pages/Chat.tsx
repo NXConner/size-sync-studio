@@ -22,29 +22,86 @@ export default function Chat() {
   const [redditError, setRedditError] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [sources, setSources] = useState<{ name: string; url: string }[]>([]);
+  const [lastUser, setLastUser] = useState<string>("");
+  const [lastAssistant, setLastAssistant] = useState<string>("");
 
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
     setMessages((m) => [...m, { role: "user", content: text }]);
+    setLastUser(text);
     setInput("");
-    setLoading(true);
+    if (streaming) {
+      // Stream via SSE
+      const id = Date.now();
+      setMessages((m) => [...m, { role: "assistant", content: "" }]);
+      const evt = new EventSource(`/api/chat/stream`);
+      let acc = "";
+      setLoading(true);
+      evt.onmessage = (e) => {
+        if (!e?.data) return;
+        if (e.data === "[DONE]") {
+          setLastAssistant(acc);
+          evt.close();
+          setLoading(false);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(e.data);
+          const token: string = String(parsed.token || "");
+          acc += token;
+          setMessages((m) => {
+            const copy = m.slice();
+            // update last assistant message content
+            for (let i = copy.length - 1; i >= 0; i--) {
+              if (copy[i].role === "assistant") {
+                copy[i] = { ...copy[i], content: acc };
+                break;
+              }
+            }
+            return copy;
+          });
+        } catch {
+          // ignore parse errors
+        }
+      };
+      evt.onerror = () => {
+        evt.close();
+        setLoading(false);
+      };
+    } else {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+        const data = await res.json();
+        setSources(Array.isArray(data.sources) ? data.sources : []);
+        const reply = String(data.reply || "");
+        setMessages((m) => [...m, { role: "assistant", content: reply }]);
+        setLastAssistant(reply);
+      } catch (err) {
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: "There was a problem. Please try again." },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+
+  async function sendFeedback(rating: "up" | "down") {
     try {
-      const res = await fetch("/api/chat", {
+      await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: lastUser, reply: lastAssistant, rating, reasons: [] }),
       });
-      const data = await res.json();
-      setSources(Array.isArray(data.sources) ? data.sources : []);
-      setMessages((m) => [...m, { role: "assistant", content: String(data.reply || "") }]);
-    } catch (err) {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "There was a problem. Please try again." },
-      ]);
-    } finally {
-      setLoading(false);
+    } catch {
+      // no-op
     }
   }
 
@@ -99,6 +156,21 @@ export default function Chat() {
           onClick={send}
         >
           {loading ? "Sending..." : "Send"}
+        </button>
+      </div>
+      <div className="flex items-center gap-2 mt-3 text-sm">
+        <span className="text-muted-foreground">Rate last answer:</span>
+        <button
+          className="px-2 py-1 rounded border hover:bg-muted"
+          onClick={() => sendFeedback("up")}
+        >
+          👍
+        </button>
+        <button
+          className="px-2 py-1 rounded border hover:bg-muted"
+          onClick={() => sendFeedback("down")}
+        >
+          👎
         </button>
       </div>
       {sources.length > 0 && (
