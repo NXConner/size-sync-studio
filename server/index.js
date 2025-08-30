@@ -1,12 +1,34 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { config, hasRedditCredentials } from "./config.js";
+import swaggerUi from "swagger-ui-express";
+import { openapiSpec } from "./openapi.js";
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = config.PORT;
 
 app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+app.use(rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
+
+// In-memory caches
+const cache = {
+  redditGettingBigger: { timestamp: 0, data: null },
+  redditAuth: { token: null, expiresAt: 0 },
+};
 app.use(express.json({ limit: "1mb" }));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 const refusalMessage = (
   "I can’t provide instructions for sexual techniques, enlargement, or pressure/time routines. " +
@@ -46,6 +68,10 @@ app.post("/api/chat", async (req, res) => {
         refused: true,
         categories: ["sexual instruction"],
       },
+      sources: [
+        { name: "NIDDK Sexual Health", url: "https://www.niddk.nih.gov/health-information/urologic-diseases/erectile-dysfunction" },
+        { name: "NHLBI Sleep & Health", url: "https://www.nhlbi.nih.gov/health/sleep" },
+      ],
     });
   }
 
@@ -55,18 +81,103 @@ app.post("/api/chat", async (req, res) => {
     "Regular exercise (mix resistance + cardio); 4) Nutritious diet, minimize alcohol/smoking). " +
     "For sexual health concerns, consult a licensed clinician or urologist.";
 
-  return res.json({ reply: safeReply, safety: { refused: false } });
+  return res.json({
+    reply: safeReply,
+    safety: { refused: false },
+    sources: [
+      { name: "CDC Physical Activity", url: "https://www.cdc.gov/physicalactivity/" },
+      { name: "NIH Nutrition Basics", url: "https://www.nutrition.gov/topics/basic-nutrition" },
+    ],
+  });
+});
+
+// Streaming chat (SSE) - streams a generic wellness message in chunks
+app.get("/api/chat/stream", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  const chunks = [
+    "General wellness guidance: ",
+    "prioritize consistent sleep, ",
+    "manage stress daily, ",
+    "exercise regularly, ",
+    "and maintain balanced nutrition. ",
+    "This is not medical advice.",
+  ];
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= chunks.length) {
+      res.write("data: [DONE]\n\n");
+      clearInterval(interval);
+      res.end();
+      return;
+    }
+    res.write(`data: ${JSON.stringify({ token: chunks[i] })}\n\n`);
+    i += 1;
+  }, 250);
+  req.on("close", () => {
+    clearInterval(interval);
+  });
 });
 
 // Safe Reddit retrieval: titles and links only from r/gettingbigger
 app.get("/api/reddit/gettingbigger", async (_req, res) => {
   try {
-    const url = "https://www.reddit.com/r/gettingbigger/top.json?limit=10&t=week";
-    const response = await fetch(url, { headers: { "User-Agent": "SizeSeekerBot/1.0" } });
-    if (!response.ok) {
-      return res.status(502).json({ error: "Upstream error" });
+    // Serve from cache if fresh (10 min TTL)
+    const now = Date.now();
+    if (cache.redditGettingBigger.data && now - cache.redditGettingBigger.timestamp < 10 * 60 * 1000) {
+      return res.json(cache.redditGettingBigger.data);
     }
-    const json = await response.json();
+
+    async function fetchWithOAuth() {
+      const tokenValid = cache.redditAuth.token && cache.redditAuth.expiresAt > now + 5000;
+      if (!tokenValid) {
+        const basic = Buffer.from(`${config.REDDIT_CLIENT_ID}:${config.REDDIT_CLIENT_SECRET}`).toString("base64");
+        const form = new URLSearchParams();
+        form.set("grant_type", "password");
+        form.set("username", String(config.REDDIT_USERNAME));
+        form.set("password", String(config.REDDIT_PASSWORD));
+        const tRes = await fetch("https://www.reddit.com/api/v1/access_token", {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${basic}`,
+            "User-Agent": "SizeSeekerBot/1.0",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: form.toString(),
+        });
+        if (!tRes.ok) throw new Error("oauth token error");
+        const tJson = await tRes.json();
+        cache.redditAuth.token = tJson.access_token;
+        cache.redditAuth.expiresAt = now + (tJson.expires_in ? tJson.expires_in * 1000 : 3600 * 1000);
+      }
+      const apiRes = await fetch("https://oauth.reddit.com/r/gettingbigger/top?limit=10&t=week", {
+        headers: {
+          Authorization: `Bearer ${cache.redditAuth.token}`,
+          "User-Agent": "SizeSeekerBot/1.0",
+        },
+      });
+      if (!apiRes.ok) throw new Error("oauth api error");
+      return apiRes.json();
+    }
+
+    let json;
+    if (hasRedditCredentials()) {
+      try {
+        json = await fetchWithOAuth();
+      } catch (_e) {
+        // fallback to public endpoint
+      }
+    }
+    if (!json) {
+      const url = "https://www.reddit.com/r/gettingbigger/top.json?limit=10&t=week";
+      const response = await fetch(url, { headers: { "User-Agent": "SizeSeekerBot/1.0" } });
+      if (!response.ok) {
+        return res.status(502).json({ error: "Upstream error" });
+      }
+      json = await response.json();
+    }
+
     const posts = (json?.data?.children || []).map((c) => {
       const d = c?.data || {};
       return {
@@ -79,11 +190,14 @@ app.get("/api/reddit/gettingbigger", async (_req, res) => {
         url: d.url_overridden_by_dest || d.url,
       };
     });
-    return res.json({
+    const payload = {
       disclaimer:
         "Community content may include unverified claims. For safety, avoid implementing routines or pressures. Consult licensed clinicians.",
       posts,
-    });
+      cachedAt: new Date().toISOString(),
+    };
+    cache.redditGettingBigger = { timestamp: now, data: payload };
+    return res.json(payload);
   } catch (e) {
     return res.status(500).json({ error: "Failed to fetch subreddit" });
   }
@@ -129,6 +243,23 @@ app.get("/api/image/schedule", (req, res) => {
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
+});
+
+// Feedback endpoint (in-memory capture)
+const feedbackStore = [];
+app.post("/api/feedback", (req, res) => {
+  const { message, reply, rating, reasons } = req.body || {};
+  const entry = {
+    id: String(Date.now()) + Math.random().toString(36).slice(2),
+    ts: new Date().toISOString(),
+    message: String(message || ""),
+    reply: String(reply || ""),
+    rating: rating === "up" || rating === "down" ? rating : null,
+    reasons: Array.isArray(reasons) ? reasons.slice(0, 5).map(String) : [],
+  };
+  feedbackStore.push(entry);
+  if (feedbackStore.length > 500) feedbackStore.shift();
+  res.json({ ok: true });
 });
 
 app.listen(port, () => {

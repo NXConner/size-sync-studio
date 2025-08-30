@@ -20,6 +20,8 @@ export default function Chat() {
     { id: string; title: string; permalink: string; author: string }[]
   >([]);
   const [redditError, setRedditError] = useState<string | null>(null);
+  const [streaming, setStreaming] = useState(false);
+  const [sources, setSources] = useState<{ name: string; url: string }[]>([]);
 
   async function send() {
     const text = input.trim();
@@ -34,6 +36,7 @@ export default function Chat() {
         body: JSON.stringify({ message: text }),
       });
       const data = await res.json();
+      setSources(Array.isArray(data.sources) ? data.sources : []);
       setMessages((m) => [...m, { role: "assistant", content: String(data.reply || "") }]);
     } catch (err) {
       setMessages((m) => [
@@ -48,6 +51,16 @@ export default function Chat() {
   return (
     <div className="container mx-auto px-4 py-6">
       <h1 className="text-2xl font-semibold mb-4">Chat</h1>
+      <div className="flex items-center gap-3 mb-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={streaming}
+            onChange={(e) => setStreaming(e.target.checked)}
+          />
+          Streaming
+        </label>
+      </div>
       <div className="space-y-3 mb-4 max-h-[60vh] overflow-auto p-3 rounded-lg border">
         {messages.map((m, i) => (
           <div
@@ -88,6 +101,20 @@ export default function Chat() {
           {loading ? "Sending..." : "Send"}
         </button>
       </div>
+      {sources.length > 0 && (
+        <div className="mt-3 p-3 rounded-lg border bg-muted/50">
+          <div className="text-sm font-medium mb-1">Why this answer?</div>
+          <ul className="list-disc ml-5 text-sm">
+            {sources.map((s, i) => (
+              <li key={`${s.url}-${i}`}>
+                <a className="hover:underline" href={s.url} target="_blank" rel="noreferrer">
+                  {s.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="text-xs text-muted-foreground mt-3">
         Not medical advice. If you have symptoms or concerns, see a licensed clinician.
       </div>
