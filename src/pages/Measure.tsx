@@ -259,33 +259,110 @@ export default function Measure() {
       pctx.drawImage(imgEl, 0, 0, w, h);
 
       const src = cv.imread(procCanvas);
-      const gray = new cv.Mat();
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-      const blurred = new cv.Mat();
-      cv.GaussianBlur(gray, blurred, new cv.Size(9, 9), 0, 0, cv.BORDER_DEFAULT);
-      const edges = new cv.Mat();
-      cv.Canny(blurred, edges, 50, 150);
+      const rgba = new cv.Mat();
+      cv.cvtColor(src, rgba, cv.COLOR_RGBA2RGB);
+      const hsv = new cv.Mat();
+      const ycrcb = new cv.Mat();
+      cv.cvtColor(rgba, hsv, cv.COLOR_RGB2HSV);
+      cv.cvtColor(rgba, ycrcb, cv.COLOR_RGB2YCrCb);
 
-      // Hough lines for approximate shaft axis
-      const lines = new cv.Mat();
-      cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 80, 0.2 * Math.min(w, h), 20);
+      // Skin masking in YCrCb and HSV, then combine
+      const mask1 = new cv.Mat();
+      const mask2 = new cv.Mat();
+      const mask = new cv.Mat();
+      const low1 = new cv.Mat(h, w, cv.CV_8UC3, [0, 133, 77]);
+      const high1 = new cv.Mat(h, w, cv.CV_8UC3, [255, 173, 127]);
+      cv.inRange(ycrcb, low1, high1, mask1);
+      const low2 = new cv.Mat(h, w, cv.CV_8UC3, [0, Math.round(0.23 * 255), 50]);
+      const high2 = new cv.Mat(h, w, cv.CV_8UC3, [50, Math.round(0.68 * 255), 255]);
+      cv.inRange(hsv, low2, high2, mask2);
+      cv.bitwise_or(mask1, mask2, mask);
 
-      let bestLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
-      let bestLen = 0;
-      for (let i = 0; i < lines.rows; i++) {
-        const p = lines.int32Ptr(i);
-        const x1 = p[0], y1 = p[1], x2 = p[2], y2 = p[3];
-        const len = Math.hypot(x2 - x1, y2 - y1);
-        if (len > bestLen) {
-          bestLen = len;
-          bestLine = { x1, y1, x2, y2 };
+      // Morphology to clean up
+      const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7));
+      cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
+      cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
+
+      // Contour detection
+      const contours = new cv.MatVector();
+      const hierarchy = new cv.Mat();
+      cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+      let bestIdx = -1;
+      let bestArea = 0;
+      for (let i = 0; i < contours.size(); i++) {
+        const cnt = contours.get(i);
+        const area = cv.contourArea(cnt, false);
+        if (area > bestArea) { bestArea = area; bestIdx = i; }
+        cnt.delete();
+      }
+      // We deleted contours during iteration; need to refind to access the best
+      contours.delete();
+      hierarchy.delete();
+      const contours2 = new cv.MatVector();
+      const hierarchy2 = new cv.Mat();
+      cv.findContours(mask, contours2, hierarchy2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      let axisUx = 1, axisUy = 0;
+      let end1: {x:number;y:number}|null = null;
+      let end2: {x:number;y:number}|null = null;
+
+      if (bestIdx >= 0) {
+        const cnt = contours2.get(bestIdx);
+        const moments = cv.moments(cnt, false);
+        const cx = moments.m00 !== 0 ? moments.m10 / moments.m00 : w / 2;
+        const cy = moments.m00 !== 0 ? moments.m01 / moments.m00 : h / 2;
+        const angle = 0.5 * Math.atan2(2 * moments.mu11, moments.mu20 - moments.mu02);
+        axisUx = Math.cos(angle);
+        axisUy = Math.sin(angle);
+        // project all contour points to find extremes
+        let minS = Number.POSITIVE_INFINITY;
+        let maxS = Number.NEGATIVE_INFINITY;
+        let minPt = {x: cx, y: cy};
+        let maxPt = {x: cx, y: cy};
+        const data = cnt.data32S;
+        for (let i = 0; i < data.length; i += 2) {
+          const x = data[i];
+          const y = data[i + 1];
+          const s = (x - cx) * axisUx + (y - cy) * axisUy;
+          if (s < minS) { minS = s; minPt = { x, y }; }
+          if (s > maxS) { maxS = s; maxPt = { x, y }; }
         }
+        end1 = minPt; end2 = maxPt;
+        cnt.delete();
       }
 
-      // Estimate base/tip as ends of bestLine; map into overlay coordinates
+      // Fallback using Hough if contour failed
+      if (!end1 || !end2) {
+        const gray = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        const blurred = new cv.Mat();
+        cv.GaussianBlur(gray, blurred, new cv.Size(9, 9), 0, 0, cv.BORDER_DEFAULT);
+        const edges = new cv.Mat();
+        cv.Canny(blurred, edges, 50, 150);
+        const lines = new cv.Mat();
+        cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 80, 0.2 * Math.min(w, h), 20);
+        let bestLineLen = 0;
+        for (let i = 0; i < lines.rows; i++) {
+          const p = lines.int32Ptr(i);
+          const x1 = p[0], y1 = p[1], x2 = p[2], y2 = p[3];
+          const len = Math.hypot(x2 - x1, y2 - y1);
+          if (len > bestLineLen) {
+            bestLineLen = len;
+            end1 = { x: x1, y: y1 };
+            end2 = { x: x2, y: y2 };
+            axisUx = (x2 - x1) / (len || 1);
+            axisUy = (y2 - y1) / (len || 1);
+          }
+        }
+        gray.delete();
+        blurred.delete();
+        edges.delete();
+        lines.delete();
+      }
+
+      // Map endpoints and compute girth by multi-slice sampling
       const container = containerRef.current;
-      if (bestLine && container) {
-        // Compute how the image is fit into the container (object-contain sizing)
+      if (end1 && end2 && container) {
         const containerW = container.clientWidth;
         const containerH = container.clientHeight;
         const scale = Math.min(containerW / w, containerH / h);
@@ -293,66 +370,65 @@ export default function Measure() {
         const drawH = h * scale;
         const offsetX = (containerW - drawW) / 2;
         const offsetY = (containerH - drawH) / 2;
+        const mapPoint = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
 
-        const mapPoint = (ix: number, iy: number) => ({
-          x: offsetX + ix * scale,
-          y: offsetY + iy * scale,
-        });
-
-        // Choose top vs bottom as base based on y positions (base near body -> likely lower y?)
-        // Fallback: set whichever is leftmost as base
-        const p1 = mapPoint(bestLine.x1, bestLine.y1);
-        const p2 = mapPoint(bestLine.x2, bestLine.y2);
-        // Heuristic: base is the point closer to the image edge (left side) if portrait; else use lower y
-        const base = (Math.min(bestLine.x1, bestLine.x2) === bestLine.x1) ? p1 : p2;
+        const p1 = mapPoint(end1.x, end1.y);
+        const p2 = mapPoint(end2.x, end2.y);
+        // Choose base as the endpoint with smaller x (heuristic) to stabilize
+        const base = (end1.x <= end2.x) ? p1 : p2;
         const tip = base === p1 ? p2 : p1;
         setBasePoint(base);
         setTipPoint(tip);
-      }
 
-      // Estimate girth: scan perpendicular width near mid-point
-      if (bestLine) {
-        const midX = (bestLine.x1 + bestLine.x2) / 2;
-        const midY = (bestLine.y1 + bestLine.y2) / 2;
-        const dx = bestLine.x2 - bestLine.x1;
-        const dy = bestLine.y2 - bestLine.y1;
-        const len = Math.hypot(dx, dy) || 1;
-        // Perpendicular unit vector
-        const ux = -dy / len;
-        const uy = dx / len;
-        // Sample along perpendicular in image space
-        const sampleHalf = Math.floor(Math.min(w, h) * 0.15);
-        let left = 0, right = 0;
-        const sample = (t: number) => {
-          const sx = Math.round(midX + t * ux);
-          const sy = Math.round(midY + t * uy);
-          if (sx < 0 || sy < 0 || sx >= w || sy >= h) return 255; // treat out of bounds as background
-          return gray.ucharPtr(sy, sx)[0];
+        // Build binary mask Mat for sampling if not already
+        const maskForSample = mask;
+        const perpUx = -axisUy; // perpendicular unit
+        const perpUy = axisUx;
+        // sample positions along axis between ends
+        const totalLen = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
+        const centerX = (end1.x + end2.x) / 2;
+        const centerY = (end1.y + end2.y) / 2;
+        const ts = [ -0.1, -0.05, 0, 0.05, 0.1 ]; // around mid
+        const widths: number[] = [];
+        const maxScan = Math.floor(Math.min(w, h) * 0.25);
+        const isInside = (x: number, y: number) => {
+          const ix = Math.round(x);
+          const iy = Math.round(y);
+          if (ix < 0 || iy < 0 || ix >= w || iy >= h) return false;
+          return maskForSample.ucharPtr(iy, ix)[0] > 0;
         };
-        // threshold around mid to find object edges from center outward
-        const threshold = 200;
-        for (let t = 0; t < sampleHalf; t++) {
-          if (sample(-t) > threshold) { left = t; break; }
+        for (const t of ts) {
+          const px = centerX + t * totalLen * axisUx;
+          const py = centerY + t * totalLen * axisUy;
+          let left = 0, right = 0;
+          for (let s = 0; s < maxScan; s++) {
+            if (!isInside(px - s * perpUx, py - s * perpUy)) { left = s; break; }
+          }
+          for (let s = 0; s < maxScan; s++) {
+            if (!isInside(px + s * perpUx, py + s * perpUy)) { right = s; break; }
+          }
+          const width = left + right;
+          if (width > 0) widths.push(width);
         }
-        for (let t = 0; t < sampleHalf; t++) {
-          if (sample(t) > threshold) { right = t; break; }
-        }
-        const widthPx = left + right;
-        const container = containerRef.current;
-        if (container) {
-          const containerW = container.clientWidth;
-          const containerH = container.clientHeight;
-          const scale = Math.min(containerW / w, containerH / h);
-          setGirthPixels(widthPx * scale);
+        if (widths.length) {
+          // median to reduce outliers
+          widths.sort((a, b) => a - b);
+          const median = widths[Math.floor(widths.length / 2)] * scale;
+          setGirthPixels(median);
         }
       }
 
       // Cleanup
       src.delete();
-      gray.delete();
-      blurred.delete();
-      edges.delete();
-      lines.delete();
+      rgba.delete();
+      hsv.delete();
+      ycrcb.delete();
+      mask1.delete();
+      mask2.delete();
+      mask.delete();
+      kernel.delete();
+      contours2.delete();
+      hierarchy2.delete();
       toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
     } catch (err: any) {
       toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
