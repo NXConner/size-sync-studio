@@ -34,6 +34,7 @@ export function Navbar() {
                 <Link
                   key={item.name}
                   to={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
@@ -56,6 +57,7 @@ export function Navbar() {
                 <Link
                   key={item.name}
                   to={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "p-2 rounded-lg transition-all duration-200",
                     isActive
