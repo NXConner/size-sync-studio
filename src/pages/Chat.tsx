@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -24,6 +24,42 @@ export default function Chat() {
   const [sources, setSources] = useState<{ name: string; url: string }[]>([]);
   const [lastUser, setLastUser] = useState<string>("");
   const [lastAssistant, setLastAssistant] = useState<string>("");
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const sseRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
+  function stop() {
+    if (sseRef.current) {
+      try { sseRef.current.close(); } catch {}
+      sseRef.current = null;
+    }
+    if (abortRef.current) {
+      try { abortRef.current.abort(); } catch {}
+      abortRef.current = null;
+    }
+    setLoading(false);
+  }
+
+  function clearChat() {
+    stop();
+    setMessages([
+      {
+        role: "assistant",
+        content:
+          "I provide general men’s health guidance. I won’t give sexual technique or enlargement instructions. For concerns, consult a clinician.",
+      },
+    ]);
+    setSources([]);
+    setRedditError(null);
+    setLastUser("");
+    setLastAssistant("");
+  }
 
   async function send() {
     const text = input.trim();
@@ -33,9 +69,9 @@ export default function Chat() {
     setInput("");
     if (streaming) {
       // Stream via SSE
-      const id = Date.now();
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
       const evt = new EventSource(`/api/chat/stream`);
+      sseRef.current = evt;
       let acc = "";
       setLoading(true);
       evt.onmessage = (e) => {
@@ -43,6 +79,7 @@ export default function Chat() {
         if (e.data === "[DONE]") {
           setLastAssistant(acc);
           evt.close();
+          sseRef.current = null;
           setLoading(false);
           return;
         }
@@ -67,15 +104,19 @@ export default function Chat() {
       };
       evt.onerror = () => {
         evt.close();
+        sseRef.current = null;
         setLoading(false);
       };
     } else {
       setLoading(true);
       try {
+        const controller = new AbortController();
+        abortRef.current = controller;
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: text }),
+          signal: controller.signal,
         });
         const data = await res.json();
         setSources(Array.isArray(data.sources) ? data.sources : []);
@@ -88,6 +129,7 @@ export default function Chat() {
           { role: "assistant", content: "There was a problem. Please try again." },
         ]);
       } finally {
+        abortRef.current = null;
         setLoading(false);
       }
     }
@@ -118,7 +160,7 @@ export default function Chat() {
           Streaming
         </label>
       </div>
-      <div className="space-y-3 mb-4 max-h-[60vh] overflow-auto p-3 rounded-lg border">
+      <div ref={messagesContainerRef} className="space-y-3 mb-4 max-h-[60vh] overflow-auto p-3 rounded-lg border" aria-live="polite">
         {messages.map((m, i) => (
           <div
             key={i}
@@ -140,23 +182,43 @@ export default function Chat() {
           </div>
         ))}
       </div>
-      <div className="flex gap-2">
-        <input
-          className="flex-1 px-3 py-2 rounded-lg border"
+      <div className="flex gap-2 items-start">
+        <textarea
+          className="flex-1 px-3 py-2 rounded-lg border min-h-[42px]"
           placeholder="Ask about general wellness, recovery, sleep, stress..."
           value={input}
+          rows={2}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") send();
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
           }}
         />
-        <button
-          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
-          disabled={loading}
-          onClick={send}
-        >
-          {loading ? "Sending..." : "Send"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+            disabled={loading || input.trim().length === 0}
+            onClick={send}
+          >
+            Send
+          </button>
+          <button
+            className="px-4 py-2 rounded-lg border disabled:opacity-50"
+            disabled={!loading}
+            onClick={stop}
+            aria-disabled={!loading}
+          >
+            Stop
+          </button>
+          <button
+            className="px-4 py-2 rounded-lg border"
+            onClick={clearChat}
+          >
+            Clear
+          </button>
+        </div>
       </div>
       <div className="flex items-center gap-2 mt-3 text-sm">
         <span className="text-muted-foreground">Rate last answer:</span>
