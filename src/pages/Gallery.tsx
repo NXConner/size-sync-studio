@@ -23,9 +23,9 @@ export default function Gallery() {
   }, [measurements, searchTerm, selectedFilter]);
 
   const loadMeasurements = async () => {
-    const data = getMeasurements().filter(m => m.photoUrl);
+    const data = getMeasurements().filter((m) => m.photoUrl);
     setMeasurements(data);
-    
+
     // Load photo URLs
     const urls: Record<string, string> = {};
     for (const measurement of data) {
@@ -47,34 +47,35 @@ export default function Gallery() {
     let filtered = measurements;
 
     if (searchTerm) {
-      filtered = filtered.filter(m => 
-        m.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        new Date(m.date).toLocaleDateString().includes(searchTerm)
+      filtered = filtered.filter(
+        (m) =>
+          m.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          new Date(m.date).toLocaleDateString().includes(searchTerm),
       );
     }
 
     if (selectedFilter !== "all") {
       const now = new Date();
       const filterDate = new Date();
-      
+
       switch (selectedFilter) {
         case "today":
           filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter(m => new Date(m.date) >= filterDate);
+          filtered = filtered.filter((m) => new Date(m.date) >= filterDate);
           break;
         case "week":
           filterDate.setDate(now.getDate() - 7);
-          filtered = filtered.filter(m => new Date(m.date) >= filterDate);
+          filtered = filtered.filter((m) => new Date(m.date) >= filterDate);
           break;
         case "month":
           filterDate.setMonth(now.getMonth() - 1);
-          filtered = filtered.filter(m => new Date(m.date) >= filterDate);
+          filtered = filtered.filter((m) => new Date(m.date) >= filterDate);
           break;
         case "sessions":
-          filtered = filtered.filter(m => m.sessionId);
+          filtered = filtered.filter((m) => m.sessionId);
           break;
         case "manual":
-          filtered = filtered.filter(m => !m.sessionId);
+          filtered = filtered.filter((m) => !m.sessionId);
           break;
       }
     }
@@ -87,23 +88,23 @@ export default function Gallery() {
   const handleDelete = async (measurementId: string) => {
     if (confirm("Are you sure you want to delete this photo and measurement?")) {
       deleteMeasurement(measurementId);
-      
+
       // Revoke object URL to free memory
       if (photoUrls[measurementId]) {
         URL.revokeObjectURL(photoUrls[measurementId]);
       }
-      
+
       loadMeasurements();
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -119,8 +120,8 @@ export default function Gallery() {
             </h1>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Track your progress visually with timestamped photos and measurements. 
-            Your journey documented with precision and privacy.
+            Track your progress visually with timestamped photos and measurements. Your journey
+            documented with precision and privacy.
           </p>
         </div>
 
@@ -135,7 +136,7 @@ export default function Gallery() {
               className="pl-10"
             />
           </div>
-          
+
           <select
             value={selectedFilter}
             onChange={(e) => setSelectedFilter(e.target.value)}
@@ -162,7 +163,7 @@ export default function Gallery() {
             <Card className="gradient-card">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-secondary">
-                  {measurements.filter(m => m.sessionId).length}
+                  {measurements.filter((m) => m.sessionId).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Session Photos</div>
               </CardContent>
@@ -170,7 +171,11 @@ export default function Gallery() {
             <Card className="gradient-card">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-accent">
-                  {measurements.filter(m => new Date(m.date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}
+                  {
+                    measurements.filter(
+                      (m) => new Date(m.date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                    ).length
+                  }
                 </div>
                 <div className="text-sm text-muted-foreground">This Week</div>
               </CardContent>
@@ -178,8 +183,10 @@ export default function Gallery() {
             <Card className="gradient-card">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-purple-400">
-                  {measurements.length > 0 ? 
-                    Math.max(...measurements.map(m => m.length)).toFixed(1) : '0'}"
+                  {measurements.length > 0
+                    ? Math.max(...measurements.map((m) => m.length)).toFixed(1)
+                    : "0"}
+                  "
                 </div>
                 <div className="text-sm text-muted-foreground">Best Length</div>
               </CardContent>
@@ -249,9 +256,7 @@ export default function Gallery() {
 
                   {/* Notes */}
                   {measurement.notes && (
-                    <p className="text-sm text-muted-foreground italic">
-                      "{measurement.notes}"
-                    </p>
+                    <p className="text-sm text-muted-foreground italic">"{measurement.notes}"</p>
                   )}
                 </CardContent>
               </Card>
@@ -262,14 +267,13 @@ export default function Gallery() {
             <Camera className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Photos Yet</h3>
             <p className="text-muted-foreground mb-4">
-              {measurements.length === 0 
+              {measurements.length === 0
                 ? "Start taking progress photos during your sessions to track your journey."
-                : "No photos match your current filter criteria."
-              }
+                : "No photos match your current filter criteria."}
             </p>
             {measurements.length > 0 && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setSearchTerm("");
                   setSelectedFilter("all");

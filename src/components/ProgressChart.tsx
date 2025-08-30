@@ -14,23 +14,21 @@ interface ProgressChartProps {
   color?: string;
 }
 
-export const ProgressChart = ({ 
-  data, 
-  title, 
-  unit, 
-  color = "hsl(var(--primary))" 
+export const ProgressChart = ({
+  data,
+  title,
+  unit,
+  color = "hsl(var(--primary))",
 }: ProgressChartProps) => {
   const formatXAxis = (tickItem: string) => {
-    return format(new Date(tickItem), 'MMM dd');
+    return format(new Date(tickItem), "MMM dd");
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="gradient-card p-3 rounded-lg shadow-card border">
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(label), 'PPP')}
-          </p>
+          <p className="text-sm text-muted-foreground">{format(new Date(label), "PPP")}</p>
           <p className="text-lg font-semibold text-primary">
             {payload[0].value} {unit}
           </p>
@@ -59,29 +57,29 @@ export const ProgressChart = ({
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>
-          Tracking {data.length} measurement{data.length !== 1 ? 's' : ''}
+          Tracking {data.length} measurement{data.length !== 1 ? "s" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={data}>
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tickFormatter={formatXAxis}
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
             />
-            <YAxis 
+            <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-              domain={['dataMin - 5', 'dataMax + 5']}
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+              domain={["dataMin - 5", "dataMax + 5"]}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
+            <Line
+              type="monotone"
+              dataKey="value"
               stroke={color}
               strokeWidth={3}
               dot={{ fill: color, strokeWidth: 2, r: 6 }}

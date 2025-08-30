@@ -33,7 +33,9 @@ export default function SessionRunner() {
       timerRef.current = requestAnimationFrame(loop);
     };
     timerRef.current = requestAnimationFrame(loop);
-    return () => { if (timerRef.current) cancelAnimationFrame(timerRef.current); };
+    return () => {
+      if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    };
   }, []);
 
   const toggleTube = () => {
@@ -69,12 +71,19 @@ export default function SessionRunner() {
   const logPressure = () => {
     setSession((prev) => ({
       ...prev,
-      pressureLogs: [...(prev.pressureLogs || []), { timestamp: new Date().toISOString(), pressure }],
+      pressureLogs: [
+        ...(prev.pressureLogs || []),
+        { timestamp: new Date().toISOString(), pressure },
+      ],
     }));
   };
 
   const finish = () => {
-    const finished: Session = { ...session, endTime: new Date().toISOString(), status: "completed" };
+    const finished: Session = {
+      ...session,
+      endTime: new Date().toISOString(),
+      status: "completed",
+    };
     saveSession(finished);
   };
 
@@ -91,24 +100,48 @@ export default function SessionRunner() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><Timer className="w-5 h-5" /> Session Runner</CardTitle>
-            <div className="text-sm text-muted-foreground">Elapsed: <span className="font-semibold">{fmt(elapsedMs)}</span></div>
+            <CardTitle className="flex items-center gap-2">
+              <Timer className="w-5 h-5" /> Session Runner
+            </CardTitle>
+            <div className="text-sm text-muted-foreground">
+              Elapsed: <span className="font-semibold">{fmt(elapsedMs)}</span>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <Button variant={isInTube ? "destructive" : "default"} onClick={toggleTube} className="gap-2">
-                {isInTube ? <LogOut className="w-4 h-4" /> : <Activity className="w-4 h-4" />} {isInTube ? "End In-Tube" : "Start In-Tube"}
+              <Button
+                variant={isInTube ? "destructive" : "default"}
+                onClick={toggleTube}
+                className="gap-2"
+              >
+                {isInTube ? <LogOut className="w-4 h-4" /> : <Activity className="w-4 h-4" />}{" "}
+                {isInTube ? "End In-Tube" : "Start In-Tube"}
               </Button>
-              <Button variant={isOnBreak ? "destructive" : "outline"} onClick={toggleBreak} className="gap-2">
-                {isOnBreak ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />} {isOnBreak ? "End Break" : "Start Break"}
+              <Button
+                variant={isOnBreak ? "destructive" : "outline"}
+                onClick={toggleBreak}
+                className="gap-2"
+              >
+                {isOnBreak ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}{" "}
+                {isOnBreak ? "End Break" : "Start Break"}
               </Button>
             </div>
 
             <div className="space-y-2">
-              <div className="text-sm">Pressure: <span className="font-semibold">{pressure} kPa</span></div>
-              <Slider value={[pressure]} min={-50} max={0} step={1} onValueChange={(v) => setPressure(v[0])} />
+              <div className="text-sm">
+                Pressure: <span className="font-semibold">{pressure} kPa</span>
+              </div>
+              <Slider
+                value={[pressure]}
+                min={-50}
+                max={0}
+                step={1}
+                onValueChange={(v) => setPressure(v[0])}
+              />
               <div className="flex gap-2">
-                <Button variant="outline" onClick={logPressure}>Log Pressure</Button>
+                <Button variant="outline" onClick={logPressure}>
+                  Log Pressure
+                </Button>
               </div>
             </div>
 
@@ -118,7 +151,8 @@ export default function SessionRunner() {
                 <ul className="space-y-1">
                   {(session.tubeIntervals || []).map((iv, idx) => (
                     <li key={idx} className="text-muted-foreground">
-                      {new Date(iv.start).toLocaleTimeString()} - {iv.end ? new Date(iv.end).toLocaleTimeString() : "..."}
+                      {new Date(iv.start).toLocaleTimeString()} -{" "}
+                      {iv.end ? new Date(iv.end).toLocaleTimeString() : "..."}
                     </li>
                   ))}
                 </ul>
@@ -128,7 +162,8 @@ export default function SessionRunner() {
                 <ul className="space-y-1">
                   {(session.breaks || []).map((br, idx) => (
                     <li key={idx} className="text-muted-foreground">
-                      {new Date(br.start).toLocaleTimeString()} - {br.end ? new Date(br.end).toLocaleTimeString() : "..."}
+                      {new Date(br.start).toLocaleTimeString()} -{" "}
+                      {br.end ? new Date(br.end).toLocaleTimeString() : "..."}
                     </li>
                   ))}
                 </ul>
@@ -157,7 +192,11 @@ export default function SessionRunner() {
             <CardTitle>Notes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Input placeholder="Optional notes" value={session.notes || ""} onChange={(e) => setSession({ ...session, notes: e.target.value })} />
+            <Input
+              placeholder="Optional notes"
+              value={session.notes || ""}
+              onChange={(e) => setSession({ ...session, notes: e.target.value })}
+            />
             <div className="text-xs text-muted-foreground">Session data autosaves on finish.</div>
           </CardContent>
         </Card>
@@ -165,4 +204,3 @@ export default function SessionRunner() {
     </div>
   );
 }
-

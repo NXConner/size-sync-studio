@@ -144,7 +144,9 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 
   .gradient-primary {
@@ -192,8 +194,13 @@ All colors MUST be HSL.
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   .animate-pulse-glow {
@@ -201,11 +208,12 @@ All colors MUST be HSL.
   }
 
   @keyframes pulse-glow {
-    0%, 100% { 
+    0%,
+    100% {
       opacity: 1;
       box-shadow: var(--shadow-glow);
     }
-    50% { 
+    50% {
       opacity: 0.8;
       box-shadow: 0 0 60px hsl(200 100% 70% / 0.6);
     }

@@ -1,9 +1,21 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,11 +45,11 @@ export const AddMeasurementDialog = ({ onAddMeasurement }: AddMeasurementDialogP
   const [unit, setUnit] = useState("");
   const { toast } = useToast();
 
-  const selectedType = measurementTypes.find(t => t.value === type);
+  const selectedType = measurementTypes.find((t) => t.value === type);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!type || !value || !unit) {
       toast({
         title: "Missing information",
@@ -91,10 +103,13 @@ export const AddMeasurementDialog = ({ onAddMeasurement }: AddMeasurementDialogP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="type">Measurement Type</Label>
-            <Select value={type} onValueChange={(value) => {
-              setType(value);
-              setUnit(""); // Reset unit when type changes
-            }}>
+            <Select
+              value={type}
+              onValueChange={(value) => {
+                setType(value);
+                setUnit(""); // Reset unit when type changes
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select measurement type" />
               </SelectTrigger>
@@ -137,9 +152,9 @@ export const AddMeasurementDialog = ({ onAddMeasurement }: AddMeasurementDialogP
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setOpen(false)}
               className="flex-1"
             >

@@ -12,8 +12,8 @@ const safetyGuidelines = [
       "Ensure a clean, private, comfortable environment",
       "Hydrate and avoid alcohol or recreational drugs",
       "Check that any equipment is clean and undamaged",
-      "Set clear stop criteria if anything feels off"
-    ]
+      "Set clear stop criteria if anything feels off",
+    ],
   },
   {
     title: "While Using Any Method or Equipment",
@@ -23,8 +23,8 @@ const safetyGuidelines = [
       "Avoid excessive force; slower and gentler is safer",
       "Take regular breaks to assess comfort and circulation",
       "Watch color/temperature changes and restore normal warmth",
-      "If unsure, do less and consult a licensed clinician"
-    ]
+      "If unsure, do less and consult a licensed clinician",
+    ],
   },
   {
     title: "Warning Signs",
@@ -34,8 +34,8 @@ const safetyGuidelines = [
       "Numbness, tingling, or loss of sensation",
       "Sharp, persistent, or increasing pain",
       "Unusual swelling or inflammation",
-      "Cold, clammy, or pale skin"
-    ]
+      "Cold, clammy, or pale skin",
+    ],
   },
   {
     title: "Aftercare & Monitoring",
@@ -45,9 +45,9 @@ const safetyGuidelines = [
       "Use a cool compress briefly if needed",
       "Monitor for delayed symptoms over the next 24–48 hours",
       "Document any concerns for future reference",
-      "Rest adequately before any future activity"
-    ]
-  }
+      "Rest adequately before any future activity",
+    ],
+  },
 ];
 
 const emergencySteps = [
@@ -56,7 +56,7 @@ const emergencySteps = [
   "Gently restore circulation and warmth",
   "Monitor symptoms closely",
   "Seek medical attention if symptoms persist or worsen",
-  "Document the incident for your clinician"
+  "Document the incident for your clinician",
 ];
 
 export default function Safety() {
@@ -72,8 +72,8 @@ export default function Safety() {
             </h1>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Your safety is our top priority. Please read and understand these guidelines 
-            before starting any enhancement routine.
+            Your safety is our top priority. Please read and understand these guidelines before
+            starting any enhancement routine.
           </p>
         </div>
 
@@ -81,9 +81,9 @@ export default function Safety() {
         <Alert className="border-destructive/50 bg-destructive/10">
           <AlertTriangle className="h-4 w-4 text-destructive" />
           <AlertDescription className="text-destructive-foreground">
-            <strong>IMPORTANT:</strong> These routines carry inherent risks. Use at your own discretion. 
-            Stop immediately if you experience any pain, discomfort, or unusual symptoms. 
-            Consult a healthcare professional if you have any medical concerns.
+            <strong>IMPORTANT:</strong> These routines carry inherent risks. Use at your own
+            discretion. Stop immediately if you experience any pain, discomfort, or unusual
+            symptoms. Consult a healthcare professional if you have any medical concerns.
           </AlertDescription>
         </Alert>
 
@@ -125,7 +125,10 @@ export default function Safety() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {emergencySteps.map((step, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                <div
+                  key={index}
+                  className="flex items-start space-x-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20"
+                >
                   <Badge variant="destructive" className="flex-shrink-0">
                     {index + 1}
                   </Badge>
@@ -173,9 +176,10 @@ export default function Safety() {
         {/* Disclaimer */}
         <div className="text-center p-6 bg-muted/20 rounded-lg border border-border/20">
           <p className="text-sm text-muted-foreground">
-            <strong>Medical Disclaimer:</strong> This app is for educational purposes only and does not constitute medical advice. 
-            Consult with a healthcare professional before beginning any enhancement routine. The developers are not responsible 
-            for any injuries or adverse effects resulting from the use of this application.
+            <strong>Medical Disclaimer:</strong> This app is for educational purposes only and does
+            not constitute medical advice. Consult with a healthcare professional before beginning
+            any enhancement routine. The developers are not responsible for any injuries or adverse
+            effects resulting from the use of this application.
           </p>
         </div>
       </div>

@@ -18,7 +18,7 @@ export interface Session {
   preMeasurement?: Measurement;
   postMeasurement?: Measurement;
   notes?: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: "active" | "completed" | "cancelled";
   // Added tracking fields
   pressureLogs?: Array<{
     timestamp: string; // ISO time
@@ -38,19 +38,19 @@ export interface SessionPreset {
   id: string;
   name: string;
   description: string;
-  category: 'length' | 'girth' | 'both' | 'testicles';
+  category: "length" | "girth" | "both" | "testicles";
   pressure: number; // kPa or similar unit
   duration: number; // minutes
   restPeriods: number[];
   safetyTips: string[];
   warnings: string[];
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: "beginner" | "intermediate" | "advanced";
   icon: string;
 }
 
 export interface Goal {
   id: string;
-  type: 'length' | 'girth';
+  type: "length" | "girth";
   target: number;
   current: number;
   deadline?: string;
@@ -59,7 +59,7 @@ export interface Goal {
 
 export interface SafetyAlert {
   id: string;
-  type: 'warning' | 'danger' | 'info';
+  type: "warning" | "danger" | "info";
   message: string;
   timestamp: string;
   acknowledged: boolean;

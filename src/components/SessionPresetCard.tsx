@@ -12,15 +12,15 @@ interface SessionPresetCardProps {
 
 const difficultyColors = {
   beginner: "bg-success/20 text-success border-success/30",
-  intermediate: "bg-warning/20 text-warning border-warning/30", 
-  advanced: "bg-destructive/20 text-destructive border-destructive/30"
+  intermediate: "bg-warning/20 text-warning border-warning/30",
+  advanced: "bg-destructive/20 text-destructive border-destructive/30",
 };
 
 const categoryColors = {
   length: "bg-primary/20 text-primary border-primary/30",
   girth: "bg-secondary/20 text-secondary border-secondary/30",
   both: "bg-accent/20 text-accent border-accent/30",
-  testicles: "bg-purple-500/20 text-purple-400 border-purple-500/30"
+  testicles: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
 export function SessionPresetCard({ preset, onStart }: SessionPresetCardProps) {
@@ -36,19 +36,13 @@ export function SessionPresetCard({ preset, onStart }: SessionPresetCardProps) {
               {preset.description}
             </CardDescription>
           </div>
-          <Badge 
-            variant="outline" 
-            className={cn("ml-2", difficultyColors[preset.difficulty])}
-          >
+          <Badge variant="outline" className={cn("ml-2", difficultyColors[preset.difficulty])}>
             {preset.difficulty}
           </Badge>
         </div>
-        
+
         <div className="flex gap-2 mt-3">
-          <Badge 
-            variant="outline" 
-            className={cn(categoryColors[preset.category])}
-          >
+          <Badge variant="outline" className={cn(categoryColors[preset.category])}>
             {preset.category}
           </Badge>
         </div>
@@ -76,8 +70,8 @@ export function SessionPresetCard({ preset, onStart }: SessionPresetCardProps) {
           </div>
         )}
 
-        <Button 
-          onClick={() => onStart(preset.id)} 
+        <Button
+          onClick={() => onStart(preset.id)}
           className="w-full gradient-primary hover:shadow-primary shadow-lg transition-all duration-200"
         >
           Start Session

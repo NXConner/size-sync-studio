@@ -4,24 +4,32 @@ import fetch from "node-fetch";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { config, hasRedditCredentials } from "./config.js";
+import * as Sentry from "@sentry/node";
 import crypto from "node:crypto";
 import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
 
 const app = express();
+if (config.SENTRY_DSN) {
+  Sentry.init({ dsn: config.SENTRY_DSN, tracesSampleRate: 0.1 });
+  app.use(Sentry.requestHandler());
+  app.use(Sentry.tracingHandler());
+}
 app.set("trust proxy", 1);
 const port = config.PORT;
 
 const allowedOrigin = config.WEB_ORIGIN;
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!allowedOrigin) return callback(null, true);
-    if (!origin) return callback(null, true);
-    if (origin === allowedOrigin) return callback(null, true);
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!allowedOrigin) return callback(null, true);
+      if (!origin) return callback(null, true);
+      if (origin === allowedOrigin) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 const isProd = config.NODE_ENV === "production";
 const cspDirectives = {
   defaultSrc: ["'self'"],
@@ -30,16 +38,20 @@ const cspDirectives = {
   imgSrc: ["'self'", "data:", "https:"],
   connectSrc: ["'self'", "https:", "http:"],
 };
-app.use(helmet({
-  contentSecurityPolicy: isProd ? { directives: cspDirectives } : false,
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-}));
-app.use(rateLimit({
-  windowMs: 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: isProd ? { directives: cspDirectives } : false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+);
 
 // In-memory caches
 const cache = {
@@ -49,11 +61,10 @@ const cache = {
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
-const refusalMessage = (
+const refusalMessage =
   "I can’t provide instructions for sexual techniques, enlargement, or pressure/time routines. " +
-    "For safety, discuss goals with a licensed clinician. I can share general, non-graphic wellness guidance (sleep," +
-    " stress, exercise, nutrition) and pointers to evidence-based sexual health resources."
-);
+  "For safety, discuss goals with a licensed clinician. I can share general, non-graphic wellness guidance (sleep," +
+  " stress, exercise, nutrition) and pointers to evidence-based sexual health resources.";
 
 function isDisallowed(query) {
   if (!query) return false;
@@ -88,7 +99,10 @@ app.post("/api/chat", async (req, res) => {
         categories: ["sexual instruction"],
       },
       sources: [
-        { name: "NIDDK Sexual Health", url: "https://www.niddk.nih.gov/health-information/urologic-diseases/erectile-dysfunction" },
+        {
+          name: "NIDDK Sexual Health",
+          url: "https://www.niddk.nih.gov/health-information/urologic-diseases/erectile-dysfunction",
+        },
         { name: "NHLBI Sleep & Health", url: "https://www.nhlbi.nih.gov/health/sleep" },
       ],
     });
@@ -144,14 +158,19 @@ app.get("/api/reddit/gettingbigger", async (_req, res) => {
   try {
     // Serve from cache if fresh (10 min TTL)
     const now = Date.now();
-    if (cache.redditGettingBigger.data && now - cache.redditGettingBigger.timestamp < 10 * 60 * 1000) {
+    if (
+      cache.redditGettingBigger.data &&
+      now - cache.redditGettingBigger.timestamp < 10 * 60 * 1000
+    ) {
       return res.json(cache.redditGettingBigger.data);
     }
 
     async function fetchWithOAuth() {
       const tokenValid = cache.redditAuth.token && cache.redditAuth.expiresAt > now + 5000;
       if (!tokenValid) {
-        const basic = Buffer.from(`${config.REDDIT_CLIENT_ID}:${config.REDDIT_CLIENT_SECRET}`).toString("base64");
+        const basic = Buffer.from(
+          `${config.REDDIT_CLIENT_ID}:${config.REDDIT_CLIENT_SECRET}`,
+        ).toString("base64");
         const form = new URLSearchParams();
         form.set("grant_type", "password");
         form.set("username", String(config.REDDIT_USERNAME));
@@ -168,7 +187,8 @@ app.get("/api/reddit/gettingbigger", async (_req, res) => {
         if (!tRes.ok) throw new Error("oauth token error");
         const tJson = await tRes.json();
         cache.redditAuth.token = tJson.access_token;
-        cache.redditAuth.expiresAt = now + (tJson.expires_in ? tJson.expires_in * 1000 : 3600 * 1000);
+        cache.redditAuth.expiresAt =
+          now + (tJson.expires_in ? tJson.expires_in * 1000 : 3600 * 1000);
       }
       const apiRes = await fetch("https://oauth.reddit.com/r/gettingbigger/top?limit=10&t=week", {
         headers: {
@@ -281,7 +301,10 @@ app.post("/api/feedback", (req, res) => {
   res.json({ ok: true });
 });
 
+if (config.SENTRY_DSN) {
+  app.use(Sentry.errorHandler());
+}
+
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });
-

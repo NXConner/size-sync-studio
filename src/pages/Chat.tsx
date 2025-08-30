@@ -36,11 +36,15 @@ export default function Chat() {
 
   function stop() {
     if (sseRef.current) {
-      try { sseRef.current.close(); } catch {}
+      try {
+        sseRef.current.close();
+      } catch {}
       sseRef.current = null;
     }
     if (abortRef.current) {
-      try { abortRef.current.abort(); } catch {}
+      try {
+        abortRef.current.abort();
+      } catch {}
       abortRef.current = null;
     }
     setLoading(false);
@@ -160,15 +164,15 @@ export default function Chat() {
           Streaming
         </label>
       </div>
-      <div ref={messagesContainerRef} className="space-y-3 mb-4 max-h-[60vh] overflow-auto p-3 rounded-lg border" aria-live="polite">
+      <div
+        ref={messagesContainerRef}
+        className="space-y-3 mb-4 max-h-[60vh] overflow-auto p-3 rounded-lg border"
+        aria-live="polite"
+      >
         {messages.map((m, i) => (
           <div
             key={i}
-            className={
-              m.role === "user"
-                ? "text-right"
-                : "text-left text-muted-foreground"
-            }
+            className={m.role === "user" ? "text-right" : "text-left text-muted-foreground"}
           >
             <div
               className={
@@ -212,10 +216,7 @@ export default function Chat() {
           >
             Stop
           </button>
-          <button
-            className="px-4 py-2 rounded-lg border"
-            onClick={clearChat}
-          >
+          <button className="px-4 py-2 rounded-lg border" onClick={clearChat}>
             Clear
           </button>
         </div>
@@ -268,7 +269,7 @@ export default function Chat() {
                   id: String(p.id),
                   title: String(p.title || ""),
                   permalink: String(p.permalink || ""),
-                  author: String(p.author || "")
+                  author: String(p.author || ""),
                 }));
                 setRedditPosts(posts);
               } catch (e: any) {
@@ -282,9 +283,7 @@ export default function Chat() {
             {redditLoading ? "Loading..." : "Load Posts"}
           </button>
         </div>
-        {redditError && (
-          <div className="text-sm text-red-500 mb-2">{redditError}</div>
-        )}
+        {redditError && <div className="text-sm text-red-500 mb-2">{redditError}</div>}
         <ul className="space-y-2">
           {redditPosts.map((p) => (
             <li key={p.id} className="p-3 rounded-lg border bg-card">
@@ -301,10 +300,10 @@ export default function Chat() {
           ))}
         </ul>
         <p className="text-xs text-muted-foreground mt-2">
-          Community posts may include unverified claims. Do not follow routines, pressures, or protocols without medical supervision.
+          Community posts may include unverified claims. Do not follow routines, pressures, or
+          protocols without medical supervision.
         </p>
       </div>
     </div>
   );
 }
-
