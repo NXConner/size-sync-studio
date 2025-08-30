@@ -74,6 +74,31 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## Backend (API) Setup
 
+## Docker
+
+Build and run both API and Web with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+- Web: http://localhost:8080
+- API (proxied by Nginx at /api): http://localhost:8080/api/health
+
+To run API only:
+
+```bash
+docker build -t sizeseeker-api -f Dockerfile.api .
+docker run -p 3001:3001 --env-file .env sizeseeker-api
+```
+
+To run Web only (serves built assets via Nginx and proxies /api to API container):
+
+```bash
+docker build -t sizeseeker-web -f Dockerfile.web .
+docker run -p 8080:80 sizeseeker-web
+```
+
 This project includes a minimal Express backend with safety guardrails.
 
 - Install deps: `npm install`
