@@ -9,6 +9,7 @@ import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/s
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { loadOpenCV } from "@/utils/opencv";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -41,6 +42,7 @@ export default function Measure() {
   const [mode, setMode] = useState<"live" | "upload">("live");
   const [uploadedUrl, setUploadedUrl] = useState<string>("");
   const [uploadedBlob, setUploadedBlob] = useState<Blob | null>(null);
+  const [isDetecting, setIsDetecting] = useState<boolean>(false);
 
   // Load previous photos once
   useEffect(() => {
@@ -226,6 +228,139 @@ export default function Measure() {
     }
   };
 
+  const detectFromImage = async () => {
+    if (mode !== "upload") {
+      toast({ title: "Switch to Upload", description: "Auto-detect works on uploaded images.", variant: "destructive" });
+      return;
+    }
+    if (!uploadedUrl) {
+      toast({ title: "No image", description: "Upload an image first.", variant: "destructive" });
+      return;
+    }
+    setIsDetecting(true);
+    try {
+      const cv = await loadOpenCV();
+      // Create an offscreen image to measure intrinsic size
+      const imgEl = new Image();
+      await new Promise<void>((resolve, reject) => {
+        imgEl.onload = () => resolve();
+        imgEl.onerror = () => reject(new Error('Failed to load image'));
+        imgEl.src = uploadedUrl;
+      });
+      const w = imgEl.naturalWidth;
+      const h = imgEl.naturalHeight;
+
+      // Draw to hidden canvas for processing
+      const procCanvas = document.createElement('canvas');
+      procCanvas.width = w;
+      procCanvas.height = h;
+      const pctx = procCanvas.getContext('2d');
+      if (!pctx) throw new Error('Canvas context unavailable');
+      pctx.drawImage(imgEl, 0, 0, w, h);
+
+      const src = cv.imread(procCanvas);
+      const gray = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      const blurred = new cv.Mat();
+      cv.GaussianBlur(gray, blurred, new cv.Size(9, 9), 0, 0, cv.BORDER_DEFAULT);
+      const edges = new cv.Mat();
+      cv.Canny(blurred, edges, 50, 150);
+
+      // Hough lines for approximate shaft axis
+      const lines = new cv.Mat();
+      cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 80, 0.2 * Math.min(w, h), 20);
+
+      let bestLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
+      let bestLen = 0;
+      for (let i = 0; i < lines.rows; i++) {
+        const p = lines.int32Ptr(i);
+        const x1 = p[0], y1 = p[1], x2 = p[2], y2 = p[3];
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        if (len > bestLen) {
+          bestLen = len;
+          bestLine = { x1, y1, x2, y2 };
+        }
+      }
+
+      // Estimate base/tip as ends of bestLine; map into overlay coordinates
+      const container = containerRef.current;
+      if (bestLine && container) {
+        // Compute how the image is fit into the container (object-contain sizing)
+        const containerW = container.clientWidth;
+        const containerH = container.clientHeight;
+        const scale = Math.min(containerW / w, containerH / h);
+        const drawW = w * scale;
+        const drawH = h * scale;
+        const offsetX = (containerW - drawW) / 2;
+        const offsetY = (containerH - drawH) / 2;
+
+        const mapPoint = (ix: number, iy: number) => ({
+          x: offsetX + ix * scale,
+          y: offsetY + iy * scale,
+        });
+
+        // Choose top vs bottom as base based on y positions (base near body -> likely lower y?)
+        // Fallback: set whichever is leftmost as base
+        const p1 = mapPoint(bestLine.x1, bestLine.y1);
+        const p2 = mapPoint(bestLine.x2, bestLine.y2);
+        // Heuristic: base is the point closer to the image edge (left side) if portrait; else use lower y
+        const base = (Math.min(bestLine.x1, bestLine.x2) === bestLine.x1) ? p1 : p2;
+        const tip = base === p1 ? p2 : p1;
+        setBasePoint(base);
+        setTipPoint(tip);
+      }
+
+      // Estimate girth: scan perpendicular width near mid-point
+      if (bestLine) {
+        const midX = (bestLine.x1 + bestLine.x2) / 2;
+        const midY = (bestLine.y1 + bestLine.y2) / 2;
+        const dx = bestLine.x2 - bestLine.x1;
+        const dy = bestLine.y2 - bestLine.y1;
+        const len = Math.hypot(dx, dy) || 1;
+        // Perpendicular unit vector
+        const ux = -dy / len;
+        const uy = dx / len;
+        // Sample along perpendicular in image space
+        const sampleHalf = Math.floor(Math.min(w, h) * 0.15);
+        let left = 0, right = 0;
+        const sample = (t: number) => {
+          const sx = Math.round(midX + t * ux);
+          const sy = Math.round(midY + t * uy);
+          if (sx < 0 || sy < 0 || sx >= w || sy >= h) return 255; // treat out of bounds as background
+          return gray.ucharPtr(sy, sx)[0];
+        };
+        // threshold around mid to find object edges from center outward
+        const threshold = 200;
+        for (let t = 0; t < sampleHalf; t++) {
+          if (sample(-t) > threshold) { left = t; break; }
+        }
+        for (let t = 0; t < sampleHalf; t++) {
+          if (sample(t) > threshold) { right = t; break; }
+        }
+        const widthPx = left + right;
+        const container = containerRef.current;
+        if (container) {
+          const containerW = container.clientWidth;
+          const containerH = container.clientHeight;
+          const scale = Math.min(containerW / w, containerH / h);
+          setGirthPixels(widthPx * scale);
+        }
+      }
+
+      // Cleanup
+      src.delete();
+      gray.delete();
+      blurred.delete();
+      edges.delete();
+      lines.delete();
+      toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
+    } catch (err: any) {
+      toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
   const clearPoints = () => {
     setBasePoint(null);
     setTipPoint(null);
@@ -378,6 +513,13 @@ export default function Measure() {
                 <img src={prevOverlayUrl} alt="Previous overlay" className="absolute left-0 top-0 w-full h-full object-cover pointer-events-none" style={{ opacity: overlayOpacity / 100 }} />
               )}
               <canvas ref={overlayRef} className="absolute left-0 top-0 w-full h-full cursor-crosshair" onClick={handleOverlayClick} />
+              {mode === "upload" && uploadedUrl && (
+                <div className="absolute right-3 bottom-3 flex gap-2">
+                  <Button size="sm" onClick={detectFromImage} disabled={isDetecting}>
+                    {isDetecting ? 'Detecting…' : 'Auto-detect'}
+                  </Button>
+                </div>
+              )}
             </div>
             {streamError && (
               <p className="text-sm text-destructive mt-2">{streamError}</p>
