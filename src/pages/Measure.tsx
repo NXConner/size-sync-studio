@@ -21,6 +21,7 @@ export default function Measure() {
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const overlayExportRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [unit, setUnit] = useState<"in" | "cm">("in");
   const [pixelsPerInch, setPixelsPerInch] = useState<number>(96); // default guess
@@ -183,16 +184,18 @@ export default function Measure() {
         ctx.fillText(`${display.toFixed(2)} ${unit}`, endX + 8, y);
       }
 
-      requestAnimationFrame(render);
+      rafRef.current = requestAnimationFrame(render);
     };
-    requestAnimationFrame(render);
+    rafRef.current = requestAnimationFrame(render);
   };
 
   // Start overlay loop once
   useEffect(() => {
     drawOverlayLoop();
-    // cleanup uploaded image URL
     return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
       if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -689,7 +692,5 @@ export default function Measure() {
   );
 }
 
-function exportOverlayPNG(this: any) {
-  // This will be replaced during render binding; placeholder to satisfy TS
-}
+ 
 

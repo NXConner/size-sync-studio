@@ -5,58 +5,58 @@ import { Shield, AlertTriangle, Heart, Clock, Thermometer, Eye } from "lucide-re
 
 const safetyGuidelines = [
   {
-    title: "Pre-Session Preparation",
+    title: "General Preparation",
     icon: Thermometer,
     items: [
-      "Always warm up with a hot towel or warm shower",
-      "Ensure equipment is clean and sanitized",
-      "Check all equipment for damage before use",
-      "Have proper lubrication available",
-      "Set up in a private, comfortable environment"
+      "Warm up gently (e.g., warm shower or towel)",
+      "Ensure a clean, private, comfortable environment",
+      "Hydrate and avoid alcohol or recreational drugs",
+      "Check that any equipment is clean and undamaged",
+      "Set clear stop criteria if anything feels off"
     ]
   },
   {
-    title: "During Session",
+    title: "While Using Any Method or Equipment",
     icon: Eye,
     items: [
-      "Start with minimal pressure and increase gradually",
-      "Never exceed recommended pressure levels",
-      "Take breaks every 2-3 minutes as indicated",
-      "Monitor circulation and skin color constantly",
-      "Stop immediately if you feel pain or discomfort"
+      "Listen to your body and stop at the first sign of pain",
+      "Avoid excessive force; slower and gentler is safer",
+      "Take regular breaks to assess comfort and circulation",
+      "Watch color/temperature changes and restore normal warmth",
+      "If unsure, do less and consult a licensed clinician"
     ]
   },
   {
     title: "Warning Signs",
     icon: AlertTriangle,
     items: [
-      "Dark discoloration or bruising",
-      "Numbness or loss of sensation",
-      "Sharp or persistent pain",
+      "Bruising or dark discoloration",
+      "Numbness, tingling, or loss of sensation",
+      "Sharp, persistent, or increasing pain",
       "Unusual swelling or inflammation",
-      "Cold or clammy skin"
+      "Cold, clammy, or pale skin"
     ]
   },
   {
-    title: "Post-Session Care",
+    title: "Aftercare & Monitoring",
     icon: Heart,
     items: [
       "Gentle massage to restore circulation",
-      "Apply cool compress if needed",
-      "Monitor for any delayed reactions",
-      "Document any concerns or observations",
-      "Wait recommended time before next session"
+      "Use a cool compress briefly if needed",
+      "Monitor for delayed symptoms over the next 24–48 hours",
+      "Document any concerns for future reference",
+      "Rest adequately before any future activity"
     ]
   }
 ];
 
 const emergencySteps = [
-  "Stop the session immediately",
-  "Remove all equipment carefully",
-  "Apply gentle massage to restore circulation",
+  "Stop immediately",
+  "Remove any equipment carefully",
+  "Gently restore circulation and warmth",
   "Monitor symptoms closely",
-  "Seek medical attention if symptoms persist",
-  "Document the incident for future reference"
+  "Seek medical attention if symptoms persist or worsen",
+  "Document the incident for your clinician"
 ];
 
 export default function Safety() {
