@@ -2,24 +2,31 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      GITHUB_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
       - run: npm ci
-      - run: npm run lint --if-present
+      - run: npm run lint --max-warnings=0 --if-present
+      - run: npm run typecheck
       - run: npm run build
+      - run: npm run test --silent
       - name: Build API image
         run: docker build -t sizeseeker-api -f Dockerfile.api .
       - name: Build Web image
         run: docker build -t sizeseeker-web -f Dockerfile.web .
-

@@ -11,13 +11,13 @@ interface MeasurementCardProps {
   icon?: React.ReactNode;
 }
 
-export const MeasurementCard = ({ 
-  title, 
-  value, 
-  unit, 
-  change, 
-  target, 
-  icon 
+export const MeasurementCard = ({
+  title,
+  value,
+  unit,
+  change,
+  target,
+  icon,
 }: MeasurementCardProps) => {
   const getTrendIcon = () => {
     if (!change) return <Minus className="w-4 h-4" />;
@@ -39,9 +39,7 @@ export const MeasurementCard = ({
   return (
     <Card className="gradient-card shadow-card hover:shadow-primary transition-all duration-300 group">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {icon && (
           <div className="text-primary group-hover:scale-110 transition-transform duration-300">
             {icon}
@@ -52,26 +50,28 @@ export const MeasurementCard = ({
         <div className="flex items-center justify-between">
           <div className="text-2xl font-bold text-foreground">
             {value}
-            <span className="text-sm font-normal text-muted-foreground ml-1">
-              {unit}
-            </span>
+            <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>
           </div>
           {change !== undefined && (
             <Badge variant="secondary" className={`${getTrendColor()} gap-1`}>
               {getTrendIcon()}
-              {Math.abs(change)}{unit}
+              {Math.abs(change)}
+              {unit}
             </Badge>
           )}
         </div>
-        
+
         {target && (
           <div className="mt-3">
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>Progress to goal</span>
-              <span>{target}{unit}</span>
+              <span>
+                {target}
+                {unit}
+              </span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
-              <div 
+              <div
                 className="gradient-primary h-2 rounded-full transition-all duration-500"
                 style={{ width: `${getProgressPercentage()}%` }}
               />

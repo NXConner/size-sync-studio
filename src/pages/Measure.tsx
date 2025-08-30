@@ -47,7 +47,7 @@ export default function Measure() {
 
   // Load previous photos once
   useEffect(() => {
-    const withPhotos = getMeasurements().filter(m => m.photoUrl);
+    const withPhotos = getMeasurements().filter((m) => m.photoUrl);
     setPrevPhotos(withPhotos);
     if (withPhotos.length > 0) setSelectedPrevId(withPhotos[0].id);
   }, []);
@@ -57,7 +57,10 @@ export default function Measure() {
     let cancelled = false;
     const start = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
+        });
         if (videoRef.current && !cancelled) {
           videoRef.current.srcObject = stream as MediaStream;
           await videoRef.current.play();
@@ -86,7 +89,10 @@ export default function Measure() {
   useEffect(() => {
     let revokeUrl: string | null = null;
     const load = async () => {
-      if (!selectedPrevId) { setPrevOverlayUrl(""); return; }
+      if (!selectedPrevId) {
+        setPrevOverlayUrl("");
+        return;
+      }
       try {
         const blob = await getPhoto(selectedPrevId);
         if (blob) {
@@ -101,7 +107,9 @@ export default function Measure() {
       }
     };
     load();
-    return () => { if (revokeUrl) URL.revokeObjectURL(revokeUrl); };
+    return () => {
+      if (revokeUrl) URL.revokeObjectURL(revokeUrl);
+    };
   }, [selectedPrevId]);
 
   // Draw overlay continuously for measurements
@@ -137,7 +145,11 @@ export default function Measure() {
         // show live ppi label
         ctx.fillStyle = "#22d3ee";
         ctx.font = "12px sans-serif";
-        ctx.fillText(`${ppi.toFixed(1)} px/in`, (calibStart.x + calibEnd.x) / 2 + 8, (calibStart.y + calibEnd.y) / 2);
+        ctx.fillText(
+          `${ppi.toFixed(1)} px/in`,
+          (calibStart.x + calibEnd.x) / 2 + 8,
+          (calibStart.y + calibEnd.y) / 2,
+        );
       }
 
       // Base to tip length line
@@ -233,7 +245,11 @@ export default function Measure() {
 
   const detectFromImage = async () => {
     if (mode !== "upload") {
-      toast({ title: "Switch to Upload", description: "Auto-detect works on uploaded images.", variant: "destructive" });
+      toast({
+        title: "Switch to Upload",
+        description: "Auto-detect works on uploaded images.",
+        variant: "destructive",
+      });
       return;
     }
     if (!uploadedUrl) {
@@ -247,18 +263,18 @@ export default function Measure() {
       const imgEl = new Image();
       await new Promise<void>((resolve, reject) => {
         imgEl.onload = () => resolve();
-        imgEl.onerror = () => reject(new Error('Failed to load image'));
+        imgEl.onerror = () => reject(new Error("Failed to load image"));
         imgEl.src = uploadedUrl;
       });
       const w = imgEl.naturalWidth;
       const h = imgEl.naturalHeight;
 
       // Draw to hidden canvas for processing
-      const procCanvas = document.createElement('canvas');
+      const procCanvas = document.createElement("canvas");
       procCanvas.width = w;
       procCanvas.height = h;
-      const pctx = procCanvas.getContext('2d');
-      if (!pctx) throw new Error('Canvas context unavailable');
+      const pctx = procCanvas.getContext("2d");
+      if (!pctx) throw new Error("Canvas context unavailable");
       pctx.drawImage(imgEl, 0, 0, w, h);
 
       const src = cv.imread(procCanvas);
@@ -295,7 +311,10 @@ export default function Measure() {
       for (let i = 0; i < contours.size(); i++) {
         const cnt = contours.get(i);
         const area = cv.contourArea(cnt, false);
-        if (area > bestArea) { bestArea = area; bestIdx = i; }
+        if (area > bestArea) {
+          bestArea = area;
+          bestIdx = i;
+        }
         cnt.delete();
       }
       // We deleted contours during iteration; need to refind to access the best
@@ -305,9 +324,10 @@ export default function Measure() {
       const hierarchy2 = new cv.Mat();
       cv.findContours(mask, contours2, hierarchy2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-      let axisUx = 1, axisUy = 0;
-      let end1: {x:number;y:number}|null = null;
-      let end2: {x:number;y:number}|null = null;
+      let axisUx = 1,
+        axisUy = 0;
+      let end1: { x: number; y: number } | null = null;
+      let end2: { x: number; y: number } | null = null;
 
       if (bestIdx >= 0) {
         const cnt = contours2.get(bestIdx);
@@ -320,17 +340,24 @@ export default function Measure() {
         // project all contour points to find extremes
         let minS = Number.POSITIVE_INFINITY;
         let maxS = Number.NEGATIVE_INFINITY;
-        let minPt = {x: cx, y: cy};
-        let maxPt = {x: cx, y: cy};
+        let minPt = { x: cx, y: cy };
+        let maxPt = { x: cx, y: cy };
         const data = cnt.data32S;
         for (let i = 0; i < data.length; i += 2) {
           const x = data[i];
           const y = data[i + 1];
           const s = (x - cx) * axisUx + (y - cy) * axisUy;
-          if (s < minS) { minS = s; minPt = { x, y }; }
-          if (s > maxS) { maxS = s; maxPt = { x, y }; }
+          if (s < minS) {
+            minS = s;
+            minPt = { x, y };
+          }
+          if (s > maxS) {
+            maxS = s;
+            maxPt = { x, y };
+          }
         }
-        end1 = minPt; end2 = maxPt;
+        end1 = minPt;
+        end2 = maxPt;
         cnt.delete();
       }
 
@@ -347,7 +374,10 @@ export default function Measure() {
         let bestLineLen = 0;
         for (let i = 0; i < lines.rows; i++) {
           const p = lines.int32Ptr(i);
-          const x1 = p[0], y1 = p[1], x2 = p[2], y2 = p[3];
+          const x1 = p[0],
+            y1 = p[1],
+            x2 = p[2],
+            y2 = p[3];
           const len = Math.hypot(x2 - x1, y2 - y1);
           if (len > bestLineLen) {
             bestLineLen = len;
@@ -373,12 +403,15 @@ export default function Measure() {
         const drawH = h * scale;
         const offsetX = (containerW - drawW) / 2;
         const offsetY = (containerH - drawH) / 2;
-        const mapPoint = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
+        const mapPoint = (ix: number, iy: number) => ({
+          x: offsetX + ix * scale,
+          y: offsetY + iy * scale,
+        });
 
         const p1 = mapPoint(end1.x, end1.y);
         const p2 = mapPoint(end2.x, end2.y);
         // Choose base as the endpoint with smaller x (heuristic) to stabilize
-        const base = (end1.x <= end2.x) ? p1 : p2;
+        const base = end1.x <= end2.x ? p1 : p2;
         const tip = base === p1 ? p2 : p1;
         setBasePoint(base);
         setTipPoint(tip);
@@ -391,7 +424,7 @@ export default function Measure() {
         const totalLen = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
         const centerX = (end1.x + end2.x) / 2;
         const centerY = (end1.y + end2.y) / 2;
-        const ts = [ -0.1, -0.05, 0, 0.05, 0.1 ]; // around mid
+        const ts = [-0.1, -0.05, 0, 0.05, 0.1]; // around mid
         const widths: number[] = [];
         const maxScan = Math.floor(Math.min(w, h) * 0.25);
         const isInside = (x: number, y: number) => {
@@ -403,12 +436,19 @@ export default function Measure() {
         for (const t of ts) {
           const px = centerX + t * totalLen * axisUx;
           const py = centerY + t * totalLen * axisUy;
-          let left = 0, right = 0;
+          let left = 0,
+            right = 0;
           for (let s = 0; s < maxScan; s++) {
-            if (!isInside(px - s * perpUx, py - s * perpUy)) { left = s; break; }
+            if (!isInside(px - s * perpUx, py - s * perpUy)) {
+              left = s;
+              break;
+            }
           }
           for (let s = 0; s < maxScan; s++) {
-            if (!isInside(px + s * perpUx, py + s * perpUy)) { right = s; break; }
+            if (!isInside(px + s * perpUx, py + s * perpUy)) {
+              right = s;
+              break;
+            }
           }
           const width = left + right;
           if (width > 0) widths.push(width);
@@ -434,7 +474,11 @@ export default function Measure() {
       hierarchy2.delete();
       toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
     } catch (err: any) {
-      toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
+      toast({
+        title: "Detection failed",
+        description: err?.message || String(err),
+        variant: "destructive",
+      });
     } finally {
       setIsDetecting(false);
     }
@@ -459,10 +503,16 @@ export default function Measure() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      photoBlob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), "image/jpeg", 0.9));
+      photoBlob = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b as Blob), "image/jpeg", 0.9),
+      );
     } else {
       if (!uploadedBlob) {
-        toast({ title: "No image uploaded", description: "Please upload an image first.", variant: "destructive" });
+        toast({
+          title: "No image uploaded",
+          description: "Please upload an image first.",
+          variant: "destructive",
+        });
         return;
       }
       photoBlob = uploadedBlob;
@@ -481,7 +531,9 @@ export default function Measure() {
     };
 
     saveMeasurement(measurement);
-    await savePhoto(measurement.id, photoBlob);
+    if (photoBlob) {
+      await savePhoto(measurement.id, photoBlob);
+    }
 
     // Compare to latest previous
     const prev = latestPrev;
@@ -490,9 +542,14 @@ export default function Measure() {
       const dG = measurement.girth - prev.girth;
       const trend = (v: number) => (v > 0 ? `+${v.toFixed(2)}"` : `${v.toFixed(2)}"`);
       let recommendation = "Keep consistent lighting and angle.";
-      if (dL < -0.1 || dG < -0.1) recommendation = "Slight decrease detected. Recheck calibration and ensure full erection for consistency.";
-      if (dG > 0.25) recommendation = "Significant girth increase. Consider longer rest intervals and monitor for edema.";
-      if (dL > 0.25) recommendation = "Great length gain. Maintain current protocol; avoid overtraining.";
+      if (dL < -0.1 || dG < -0.1)
+        recommendation =
+          "Slight decrease detected. Recheck calibration and ensure full erection for consistency.";
+      if (dG > 0.25)
+        recommendation =
+          "Significant girth increase. Consider longer rest intervals and monitor for edema.";
+      if (dL > 0.25)
+        recommendation = "Great length gain. Maintain current protocol; avoid overtraining.";
       toast({
         title: "Captured & Saved",
         description: `Δ Length ${trend(dL)}, Δ Girth ${trend(dG)}. ${recommendation}`,
@@ -513,7 +570,9 @@ export default function Measure() {
     if (!ctx) return;
     ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
     ctx.drawImage(overlay, 0, 0);
-    const blob: Blob = await new Promise((resolve) => exportCanvas.toBlob((b) => resolve(b as Blob), "image/png"));
+    const blob: Blob = await new Promise((resolve) =>
+      exportCanvas.toBlob((b) => resolve(b as Blob), "image/png"),
+    );
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -537,7 +596,9 @@ export default function Measure() {
         <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
-              <CardTitle className="flex items-center gap-2"><Ruler className="w-5 h-5" /> Measure</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Ruler className="w-5 h-5" /> Measure
+              </CardTitle>
               <Tabs value={mode} onValueChange={(v) => setMode(v as "live" | "upload")}>
                 <TabsList>
                   <TabsTrigger value="live">Live</TabsTrigger>
@@ -580,29 +641,45 @@ export default function Measure() {
           <CardContent>
             <div className="relative w-full" ref={containerRef}>
               {mode === "live" ? (
-                <video ref={videoRef} className="w-full max-h-[70vh] rounded-lg bg-black" playsInline muted />
+                <video
+                  ref={videoRef}
+                  className="w-full max-h-[70vh] rounded-lg bg-black"
+                  playsInline
+                  muted
+                />
               ) : uploadedUrl ? (
-                <img src={uploadedUrl} alt="Uploaded" className="w-full max-h-[70vh] rounded-lg bg-black object-contain" />
+                <img
+                  src={uploadedUrl}
+                  alt="Uploaded"
+                  className="w-full max-h-[70vh] rounded-lg bg-black object-contain"
+                />
               ) : (
                 <div className="w-full max-h-[70vh] h-[50vh] rounded-lg bg-black/60 flex items-center justify-center text-sm text-muted-foreground">
                   Upload an image to begin measurement
                 </div>
               )}
               {showPrevOverlay && prevOverlayUrl && (
-                <img src={prevOverlayUrl} alt="Previous overlay" className="absolute left-0 top-0 w-full h-full object-cover pointer-events-none" style={{ opacity: overlayOpacity / 100 }} />
+                <img
+                  src={prevOverlayUrl}
+                  alt="Previous overlay"
+                  className="absolute left-0 top-0 w-full h-full object-cover pointer-events-none"
+                  style={{ opacity: overlayOpacity / 100 }}
+                />
               )}
-              <canvas ref={overlayRef} className="absolute left-0 top-0 w-full h-full cursor-crosshair" onClick={handleOverlayClick} />
+              <canvas
+                ref={overlayRef}
+                className="absolute left-0 top-0 w-full h-full cursor-crosshair"
+                onClick={handleOverlayClick}
+              />
               {mode === "upload" && uploadedUrl && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
                   <Button size="sm" onClick={detectFromImage} disabled={isDetecting}>
-                    {isDetecting ? 'Detecting…' : 'Auto-detect'}
+                    {isDetecting ? "Detecting…" : "Auto-detect"}
                   </Button>
                 </div>
               )}
             </div>
-            {streamError && (
-              <p className="text-sm text-destructive mt-2">{streamError}</p>
-            )}
+            {streamError && <p className="text-sm text-destructive mt-2">{streamError}</p>}
           </CardContent>
         </Card>
 
@@ -612,11 +689,21 @@ export default function Measure() {
               <CardTitle>Calibration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-sm text-muted-foreground">Draw a line on the overlay that equals the known real-world length, then enter that length.</div>
+              <div className="text-sm text-muted-foreground">
+                Draw a line on the overlay that equals the known real-world length, then enter that
+                length.
+              </div>
               <div className="flex items-center gap-2">
-                <Input type="number" step="0.1" value={calibrationInches} onChange={(e) => setCalibrationInches(parseFloat(e.target.value) || 1)} />
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={calibrationInches}
+                  onChange={(e) => setCalibrationInches(parseFloat(e.target.value) || 1)}
+                />
                 <span className="text-sm">in</span>
-                <Button size="sm" onClick={() => setIsCalibrating(true)}>Start</Button>
+                <Button size="sm" onClick={() => setIsCalibrating(true)}>
+                  Start
+                </Button>
               </div>
               <div className="text-xs">Current scale: {pixelsPerInch.toFixed(1)} px/in</div>
             </CardContent>
@@ -627,9 +714,22 @@ export default function Measure() {
               <CardTitle>Girth</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-sm text-muted-foreground">Drag to match on-screen width at mid-shaft; we estimate circumference.</div>
-              <Slider value={[girthPixels]} min={0} max={600} step={1} onValueChange={(v) => setGirthPixels(v[0])} />
-              <div className="text-sm">Girth: <span className="font-semibold">{girthDisplay} {unit}</span></div>
+              <div className="text-sm text-muted-foreground">
+                Drag to match on-screen width at mid-shaft; we estimate circumference.
+              </div>
+              <Slider
+                value={[girthPixels]}
+                min={0}
+                max={600}
+                step={1}
+                onValueChange={(v) => setGirthPixels(v[0])}
+              />
+              <div className="text-sm">
+                Girth:{" "}
+                <span className="font-semibold">
+                  {girthDisplay} {unit}
+                </span>
+              </div>
             </CardContent>
           </Card>
 
@@ -638,20 +738,31 @@ export default function Measure() {
               <CardTitle>Readouts</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="text-sm">Length: <span className="font-semibold">{lengthDisplay} {unit}</span></div>
+              <div className="text-sm">
+                Length:{" "}
+                <span className="font-semibold">
+                  {lengthDisplay} {unit}
+                </span>
+              </div>
               <div className="text-sm">Unit scale: {pixelsPerInch.toFixed(1)} px/in</div>
               {latestPrev && (
-                <div className="text-xs text-muted-foreground">Prev: L {latestPrev.length.toFixed(2)}", G {latestPrev.girth.toFixed(2)}"</div>
+                <div className="text-xs text-muted-foreground">
+                  Prev: L {latestPrev.length.toFixed(2)}", G {latestPrev.girth.toFixed(2)}"
+                </div>
               )}
               <div className="flex gap-2 pt-2">
-                <Button onClick={capture} className="gap-2"><CameraIcon className="w-4 h-4" /> Capture</Button>
+                <Button onClick={capture} className="gap-2">
+                  <CameraIcon className="w-4 h-4" /> Capture
+                </Button>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Overlay Tools</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4" /> Overlay Tools
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
@@ -666,14 +777,24 @@ export default function Measure() {
                   className="w-full bg-card border border-border rounded-md px-2 py-2 text-sm"
                 >
                   {prevPhotos.length === 0 && <option value="">None</option>}
-                  {prevPhotos.map(p => (
-                    <option key={p.id} value={p.id}>{new Date(p.date).toLocaleString()}</option>
+                  {prevPhotos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {new Date(p.date).toLocaleString()}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">Overlay opacity: {overlayOpacity}%</label>
-                <Slider value={[overlayOpacity]} min={0} max={100} step={1} onValueChange={(v) => setOverlayOpacity(v[0])} />
+                <label className="text-xs text-muted-foreground">
+                  Overlay opacity: {overlayOpacity}%
+                </label>
+                <Slider
+                  value={[overlayOpacity]}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValueChange={(v) => setOverlayOpacity(v[0])}
+                />
               </div>
               <div>
                 <Button variant="outline" className="gap-2" onClick={exportOverlayPNG}>
@@ -691,6 +812,3 @@ export default function Measure() {
     </div>
   );
 }
-
- 
-

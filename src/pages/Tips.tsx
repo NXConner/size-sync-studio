@@ -1,119 +1,121 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lightbulb, Target, Maximize, Zap, Calendar, TrendingUp } from "lucide-react";
 
-const lengthTips = [
+type Importance = "high" | "medium" | "low";
+
+const lengthTips: Array<{ title: string; description: string; importance: Importance }> = [
   {
     title: "Consistent Low Pressure",
     description: "Use lower pressure for longer periods rather than high pressure for short bursts",
-    importance: "high"
+    importance: "high",
   },
   {
     title: "Heat Application",
     description: "Warming the area before sessions increases blood flow and tissue elasticity",
-    importance: "high"
+    importance: "high",
   },
   {
-    title: "Progressive Tension", 
+    title: "Progressive Tension",
     description: "Gradually increase tension over weeks, not within single sessions",
-    importance: "medium"
+    importance: "medium",
   },
   {
     title: "Rest Day Importance",
     description: "Allow 24-48 hours between sessions for tissue recovery and growth",
-    importance: "high"
+    importance: "high",
   },
   {
     title: "Jelqing Combination",
     description: "Combine pumping with manual exercises for enhanced results",
-    importance: "medium"
-  }
+    importance: "medium",
+  },
 ];
 
-const girthTips = [
+const girthTips: Array<{ title: string; description: string; importance: Importance }> = [
   {
     title: "Ring Positioning",
     description: "Proper ring placement at the base maximizes circumferential expansion",
-    importance: "high"
+    importance: "high",
   },
   {
     title: "Gradual Pressure Build",
     description: "Build pressure slowly to allow tissue to adapt and expand safely",
-    importance: "high"
+    importance: "high",
   },
   {
     title: "Circulation Monitoring",
     description: "Watch for color changes - slight darkening is normal, deep purple is not",
-    importance: "high"
+    importance: "high",
   },
   {
     title: "Short Sessions",
     description: "Girth sessions should be shorter than length sessions due to higher pressure",
-    importance: "medium"
+    importance: "medium",
   },
   {
     title: "Post-Session Massage",
     description: "Gentle massage after sessions helps distribute fluid and maintain gains",
-    importance: "medium"
-  }
+    importance: "medium",
+  },
 ];
 
-const generalTips = [
+const generalTips: Array<{ title: string; description: string; importance: Importance }> = [
   {
     title: "Hydration is Key",
     description: "Stay well-hydrated before and after sessions for optimal tissue health",
-    importance: "medium"
+    importance: "medium",
   },
   {
     title: "Diet and Nutrition",
     description: "Protein-rich diet supports tissue repair and growth",
-    importance: "low"
+    importance: "low",
   },
   {
     title: "Sleep Quality",
     description: "Quality sleep is when most tissue repair and growth occurs",
-    importance: "medium"
+    importance: "medium",
   },
   {
     title: "Stress Management",
     description: "High stress levels can impair circulation and recovery",
-    importance: "low"
+    importance: "low",
   },
   {
     title: "Documentation",
     description: "Track progress with photos and measurements for motivation and safety",
-    importance: "high"
-  }
+    importance: "high",
+  },
 ];
 
 const progressStrategies = [
   {
     icon: Calendar,
     title: "Progressive Programming",
-    description: "Start with 3 sessions per week, increase to 5 as you adapt"
+    description: "Start with 3 sessions per week, increase to 5 as you adapt",
   },
   {
     icon: TrendingUp,
     title: "Plateau Breaking",
-    description: "If progress stalls, take a 1-week break then resume with modified routine"
+    description: "If progress stalls, take a 1-week break then resume with modified routine",
   },
   {
     icon: Target,
     title: "Goal Setting",
-    description: "Set realistic monthly targets - expect 0.1-0.2 inches per month maximum"
+    description: "Set realistic monthly targets - expect 0.1-0.2 inches per month maximum",
   },
   {
     icon: Zap,
     title: "Intensity Cycling",
-    description: "Alternate between high and low intensity weeks to prevent adaptation"
-  }
+    description: "Alternate between high and low intensity weeks to prevent adaptation",
+  },
 ];
 
-const importanceColors = {
+const importanceColors: Record<Importance, string> = {
   high: "bg-destructive/20 text-destructive border-destructive/30",
-  medium: "bg-warning/20 text-warning border-warning/30", 
-  low: "bg-success/20 text-success border-success/30"
+  medium: "bg-warning/20 text-warning border-warning/30",
+  low: "bg-success/20 text-success border-success/30",
 };
 
 export default function Tips() {
@@ -129,8 +131,8 @@ export default function Tips() {
             </h1>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Maximize your results with proven techniques and expert insights for safe, 
-            effective enhancement routines.
+            Maximize your results with proven techniques and expert insights for safe, effective
+            enhancement routines.
           </p>
         </div>
 
@@ -162,9 +164,7 @@ export default function Tips() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-lg">{tip.title}</CardTitle>
-                      <Badge className={importanceColors[tip.importance]}>
-                        {tip.importance}
-                      </Badge>
+                      <Badge className={importanceColors[tip.importance]}>{tip.importance}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -182,9 +182,7 @@ export default function Tips() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-lg">{tip.title}</CardTitle>
-                      <Badge className={importanceColors[tip.importance]}>
-                        {tip.importance}
-                      </Badge>
+                      <Badge className={importanceColors[tip.importance]}>{tip.importance}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -202,9 +200,7 @@ export default function Tips() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-lg">{tip.title}</CardTitle>
-                      <Badge className={importanceColors[tip.importance]}>
-                        {tip.importance}
-                      </Badge>
+                      <Badge className={importanceColors[tip.importance]}>{tip.importance}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>

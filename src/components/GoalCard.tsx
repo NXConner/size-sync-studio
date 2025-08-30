@@ -12,7 +12,7 @@ interface Goal {
   current: number;
   unit: string;
   deadline: string;
-  type: 'weight_loss' | 'weight_gain' | 'measurement';
+  type: "weight_loss" | "weight_gain" | "measurement";
 }
 
 interface GoalCardProps {
@@ -24,8 +24,10 @@ interface GoalCardProps {
 export const GoalCard = ({ goal, onUpdateGoal, onCompleteGoal }: GoalCardProps) => {
   const progress = Math.min((goal.current / goal.target) * 100, 100);
   const isCompleted = progress >= 100;
-  const daysLeft = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-  
+  const daysLeft = Math.ceil(
+    (new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+  );
+
   const getStatusColor = () => {
     if (isCompleted) return "default";
     if (daysLeft < 7) return "destructive";
@@ -58,7 +60,7 @@ export const GoalCard = ({ goal, onUpdateGoal, onCompleteGoal }: GoalCardProps) 
           {getStatusText()}
         </Badge>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
@@ -67,10 +69,7 @@ export const GoalCard = ({ goal, onUpdateGoal, onCompleteGoal }: GoalCardProps) 
               {goal.current} / {goal.target} {goal.unit}
             </span>
           </div>
-          <Progress 
-            value={progress} 
-            className="h-2"
-          />
+          <Progress value={progress} className="h-2" />
           <div className="text-xs text-muted-foreground text-right">
             {progress.toFixed(1)}% complete
           </div>

@@ -29,21 +29,19 @@ const Index = () => {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
 
-  const activeGoals = goals.filter(g => g.isActive).slice(0, 2);
+  const activeGoals = goals.filter((g) => g.isActive).slice(0, 2);
 
   const quickStats = {
     totalSessions: sessions.length,
-    thisWeek: sessions.filter(s => {
+    thisWeek: sessions.filter((s) => {
       const sessionDate = new Date(s.date);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       return sessionDate >= weekAgo;
     }).length,
     totalMeasurements: measurements.length,
-    bestLength: measurements.length > 0 ? 
-      Math.max(...measurements.map(m => m.length)) : 0,
-    bestGirth: measurements.length > 0 ? 
-      Math.max(...measurements.map(m => m.girth)) : 0
+    bestLength: measurements.length > 0 ? Math.max(...measurements.map((m) => m.length)) : 0,
+    bestGirth: measurements.length > 0 ? Math.max(...measurements.map((m) => m.girth)) : 0,
   };
 
   return (
@@ -51,22 +49,25 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden gradient-hero">
         <div className="relative container mx-auto px-4 py-20 text-center">
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className="mb-6 bg-primary/20 text-primary border-primary/30 backdrop-blur-sm animate-float"
           >
             Professional Enhancement Tracking
           </Badge>
-          
+
           <h1 className="text-5xl md:text-7xl font-bold mb-4">
             Size Seeker
-            <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">Dashboard</span>
+            <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Dashboard
+            </span>
           </h1>
-          
+
           <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
-            Guided sessions, safety protocols, and precise measurement tracking — all in one dark, neon-themed experience.
+            Guided sessions, safety protocols, and precise measurement tracking — all in one dark,
+            neon-themed experience.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/sessions">
               <Button size="lg" className="gradient-primary hover:shadow-primary shadow-lg">
@@ -88,7 +89,10 @@ const Index = () => {
       <div className="container mx-auto px-4 py-12">
         {/* Quick Navigation */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Link to="/sessions" className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition">
+          <Link
+            to="/sessions"
+            className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition"
+          >
             <div className="flex items-center space-x-3">
               <Activity className="w-5 h-5 text-primary" />
               <div>
@@ -97,7 +101,10 @@ const Index = () => {
               </div>
             </div>
           </Link>
-          <Link to="/safety" className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition">
+          <Link
+            to="/safety"
+            className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition"
+          >
             <div className="flex items-center space-x-3">
               <Shield className="w-5 h-5 text-secondary" />
               <div>
@@ -106,7 +113,10 @@ const Index = () => {
               </div>
             </div>
           </Link>
-          <Link to="/tips" className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition">
+          <Link
+            to="/tips"
+            className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition"
+          >
             <div className="flex items-center space-x-3">
               <Lightbulb className="w-5 h-5 text-accent" />
               <div>
@@ -115,7 +125,10 @@ const Index = () => {
               </div>
             </div>
           </Link>
-          <Link to="/gallery" className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition">
+          <Link
+            to="/gallery"
+            className="gradient-card p-4 rounded-xl border border-border/20 hover:shadow-card transition"
+          >
             <div className="flex items-center space-x-3">
               <Camera className="w-5 h-5 text-purple-400" />
               <div>
@@ -143,11 +156,15 @@ const Index = () => {
                   <div className="text-xs text-muted-foreground">This Week</div>
                 </div>
                 <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
-                  <div className="text-2xl font-bold text-accent">{quickStats.bestLength.toFixed(1)}"</div>
+                  <div className="text-2xl font-bold text-accent">
+                    {quickStats.bestLength.toFixed(1)}"
+                  </div>
                   <div className="text-xs text-muted-foreground">Best Length</div>
                 </div>
                 <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <div className="text-2xl font-bold text-purple-400">{quickStats.bestGirth.toFixed(1)}"</div>
+                  <div className="text-2xl font-bold text-purple-400">
+                    {quickStats.bestGirth.toFixed(1)}"
+                  </div>
                   <div className="text-xs text-muted-foreground">Best Girth</div>
                 </div>
               </div>
@@ -157,17 +174,31 @@ const Index = () => {
             <div className="gradient-card rounded-2xl p-6 shadow-card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Recent Sessions</h2>
-                <Link to="/sessions" className="text-xs text-muted-foreground hover:text-foreground">View All</Link>
+                <Link
+                  to="/sessions"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  View All
+                </Link>
               </div>
               {recentSessions.length > 0 ? (
                 <div className="space-y-3">
                   {recentSessions.map((session) => (
-                    <div key={session.id} className="p-3 rounded-lg bg-muted/20 border border-border/20 flex items-center justify-between">
+                    <div
+                      key={session.id}
+                      className="p-3 rounded-lg bg-muted/20 border border-border/20 flex items-center justify-between"
+                    >
                       <div className="text-sm">
-                        <div className="font-medium">{new Date(session.date).toLocaleDateString()}</div>
-                        <div className="text-xs text-muted-foreground">{session.status === 'completed' ? 'Completed' : 'In Progress'}</div>
+                        <div className="font-medium">
+                          {new Date(session.date).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {session.status === "completed" ? "Completed" : "In Progress"}
+                        </div>
                       </div>
-                      <Badge variant="outline" className="text-xs">{session.status}</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {session.status}
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -183,20 +214,35 @@ const Index = () => {
             <div className="gradient-card rounded-2xl p-6 shadow-card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Recent Measurements</h2>
-                <Link to="/gallery" className="text-xs text-muted-foreground hover:text-foreground">View All</Link>
+                <Link to="/gallery" className="text-xs text-muted-foreground hover:text-foreground">
+                  View All
+                </Link>
               </div>
               {recentMeasurements.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {recentMeasurements.map((measurement) => (
-                    <div key={measurement.id} className="p-4 rounded-lg bg-muted/20 border border-border/20">
-                      <div className="text-sm font-medium mb-1">{new Date(measurement.date).toLocaleDateString()}</div>
-                      <div className="text-xs text-muted-foreground">Length: {measurement.length}"</div>
-                      <div className="text-xs text-muted-foreground">Girth: {measurement.girth}"</div>
+                    <div
+                      key={measurement.id}
+                      className="p-4 rounded-lg bg-muted/20 border border-border/20"
+                    >
+                      <div className="text-sm font-medium mb-1">
+                        {new Date(measurement.date).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Length: {measurement.length}"
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Girth: {measurement.girth}"
+                      </div>
                       {measurement.notes && (
-                        <div className="mt-2 text-xs italic text-muted-foreground">"{measurement.notes}"</div>
+                        <div className="mt-2 text-xs italic text-muted-foreground">
+                          "{measurement.notes}"
+                        </div>
                       )}
                       {measurement.sessionId && (
-                        <Badge variant="secondary" className="mt-2 text-[10px]">Session</Badge>
+                        <Badge variant="secondary" className="mt-2 text-[10px]">
+                          Session
+                        </Badge>
                       )}
                     </div>
                   ))}
@@ -214,14 +260,21 @@ const Index = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeGoals.map((goal) => (
-                    <div key={goal.id} className="p-4 rounded-lg bg-muted/20 border border-border/20">
+                    <div
+                      key={goal.id}
+                      className="p-4 rounded-lg bg-muted/20 border border-border/20"
+                    >
                       <div className="text-sm font-medium mb-1 capitalize">{goal.type} Goal</div>
-                      <div className="text-xs text-muted-foreground">Current: {goal.current}" → Target: {goal.target}"</div>
+                      <div className="text-xs text-muted-foreground">
+                        Current: {goal.current}" → Target: {goal.target}"
+                      </div>
                       <div className="mt-2 flex items-center justify-between">
                         <Badge variant="outline" className="text-[10px]">
                           {Math.round((goal.current / goal.target) * 100)}%
                         </Badge>
-                        <div className="text-[10px] text-muted-foreground">{(goal.target - goal.current).toFixed(1)}" to go</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {(goal.target - goal.current).toFixed(1)}" to go
+                        </div>
                       </div>
                     </div>
                   ))}
