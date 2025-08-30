@@ -29,6 +29,10 @@ export default {
 					foreground: 'hsl(var(--primary-foreground))',
 					glow: 'hsl(var(--primary-glow))'
 				},
+				'hot-pink': {
+					DEFAULT: 'hsl(var(--hot-pink))',
+					foreground: 'hsl(var(--hot-pink-foreground))'
+				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
