@@ -48,10 +48,50 @@ export default function Measure() {
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
 
+  // Refs to avoid stale closures inside the RAF overlay loop
+  const calibStartRef = useRef<{ x: number; y: number } | null>(null);
+  const calibEndRef = useRef<{ x: number; y: number } | null>(null);
+  const basePointRef = useRef<{ x: number; y: number } | null>(null);
+  const tipPointRef = useRef<{ x: number; y: number } | null>(null);
+  const girthPixelsRef = useRef<number>(0);
+  const pixelsPerInchRef = useRef<number>(pixelsPerInch);
+  const unitRef = useRef<"in" | "cm">(unit);
+  const lengthDisplayRef = useRef<string>(lengthDisplay);
+  const girthDisplayRef = useRef<string>(girthDisplay);
+
   const setVoice = (v: boolean) => {
     setVoiceEnabledState(v);
     setVoiceEnabled(v);
   };
+
+  // Keep refs in sync with state for use inside RAF loop
+  useEffect(() => {
+    calibStartRef.current = calibStart;
+  }, [calibStart]);
+  useEffect(() => {
+    calibEndRef.current = calibEnd;
+  }, [calibEnd]);
+  useEffect(() => {
+    basePointRef.current = basePoint;
+  }, [basePoint]);
+  useEffect(() => {
+    tipPointRef.current = tipPoint;
+  }, [tipPoint]);
+  useEffect(() => {
+    girthPixelsRef.current = girthPixels;
+  }, [girthPixels]);
+  useEffect(() => {
+    pixelsPerInchRef.current = pixelsPerInch;
+  }, [pixelsPerInch]);
+  useEffect(() => {
+    unitRef.current = unit;
+  }, [unit]);
+  useEffect(() => {
+    lengthDisplayRef.current = lengthDisplay;
+  }, [lengthDisplay]);
+  useEffect(() => {
+    girthDisplayRef.current = girthDisplay;
+  }, [girthDisplay]);
 
   // Load previous photos once
   useEffect(() => {
@@ -136,18 +176,20 @@ export default function Measure() {
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
       // Calibration line
-      if (calibStart && calibEnd) {
+      const cStart = calibStartRef.current;
+      const cEnd = calibEndRef.current;
+      if (cStart && cEnd) {
         ctx.strokeStyle = "#22d3ee";
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 6]);
         ctx.beginPath();
-        ctx.moveTo(calibStart.x, calibStart.y);
-        ctx.lineTo(calibEnd.x, calibEnd.y);
+        ctx.moveTo(cStart.x, cStart.y);
+        ctx.lineTo(cEnd.x, cEnd.y);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        const dx = calibEnd.x - calibStart.x;
-        const dy = calibEnd.y - calibStart.y;
+        const dx = cEnd.x - cStart.x;
+        const dy = cEnd.y - cStart.y;
         const pixels = Math.hypot(dx, dy);
         const ppi = pixels / calibrationInches;
         // show live ppi label
@@ -155,30 +197,37 @@ export default function Measure() {
         ctx.font = "12px sans-serif";
         ctx.fillText(
           `${ppi.toFixed(1)} px/in`,
-          (calibStart.x + calibEnd.x) / 2 + 8,
-          (calibStart.y + calibEnd.y) / 2,
+          (cStart.x + cEnd.x) / 2 + 8,
+          (cStart.y + cEnd.y) / 2,
         );
       }
 
       // Base to tip length line + markers + tape ruler
-      if (basePoint && tipPoint) {
+      const bp = basePointRef.current;
+      const tp = tipPointRef.current;
+      if (bp && tp) {
         // Line
         ctx.strokeStyle = "#10b981";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(basePoint.x, basePoint.y);
-        ctx.lineTo(tipPoint.x, tipPoint.y);
+        ctx.moveTo(bp.x, bp.y);
+        ctx.lineTo(tp.x, tp.y);
         ctx.stroke();
 
-        const dx = tipPoint.x - basePoint.x;
-        const dy = tipPoint.y - basePoint.y;
+        const dx = tp.x - bp.x;
+        const dy = tp.y - bp.y;
         const pixels = Math.hypot(dx, dy) || 1;
         const ux = dx / pixels;
         const uy = dy / pixels;
-        const inches = pixels / pixelsPerInch;
+        const inches = pixels / (pixelsPerInchRef.current || 1);
         const cm = inToCm(inches);
-        const display = unit === "in" ? inches : cm;
-        setLengthDisplay(display.toFixed(2));
+        const useIn = unitRef.current === "in";
+        const display = useIn ? inches : cm;
+        const nextLen = display.toFixed(2);
+        if (nextLen !== lengthDisplayRef.current) {
+          lengthDisplayRef.current = nextLen;
+          setLengthDisplay(nextLen);
+        }
 
         // Base/Tip markers
         const drawMarker = (x: number, y: number, label: string) => {
@@ -193,33 +242,33 @@ export default function Measure() {
           ctx.font = "12px sans-serif";
           ctx.fillText(label, x + 8, y - 8);
         };
-        drawMarker(basePoint.x, basePoint.y, "Base");
-        drawMarker(tipPoint.x, tipPoint.y, "Tip");
+        drawMarker(bp.x, bp.y, "Base");
+        drawMarker(tp.x, tp.y, "Tip");
 
         // Tape ruler along the measured axis (tailor's tape style)
         const perpX = -uy;
         const perpY = ux;
         const total = pixels;
         // Base tick spacing: 0.5 inch in IN mode, 1 cm in CM mode
-        const tickPx = unit === "in" ? pixelsPerInch * 0.5 : (pixelsPerInch / 2.54) * 1.0;
+        const tickPx = unitRef.current === "in" ? (pixelsPerInchRef.current || 1) * 0.5 : ((pixelsPerInchRef.current || 1) / 2.54) * 1.0;
         let stepPx = 0;
         let index = 0;
         ctx.strokeStyle = "#94a3b8"; // slate-400 ticks
         ctx.fillStyle = "#94a3b8";
         ctx.lineWidth = 2;
         while (stepPx <= total + 0.5) {
-          const isMajor = unit === "in" ? index % 2 === 0 : true; // label every inch in IN, every cm in CM
+          const isMajor = unitRef.current === "in" ? index % 2 === 0 : true; // label every inch in IN, every cm in CM
           const tickLen = isMajor ? 16 : 10;
-          const cx = basePoint.x + ux * stepPx;
-          const cy = basePoint.y + uy * stepPx;
+          const cx = bp.x + ux * stepPx;
+          const cy = bp.y + uy * stepPx;
           ctx.beginPath();
           ctx.moveTo(cx - perpX * tickLen, cy - perpY * tickLen);
           ctx.lineTo(cx + perpX * tickLen, cy + perpY * tickLen);
           ctx.stroke();
           if (isMajor) {
             ctx.font = "11px sans-serif";
-            const labelVal = unit === "in" ? (index * 0.5) : index * 1;
-            const label = unit === "in" ? String(Math.round(labelVal)) : String(Math.round(labelVal));
+            const labelVal = unitRef.current === "in" ? (index * 0.5) : index * 1;
+            const label = unitRef.current === "in" ? String(Math.round(labelVal)) : String(Math.round(labelVal));
             ctx.fillText(label, cx + perpX * (tickLen + 6), cy + perpY * (tickLen + 6));
           }
           stepPx += tickPx;
@@ -229,13 +278,14 @@ export default function Measure() {
         // Length label near tip
         ctx.fillStyle = "#10b981";
         ctx.font = "14px sans-serif";
-        ctx.fillText(`${display.toFixed(2)} ${unit}`, tipPoint.x + 8, tipPoint.y);
+        ctx.fillText(`${nextLen} ${unitRef.current}`, tp.x + 8, tp.y);
 
         // Girth indicator: perpendicular at mid-shaft
-        if (girthPixels > 0) {
-          const midX = (basePoint.x + tipPoint.x) / 2;
-          const midY = (basePoint.y + tipPoint.y) / 2;
-          const half = girthPixels / 2;
+        const currentGirth = girthPixelsRef.current || 0;
+        if (currentGirth > 0) {
+          const midX = (bp.x + tp.x) / 2;
+          const midY = (bp.y + tp.y) / 2;
+          const half = currentGirth / 2;
           const startX = midX - perpX * half;
           const startY = midY - perpY * half;
           const endX = midX + perpX * half;
@@ -247,13 +297,17 @@ export default function Measure() {
           ctx.lineTo(endX, endY);
           ctx.stroke();
 
-          const circumferenceInches = (girthPixels / pixelsPerInch) * Math.PI;
+          const circumferenceInches = (currentGirth / (pixelsPerInchRef.current || 1)) * Math.PI;
           const circumferenceCm = inToCm(circumferenceInches);
-          const gDisplay = unit === "in" ? circumferenceInches : circumferenceCm;
-          setGirthDisplay(gDisplay.toFixed(2));
+          const gDisplay = unitRef.current === "in" ? circumferenceInches : circumferenceCm;
+          const nextGirth = gDisplay.toFixed(2);
+          if (nextGirth !== girthDisplayRef.current) {
+            girthDisplayRef.current = nextGirth;
+            setGirthDisplay(nextGirth);
+          }
           ctx.fillStyle = "#f59e0b";
           ctx.font = "14px sans-serif";
-          ctx.fillText(`${gDisplay.toFixed(2)} ${unit}`, endX + 8, endY);
+          ctx.fillText(`${nextGirth} ${unitRef.current}`, endX + 8, endY);
         }
       }
 
