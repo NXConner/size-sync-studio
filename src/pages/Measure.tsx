@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download } from "lucide-react";
+import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import { Measurement } from "@/types";
 import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,9 @@ export default function Measure() {
   const [maskOpacity, setMaskOpacity] = useState<number>(35);
   const autoDetectRafRef = useRef<number | null>(null);
   const lastDetectTsRef = useRef<number>(0);
+  const [selectedHandle, setSelectedHandle] = useState<null | "base" | "tip">(null);
+  const [nudgeStep, setNudgeStep] = useState<number>(1);
+  const [isAutoCalibrating, setIsAutoCalibrating] = useState<boolean>(false);
 
   // Refs to avoid stale closures inside the RAF overlay loop
   const calibStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -399,8 +402,10 @@ export default function Measure() {
     // Set base then tip
     if (!basePoint) {
       setBasePoint({ x, y });
+      setSelectedHandle("base");
     } else {
       setTipPoint({ x, y });
+      setSelectedHandle("tip");
     }
   };
 
@@ -446,6 +451,210 @@ export default function Measure() {
 
   const handleOverlayMouseUp = () => {
     setDragging(null);
+  };
+
+  // Keyboard nudge controls
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selectedHandle) return;
+      const overlay = overlayRef.current;
+      if (!overlay) return;
+      const step = (e.shiftKey ? 5 : 1) * (nudgeStep || 1);
+      const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+      const move = (dx: number, dy: number) => {
+        if (selectedHandle === "base" && basePoint) {
+          setBasePoint({
+            x: clamp(basePoint.x + dx, 0, overlay.width),
+            y: clamp(basePoint.y + dy, 0, overlay.height),
+          });
+        }
+        if (selectedHandle === "tip" && tipPoint) {
+          setTipPoint({
+            x: clamp(tipPoint.x + dx, 0, overlay.width),
+            y: clamp(tipPoint.y + dy, 0, overlay.height),
+          });
+        }
+      };
+      if (e.key === "ArrowUp") { e.preventDefault(); move(0, -step); }
+      if (e.key === "ArrowDown") { e.preventDefault(); move(0, step); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); move(-step, 0); }
+      if (e.key === "ArrowRight") { e.preventDefault(); move(step, 0); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedHandle, nudgeStep, basePoint, tipPoint]);
+
+  // Auto-calibration via credit card detection
+  const autoCalibrateCommon = (
+    cv: any,
+    src: any,
+    w: number,
+    h: number,
+    mapToOverlay: (ix: number, iy: number) => { x: number; y: number },
+  ) => {
+    const gray = new cv.Mat();
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    const blur = new cv.Mat();
+    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+    const edges = new cv.Mat();
+    cv.Canny(blur, edges, 50, 150);
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
+    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    let best = {
+      area: 0,
+      ratioDiff: Number.POSITIVE_INFINITY,
+      pts: [] as Array<{ x: number; y: number }>,
+      longPx: 0,
+    };
+    const targetRatio = 85.6 / 53.98; // ~1.585
+
+    for (let i = 0; i < contours.size(); i++) {
+      const cnt = contours.get(i);
+      const peri = cv.arcLength(cnt, true);
+      const approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+      if (approx.rows === 4) {
+        const pts: Array<{ x: number; y: number }> = [];
+        for (let j = 0; j < 4; j++) {
+          const p = approx.int32Ptr(j);
+          pts.push({ x: p[0], y: p[1] });
+        }
+        // compute side lengths
+        const d = (a: any, b: any) => Math.hypot(a.x - b.x, a.y - b.y);
+        const sides = [d(pts[0], pts[1]), d(pts[1], pts[2]), d(pts[2], pts[3]), d(pts[3], pts[0])];
+        const long = Math.max(...sides);
+        const short = Math.min(...sides);
+        const ratio = long / (short || 1);
+        const ratioDiff = Math.abs(ratio - targetRatio);
+        const area = cv.contourArea(cnt, false);
+        if (area > w * h * 0.005 && ratioDiff < 0.35) {
+          if (area > best.area || (Math.abs(ratioDiff - best.ratioDiff) < 0.05 && area > best.area)) {
+            best = { area, ratioDiff, pts, longPx: long };
+          }
+        }
+      }
+      approx.delete();
+      cnt.delete();
+    }
+    contours.delete();
+    hierarchy.delete();
+    edges.delete();
+    blur.delete();
+    gray.delete();
+
+    if (best.area <= 0 || best.pts.length !== 4) {
+      throw new Error("Card not found");
+    }
+
+    const inchesLong = 85.6 / 25.4; // 3.370 in
+    const computedPpi = best.longPx / inchesLong;
+    if (computedPpi <= 0 || !isFinite(computedPpi)) throw new Error("Invalid calibration");
+    setPixelsPerInch(computedPpi);
+
+    // set calibration line along longest edge mapped to overlay for user feedback
+    const dpt = (a: any, b: any) => Math.hypot(a.x - b.x, a.y - b.y);
+    let aIdx = 0, bIdx = 1; let longLen = 0;
+    for (let k = 0; k < 4; k++) {
+      const n = (k + 1) % 4;
+      const L = dpt(best.pts[k], best.pts[n]);
+      if (L > longLen) { longLen = L; aIdx = k; bIdx = n; }
+    }
+    const a = mapToOverlay(best.pts[aIdx].x, best.pts[aIdx].y);
+    const b = mapToOverlay(best.pts[bIdx].x, best.pts[bIdx].y);
+    setCalibStart(a);
+    setCalibEnd(b);
+    setIsCalibrating(false);
+  };
+
+  const autoCalibrateFromImage = async () => {
+    if (mode !== "upload") {
+      toast({ title: "Switch to Upload", description: "Use an uploaded image for this calibration.", variant: "destructive" });
+      return;
+    }
+    if (!uploadedUrl) {
+      toast({ title: "No image", description: "Upload an image first.", variant: "destructive" });
+      return;
+    }
+    setIsAutoCalibrating(true);
+    try {
+      const cv = await loadOpenCV();
+      const imgEl = new Image();
+      await new Promise<void>((resolve, reject) => {
+        imgEl.onload = () => resolve();
+        imgEl.onerror = () => reject(new Error("Failed to load image"));
+        imgEl.src = uploadedUrl;
+      });
+      const w = imgEl.naturalWidth;
+      const h = imgEl.naturalHeight;
+      const procCanvas = document.createElement("canvas");
+      procCanvas.width = w;
+      procCanvas.height = h;
+      const pctx = procCanvas.getContext("2d");
+      if (!pctx) throw new Error("Canvas context unavailable");
+      pctx.drawImage(imgEl, 0, 0, w, h);
+      const src = cv.imread(procCanvas);
+      const container = containerRef.current;
+      if (!container) throw new Error("Container missing");
+      const containerW = container.clientWidth;
+      const containerH = container.clientHeight;
+      const scale = Math.min(containerW / w, containerH / h);
+      const drawW = w * scale;
+      const drawH = h * scale;
+      const offsetX = (containerW - drawW) / 2;
+      const offsetY = (containerH - drawH) / 2;
+      const mapToOverlay = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
+      autoCalibrateCommon(cv, src, w, h, mapToOverlay);
+      src.delete();
+      toast({ title: "Calibration updated", description: "Detected credit card scale applied." });
+    } catch (err: any) {
+      toast({ title: "Auto-calibration failed", description: err?.message || String(err), variant: "destructive" });
+    } finally {
+      setIsAutoCalibrating(false);
+    }
+  };
+
+  const autoCalibrateFromLive = async () => {
+    if (mode !== "live") {
+      toast({ title: "Switch to Live", description: "Use the camera for this calibration.", variant: "destructive" });
+      return;
+    }
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      toast({ title: "Camera not ready", description: "Wait for the camera stream to start.", variant: "destructive" });
+      return;
+    }
+    setIsAutoCalibrating(true);
+    try {
+      const cv = await loadOpenCV();
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      const procCanvas = document.createElement("canvas");
+      procCanvas.width = w;
+      procCanvas.height = h;
+      const pctx = procCanvas.getContext("2d");
+      if (!pctx) throw new Error("Canvas context unavailable");
+      pctx.drawImage(video, 0, 0, w, h);
+      const src = cv.imread(procCanvas);
+      const container = containerRef.current;
+      if (!container) throw new Error("Container missing");
+      const containerW = container.clientWidth;
+      const containerH = container.clientHeight;
+      const scale = Math.min(containerW / w, containerH / h);
+      const drawW = w * scale;
+      const drawH = h * scale;
+      const offsetX = (containerW - drawW) / 2;
+      const offsetY = (containerH - drawH) / 2;
+      const mapToOverlay = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
+      autoCalibrateCommon(cv, src, w, h, mapToOverlay);
+      src.delete();
+      toast({ title: "Calibration updated", description: "Detected credit card scale applied." });
+    } catch (err: any) {
+      toast({ title: "Auto-calibration failed", description: err?.message || String(err), variant: "destructive" });
+    } finally {
+      setIsAutoCalibrating(false);
+    }
   };
 
   const detectFromImage = async () => {
@@ -1261,6 +1470,28 @@ export default function Measure() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
+                <span className="text-sm">Selected handle</span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Button size="sm" variant={selectedHandle === "base" ? "default" : "outline"} onClick={() => setSelectedHandle("base")}>Base</Button>
+                  <Button size="sm" variant={selectedHandle === "tip" ? "default" : "outline"} onClick={() => setSelectedHandle("tip")}>Tip</Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Nudge step: {nudgeStep}px (Shift = x5)</label>
+                <Slider value={[nudgeStep]} min={1} max={10} step={1} onValueChange={(v) => setNudgeStep(v[0])} />
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div></div>
+                  <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }))}><ArrowUp className="w-4 h-4" /></Button>
+                  <div></div>
+                  <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }))}><ArrowLeft className="w-4 h-4" /></Button>
+                  <div></div>
+                  <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }))}><ArrowRight className="w-4 h-4" /></Button>
+                  <div></div>
+                  <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }))}><ArrowDown className="w-4 h-4" /></Button>
+                  <div></div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-sm">Voice feedback</span>
                 <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
               </div>
@@ -1281,6 +1512,17 @@ export default function Measure() {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show previous photo</span>
                 <Switch checked={showPrevOverlay} onCheckedChange={setShowPrevOverlay} />
+              </div>
+              <div className="pt-2 space-y-2">
+                <div className="text-sm font-medium">Auto-calibration</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={autoCalibrateFromLive} disabled={isAutoCalibrating || mode !== "live"}>
+                    {isAutoCalibrating && mode === "live" ? "Calibrating…" : "From live"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={autoCalibrateFromImage} disabled={isAutoCalibrating || mode !== "upload"}>
+                    {isAutoCalibrating && mode === "upload" ? "Calibrating…" : "From image"}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Previous photo</label>
