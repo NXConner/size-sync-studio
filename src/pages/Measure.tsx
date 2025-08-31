@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadOpenCV } from "@/utils/opencv";
+import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -44,6 +45,12 @@ export default function Measure() {
   const [uploadedUrl, setUploadedUrl] = useState<string>("");
   const [uploadedBlob, setUploadedBlob] = useState<Blob | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
+  const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
+
+  const setVoice = (v: boolean) => {
+    setVoiceEnabledState(v);
+    setVoiceEnabled(v);
+  };
 
   // Load previous photos once
   useEffect(() => {
@@ -525,6 +532,9 @@ export default function Measure() {
       kernel.delete();
       contours2.delete();
       hierarchy2.delete();
+      if (voiceEnabled) {
+        try { await playHumDetect(); } catch {}
+      }
       toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
     } catch (err: any) {
       toast({
@@ -713,6 +723,9 @@ export default function Measure() {
       src.delete(); rgba.delete(); hsv.delete(); ycrcb.delete();
       mask1.delete(); mask2.delete(); mask.delete(); kernel.delete();
       contours2.delete(); hierarchy2.delete();
+      if (voiceEnabled) {
+        try { await playHumDetect(); } catch {}
+      }
       toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
     } catch (err: any) {
       toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
@@ -787,11 +800,13 @@ export default function Measure() {
           "Significant girth increase. Consider longer rest intervals and monitor for edema.";
       if (dL > 0.25)
         recommendation = "Great length gain. Maintain current protocol; avoid overtraining.";
+      if (voiceEnabled) { try { await playCompliment(); } catch {} }
       toast({
         title: "Captured & Saved",
         description: `Δ Length ${trend(dL)}, Δ Girth ${trend(dG)}. ${recommendation}`,
       });
     } else {
+      if (voiceEnabled) { try { await playCompliment(); } catch {} }
       toast({ title: "Captured & Saved", description: "First measurement stored." });
     }
   };
@@ -1009,6 +1024,10 @@ export default function Measure() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Voice feedback</span>
+                <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show previous photo</span>
                 <Switch checked={showPrevOverlay} onCheckedChange={setShowPrevOverlay} />
