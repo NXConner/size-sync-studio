@@ -167,7 +167,6 @@ export default function Measure() {
         const pixels = Math.hypot(dx, dy) || 1;
         const ux = dx / pixels;
         const uy = dy / pixels;
-        const pxPerUnit = unit === "in" ? pixelsPerInch : pixelsPerInch / 2.54;
         const inches = pixels / pixelsPerInch;
         const cm = inToCm(inches);
         const display = unit === "in" ? inches : cm;
@@ -192,29 +191,30 @@ export default function Measure() {
         // Tape ruler along the measured axis (tailor's tape style)
         const perpX = -uy;
         const perpY = ux;
-        const major = pxPerUnit; // 1 unit
-        const minor = major / 2; // half unit
         const total = pixels;
-        let step = 0;
+        // Base tick spacing: 0.5 inch in IN mode, 1 cm in CM mode
+        const tickPx = unit === "in" ? pixelsPerInch * 0.5 : (pixelsPerInch / 2.54) * 1.0;
+        let stepPx = 0;
         let index = 0;
         ctx.strokeStyle = "#94a3b8"; // slate-400 ticks
         ctx.fillStyle = "#94a3b8";
         ctx.lineWidth = 2;
-        while (step <= total + 0.5) {
-          const isMajor = index % 2 === 0; // every other minor is a major (1 unit)
+        while (stepPx <= total + 0.5) {
+          const isMajor = unit === "in" ? index % 2 === 0 : true; // label every inch in IN, every cm in CM
           const tickLen = isMajor ? 16 : 10;
-          const cx = basePoint.x + ux * step;
-          const cy = basePoint.y + uy * step;
+          const cx = basePoint.x + ux * stepPx;
+          const cy = basePoint.y + uy * stepPx;
           ctx.beginPath();
           ctx.moveTo(cx - perpX * tickLen, cy - perpY * tickLen);
           ctx.lineTo(cx + perpX * tickLen, cy + perpY * tickLen);
           ctx.stroke();
           if (isMajor) {
             ctx.font = "11px sans-serif";
-            const label = String(Math.round(step / major));
+            const labelVal = unit === "in" ? (index * 0.5) : index * 1;
+            const label = unit === "in" ? String(Math.round(labelVal)) : String(Math.round(labelVal));
             ctx.fillText(label, cx + perpX * (tickLen + 6), cy + perpY * (tickLen + 6));
           }
-          step += minor;
+          stepPx += tickPx;
           index += 1;
         }
 
