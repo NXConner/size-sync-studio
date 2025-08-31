@@ -7,17 +7,20 @@ import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: './',
+  base: process.env.VITE_APP_BASENAME || './',
   server: {
     host: "::",
     port: 8080,
-    proxy: {
-      "/api": {
-        target: "http://localhost:3001",
-        changeOrigin: true,
-        secure: false,
-      },
-    },
+    proxy: (() => {
+      const apiBase = (process.env.VITE_API_BASE || '/api').replace(/\/$/, '');
+      return {
+        [apiBase]: {
+          target: "http://localhost:3001",
+          changeOrigin: true,
+          secure: false,
+        },
+      } as Record<string, any>;
+    })(),
   },
   plugins: [
     react(),

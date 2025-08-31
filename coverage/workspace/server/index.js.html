@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/328</span>
+                <span class='fraction'>0/330</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/328</span>
+                <span class='fraction'>0/330</span>
             </div>
         
             
@@ -391,7 +391,11 @@
 <a name='L326'></a><a href='#L326'>326</a>
 <a name='L327'></a><a href='#L327'>327</a>
 <a name='L328'></a><a href='#L328'>328</a>
-<a name='L329'></a><a href='#L329'>329</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -733,6 +737,7 @@
 <span class="cstat-no" title="statement not covered" >import { z } from "zod";</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >const app = express();</span>
+<span class="cstat-no" title="statement not covered" >const router = express.Router();</span>
 <span class="cstat-no" title="statement not covered" >if (config.SENTRY_DSN) {</span>
 <span class="cstat-no" title="statement not covered" >  Sentry.init({ dsn: config.SENTRY_DSN, tracesSampleRate: 0.1 });</span>
 <span class="cstat-no" title="statement not covered" >  app.use(Sentry.requestHandler());</span>
@@ -783,7 +788,7 @@
 <span class="cstat-no" title="statement not covered" >  redditAuth: { token: null, expiresAt: 0 },</span>
 <span class="cstat-no" title="statement not covered" >};</span>
 <span class="cstat-no" title="statement not covered" >app.use(express.json({ limit: "1mb" }));</span>
-<span class="cstat-no" title="statement not covered" >app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));</span>
+<span class="cstat-no" title="statement not covered" >app.use(`${config.API_PREFIX}/docs`, swaggerUi.serve, swaggerUi.setup(openapiSpec));</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >const refusalMessage =</span>
 <span class="cstat-no" title="statement not covered" >  "I can’t provide instructions for sexual techniques, enlargement, or pressure/time routines. " +</span>
@@ -814,7 +819,7 @@
 <span class="cstat-no" title="statement not covered" >}</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >const ChatBody = z.object({ message: z.string().min(1).max(1000) });</span>
-<span class="cstat-no" title="statement not covered" >app.post("/api/chat", async (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.post(`/chat`, async (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const parsed = ChatBody.safeParse(req.body);</span>
 <span class="cstat-no" title="statement not covered" >  if (!parsed.success) {</span>
 <span class="cstat-no" title="statement not covered" >    return res.status(400).json({ error: "Invalid body" });</span>
@@ -854,7 +859,7 @@
 <span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >// Streaming chat (SSE) - streams a generic wellness message in chunks</span>
-<span class="cstat-no" title="statement not covered" >app.get("/api/chat/stream", async (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.get(`/chat/stream`, async (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  res.setHeader("Content-Type", "text/event-stream");</span>
 <span class="cstat-no" title="statement not covered" >  res.setHeader("Cache-Control", "no-cache");</span>
 <span class="cstat-no" title="statement not covered" >  res.setHeader("Connection", "keep-alive");</span>
@@ -883,7 +888,7 @@
 <span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >// Safe Reddit retrieval: titles and links only from r/gettingbigger</span>
-<span class="cstat-no" title="statement not covered" >app.get("/api/reddit/gettingbigger", async (_req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.get(`/reddit/gettingbigger`, async (_req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
 <span class="cstat-no" title="statement not covered" >    // Serve from cache if fresh (10 min TTL)</span>
 <span class="cstat-no" title="statement not covered" >    const now = Date.now();</span>
@@ -972,7 +977,7 @@
 <span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >// Simple SVG diagram endpoint (non-graphic): wellness routine schedule block</span>
-<span class="cstat-no" title="statement not covered" >app.get("/api/image/schedule", (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.get(`/image/schedule`, (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const width = 640;</span>
 <span class="cstat-no" title="statement not covered" >  const height = 360;</span>
 <span class="cstat-no" title="statement not covered" >  const svg = `&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
@@ -1009,7 +1014,7 @@
 <span class="cstat-no" title="statement not covered" >  res.set("Content-Type", "image/svg+xml").send(svg);</span>
 <span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >app.get("/api/health", (_req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.get(`/health`, (_req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  res.json({ status: "ok" });</span>
 <span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" ></span>
@@ -1021,7 +1026,7 @@
 <span class="cstat-no" title="statement not covered" >  rating: z.enum(["up", "down"]).optional().nullable(),</span>
 <span class="cstat-no" title="statement not covered" >  reasons: z.array(z.string()).max(5).optional().default([]),</span>
 <span class="cstat-no" title="statement not covered" >});</span>
-<span class="cstat-no" title="statement not covered" >app.post("/api/feedback", (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.post(`/feedback`, (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const parsed = FeedbackBody.safeParse(req.body);</span>
 <span class="cstat-no" title="statement not covered" >  if (!parsed.success) {</span>
 <span class="cstat-no" title="statement not covered" >    return res.status(400).json({ error: "Invalid body" });</span>
@@ -1044,6 +1049,7 @@
 <span class="cstat-no" title="statement not covered" >  app.use(Sentry.errorHandler());</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 <span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >app.use(config.API_PREFIX, router);</span>
 <span class="cstat-no" title="statement not covered" >app.listen(port, () =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  console.log(`[server] listening on http://localhost:${port}`);</span>
 <span class="cstat-no" title="statement not covered" >});</span>
@@ -1054,7 +1060,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-31T06:19:47.173Z
+                at 2025-08-31T09:54:54.754Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

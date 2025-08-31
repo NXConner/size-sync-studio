@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -31,7 +32,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename={APP_BASENAME}>
         <div className="min-h-screen bg-background">
           <Navbar />
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>

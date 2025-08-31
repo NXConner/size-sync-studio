@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getJson, postJson, ChatResponseSchema, OkResponseSchema, RedditPayloadSchema } from "@/lib/api";
+import { withApiBase } from "@/lib/config";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -75,7 +76,7 @@ export default function Chat() {
     if (streaming) {
       // Stream via SSE
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
-      const evt = new EventSource(`/api/chat/stream`);
+      const evt = new EventSource(withApiBase(`/chat/stream`));
       sseRef.current = evt;
       let acc = "";
       setLoading(true);
