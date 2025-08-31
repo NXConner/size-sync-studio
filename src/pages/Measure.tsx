@@ -47,6 +47,19 @@ export default function Measure() {
   const [uploadedBlob, setUploadedBlob] = useState<Blob | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
+  const [showGrid, setShowGrid] = useState<boolean>(false);
+  const [gridSize, setGridSize] = useState<number>(24);
+  const [dragging, setDragging] = useState<null | { type: "base" | "tip" | "calibStart" | "calibEnd" }>(null);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [isFrozen, setIsFrozen] = useState<boolean>(false);
+  const [frozenUrl, setFrozenUrl] = useState<string>("");
+  const [autoDetect, setAutoDetect] = useState<boolean>(false);
+  const [showMask, setShowMask] = useState<boolean>(false);
+  const [maskUrl, setMaskUrl] = useState<string>("");
+  const [maskGeom, setMaskGeom] = useState<{ offsetX: number; offsetY: number; drawW: number; drawH: number } | null>(null);
+  const [maskOpacity, setMaskOpacity] = useState<number>(35);
+  const autoDetectRafRef = useRef<number | null>(null);
+  const lastDetectTsRef = useRef<number>(0);
 
   // Refs to avoid stale closures inside the RAF overlay loop
   const calibStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -105,8 +118,11 @@ export default function Measure() {
     let cancelled = false;
     const start = async () => {
       try {
+        // Stop previous stream if any
+        const prev = videoRef.current?.srcObject as MediaStream | undefined;
+        prev?.getTracks().forEach((t) => t.stop());
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: { facingMode },
           audio: false,
         });
         if (videoRef.current && !cancelled) {
@@ -131,7 +147,7 @@ export default function Measure() {
       const stream = videoRef.current?.srcObject as MediaStream | undefined;
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [mode]);
+  }, [mode, facingMode]);
 
   // load selected previous overlay image
   useEffect(() => {
@@ -174,6 +190,27 @@ export default function Measure() {
       overlay.width = container.clientWidth;
       overlay.height = container.clientHeight;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      // Optional grid background
+      if (showGrid) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.25)"; // slate-400 @ 25%
+        ctx.lineWidth = 1;
+        const step = Math.max(8, Math.min(80, gridSize));
+        for (let x = 0; x < overlay.width; x += step) {
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, overlay.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < overlay.height; y += step) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(overlay.width, y + 0.5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
 
       // Calibration line
       const cStart = calibStartRef.current;
@@ -280,6 +317,15 @@ export default function Measure() {
         ctx.font = "14px sans-serif";
         ctx.fillText(`${nextLen} ${unitRef.current}`, tp.x + 8, tp.y);
 
+        // Angle label near mid
+        const angleRad = Math.atan2(dy, dx);
+        const angleDeg = ((angleRad * 180) / Math.PI + 360) % 360;
+        const midX = (bp.x + tp.x) / 2;
+        const midY = (bp.y + tp.y) / 2;
+        ctx.fillStyle = "#0ea5e9"; // sky-500
+        ctx.font = "12px sans-serif";
+        ctx.fillText(`${angleDeg.toFixed(1)}°`, midX + 8, midY + 14);
+
         // Girth indicator: perpendicular at mid-shaft
         const currentGirth = girthPixelsRef.current || 0;
         if (currentGirth > 0) {
@@ -356,6 +402,50 @@ export default function Measure() {
     } else {
       setTipPoint({ x, y });
     }
+  };
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const hitRadius = 14;
+    const hit = (pt: { x: number; y: number } | null) =>
+      pt && Math.hypot(pt.x - x, pt.y - y) <= hitRadius;
+    if (isCalibrating) {
+      // Allow dragging calibration endpoints while calibrating
+      if (hit(calibStart)) {
+        setDragging({ type: "calibStart" });
+        return;
+      }
+      if (hit(calibEnd)) {
+        setDragging({ type: "calibEnd" });
+        return;
+      }
+    } else {
+      if (hit(basePoint)) {
+        setDragging({ type: "base" });
+        return;
+      }
+      if (hit(tipPoint)) {
+        setDragging({ type: "tip" });
+        return;
+      }
+    }
+  };
+
+  const handleOverlayMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dragging) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (dragging.type === "base") setBasePoint({ x, y });
+    if (dragging.type === "tip") setTipPoint({ x, y });
+    if (dragging.type === "calibStart") setCalibStart({ x, y });
+    if (dragging.type === "calibEnd") setCalibEnd({ x, y });
+  };
+
+  const handleOverlayMouseUp = () => {
+    setDragging(null);
   };
 
   const detectFromImage = async () => {
@@ -574,6 +664,17 @@ export default function Measure() {
           const median = widths[Math.floor(widths.length / 2)] * scale;
           setGirthPixels(median);
         }
+
+        // Mask preview export
+        try {
+          const maskCanvas = document.createElement("canvas");
+          maskCanvas.width = w;
+          maskCanvas.height = h;
+          (cv as any).imshow(maskCanvas, mask);
+          const url = maskCanvas.toDataURL("image/png");
+          setMaskUrl(url);
+          setMaskGeom({ offsetX, offsetY, drawW, drawH });
+        } catch {}
       }
 
       // Cleanup
@@ -772,6 +873,17 @@ export default function Measure() {
           const median = widths[Math.floor(widths.length / 2)] * scale;
           setGirthPixels(median);
         }
+
+        // Mask preview export
+        try {
+          const maskCanvas = document.createElement("canvas");
+          maskCanvas.width = w;
+          maskCanvas.height = h;
+          (cv as any).imshow(maskCanvas, mask);
+          const url = maskCanvas.toDataURL("image/png");
+          setMaskUrl(url);
+          setMaskGeom({ offsetX, offsetY, drawW, drawH });
+        } catch {}
       }
 
       // Cleanup
@@ -866,6 +978,51 @@ export default function Measure() {
     }
   };
 
+  const toggleFreeze = () => {
+    if (isFrozen) {
+      setIsFrozen(false);
+      if (frozenUrl) URL.revokeObjectURL(frozenUrl);
+      setFrozenUrl("");
+      return;
+    }
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob((b) => {
+      if (!b) return;
+      const url = URL.createObjectURL(b);
+      setFrozenUrl(url);
+      setIsFrozen(true);
+    }, "image/png");
+  };
+
+  // Continuous auto-detect for live video
+  useEffect(() => {
+    if (!autoDetect || mode !== "live" || isFrozen) {
+      if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
+      autoDetectRafRef.current = null;
+      return;
+    }
+    const loop = async () => {
+      const now = performance.now();
+      if (!isDetecting && now - lastDetectTsRef.current > 1200) {
+        lastDetectTsRef.current = now;
+        try { await detectFromLive(); } catch {}
+      }
+      autoDetectRafRef.current = requestAnimationFrame(loop);
+    };
+    autoDetectRafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
+      autoDetectRafRef.current = null;
+    };
+  }, [autoDetect, mode, isFrozen, isDetecting]);
+
   const exportOverlayPNG = async () => {
     const overlay = overlayRef.current;
     const exportCanvas = overlayExportRef.current;
@@ -948,12 +1105,20 @@ export default function Measure() {
           <CardContent>
             <div className="relative w-full" ref={containerRef}>
               {mode === "live" ? (
-                <video
-                  ref={videoRef}
-                  className="w-full max-h-[70vh] rounded-lg bg-black"
-                  playsInline
-                  muted
-                />
+                isFrozen && frozenUrl ? (
+                  <img
+                    src={frozenUrl}
+                    alt="Frozen frame"
+                    className="w-full max-h-[70vh] rounded-lg bg-black object-contain"
+                  />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    className="w-full max-h-[70vh] rounded-lg bg-black"
+                    playsInline
+                    muted
+                  />
+                )
               ) : uploadedUrl ? (
                 <img
                   src={uploadedUrl}
@@ -964,6 +1129,20 @@ export default function Measure() {
                 <div className="w-full max-h-[70vh] h-[50vh] rounded-lg bg-black/60 flex items-center justify-center text-sm text-muted-foreground">
                   Upload an image to begin measurement
                 </div>
+              )}
+              {showMask && maskUrl && maskGeom && (
+                <img
+                  src={maskUrl}
+                  alt="Mask"
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: maskGeom.offsetX,
+                    top: maskGeom.offsetY,
+                    width: maskGeom.drawW,
+                    height: maskGeom.drawH,
+                    opacity: maskOpacity / 100,
+                  }}
+                />
               )}
               {showPrevOverlay && prevOverlayUrl && (
                 <img
@@ -977,6 +1156,9 @@ export default function Measure() {
                 ref={overlayRef}
                 className="absolute left-0 top-0 w-full h-full cursor-crosshair"
                 onClick={handleOverlayClick}
+                onMouseDown={handleOverlayMouseDown}
+                onMouseMove={handleOverlayMouseMove}
+                onMouseUp={handleOverlayMouseUp}
               />
               {mode === "upload" && uploadedUrl && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
@@ -987,7 +1169,13 @@ export default function Measure() {
               )}
               {mode === "live" && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
-                  <Button size="sm" onClick={detectFromLive} disabled={isDetecting}>
+                  <Button variant="outline" size="sm" onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
+                    Flip
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={toggleFreeze}>
+                    {isFrozen ? "Unfreeze" : "Freeze"}
+                  </Button>
+                  <Button size="sm" onClick={detectFromLive} disabled={isDetecting || isFrozen}>
                     {isDetecting ? "Detecting…" : "Auto-detect"}
                   </Button>
                 </div>
@@ -1041,6 +1229,17 @@ export default function Measure() {
                 </span>
               </div>
               <div className="text-sm">Unit scale: {pixelsPerInch.toFixed(1)} px/in</div>
+              <div className="text-sm">Grid: {showGrid ? `on (${gridSize}px)` : "off"}</div>
+              <div className="flex items-center gap-2 pt-1">
+                <Switch checked={showGrid} onCheckedChange={setShowGrid} />
+                <span className="text-sm">Show grid</span>
+              </div>
+              {showGrid && (
+                <div className="pt-2">
+                  <label className="text-xs text-muted-foreground">Grid size: {gridSize}px</label>
+                  <Slider value={[gridSize]} min={8} max={80} step={1} onValueChange={(v) => setGridSize(v[0])} />
+                </div>
+              )}
               {latestPrev && (
                 <div className="text-xs text-muted-foreground">
                   Prev: L {latestPrev.length.toFixed(2)}", G {latestPrev.girth.toFixed(2)}"
@@ -1065,6 +1264,20 @@ export default function Measure() {
                 <span className="text-sm">Voice feedback</span>
                 <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Live auto-detect</span>
+                <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Show mask preview</span>
+                <Switch checked={showMask} onCheckedChange={setShowMask} />
+              </div>
+              {showMask && (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Mask opacity: {maskOpacity}%</label>
+                  <Slider value={[maskOpacity]} min={0} max={100} step={1} onValueChange={(v) => setMaskOpacity(v[0])} />
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show previous photo</span>
                 <Switch checked={showPrevOverlay} onCheckedChange={setShowPrevOverlay} />

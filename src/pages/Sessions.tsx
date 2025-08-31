@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 // import { SessionPreset } from "@/types";
 import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Clock, Gauge } from "lucide-react";
 
 export default function Sessions() {
   const navigate = useNavigate();
@@ -24,8 +26,8 @@ export default function Sessions() {
     return matchesSearch && matchesDifficulty && matchesCategory;
   });
 
-  const handleStartSession = (_presetId: string) => {
-    navigate("/run-session");
+  const handleStartSession = (presetId: string) => {
+    navigate(`/run-session?presetId=${encodeURIComponent(presetId)}`);
   };
 
   return (
@@ -95,6 +97,27 @@ export default function Sessions() {
           {filteredPresets.map((preset) => (
             <SessionPresetCard key={preset.id} preset={preset} onStart={handleStartSession} />
           ))}
+        </div>
+
+        {/* Quick Compare of Pressures & Rest Periods */}
+        <div className="pt-4">
+          <h2 className="text-lg font-semibold mb-3">Routine Pressure & Rest Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredPresets.map((p) => (
+              <Card key={`ov-${p.id}`} className="p-4 text-sm flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="font-medium">{p.name}</div>
+                  <div className="text-muted-foreground">Rest: {p.restPeriods.join(", ")} min</div>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>{p.duration}m</span>
+                  <Gauge className="w-4 h-4" />
+                  <span>Lvl {p.pressure}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {filteredPresets.length === 0 && (

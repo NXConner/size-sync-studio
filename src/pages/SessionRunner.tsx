@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -6,12 +6,17 @@ import { Input } from "@/components/ui/input";
 import { saveSession } from "@/utils/storage";
 import { Session } from "@/types";
 import { Timer, Activity, Pause, Play, LogOut } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { sessionPresets } from "@/data/sessionPresets";
 
 export default function SessionRunner() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const presetIdParam = params.get("presetId") || "custom";
   const [session, setSession] = useState<Session>(() => ({
     id: Date.now().toString(),
     date: new Date().toISOString(),
-    presetId: "custom",
+    presetId: presetIdParam,
     startTime: new Date().toISOString(),
     status: "active",
     notes: "",
@@ -19,6 +24,7 @@ export default function SessionRunner() {
     tubeIntervals: [],
     breaks: [],
   }));
+  const preset = useMemo(() => sessionPresets.find((p) => p.id === session.presetId), [session.presetId]);
   const [isInTube, setIsInTube] = useState<boolean>(false);
   const [isOnBreak, setIsOnBreak] = useState<boolean>(false);
   const [pressure, setPressure] = useState<number>(-20); // kPa example
@@ -108,6 +114,22 @@ export default function SessionRunner() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {preset && (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-semibold mb-1">Preset</div>
+                  <div className="text-muted-foreground">{preset.name}</div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1">Target Pressure</div>
+                  <div className="text-muted-foreground">Level {preset.pressure}</div>
+                </div>
+                <div className="col-span-2">
+                  <div className="font-semibold mb-1">Rest Periods</div>
+                  <div className="text-muted-foreground">{preset.restPeriods.join(", ")} min</div>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Button
                 variant={isInTube ? "destructive" : "default"}
