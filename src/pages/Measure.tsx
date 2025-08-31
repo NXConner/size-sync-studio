@@ -1557,7 +1557,7 @@ export default function Measure() {
                   <Button variant="outline" size="sm" onClick={toggleFreeze}>
                     {isFrozen ? "Unfreeze" : "Freeze"}
                   </Button>
-                  <Button size="sm" onClick={detectFromLive} disabled={isDetecting || isFrozen}>
+                  <Button size="sm" onClick={() => detectFromLive()} disabled={isDetecting || isFrozen}>
                     {isDetecting ? "Detecting…" : "Auto-detect"}
                   </Button>
                 </div>

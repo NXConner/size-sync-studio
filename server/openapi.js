@@ -6,13 +6,13 @@ export const openapiSpec = {
   },
   servers: [{ url: "http://localhost:3001" }],
   paths: {
-    "/api/health": {
+    "/health": {
       get: {
         summary: "Health check",
         responses: { 200: { description: "OK" } },
       },
     },
-    "/api/chat": {
+    "/chat": {
       post: {
         summary: "Safe chat",
         requestBody: {
@@ -30,13 +30,13 @@ export const openapiSpec = {
         responses: { 200: { description: "Chat response" } },
       },
     },
-    "/api/image/schedule": {
+    "/image/schedule": {
       get: {
         summary: "SVG wellness plan",
         responses: { 200: { description: "SVG image" } },
       },
     },
-    "/api/reddit/gettingbigger": {
+    "/reddit/gettingbigger": {
       get: {
         summary: "Top posts (titles only)",
         responses: { 200: { description: "JSON list" } },

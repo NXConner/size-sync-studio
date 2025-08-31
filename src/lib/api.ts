@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withApiBase } from "./config";
 
 export async function postJson<T>(
   url: string,
@@ -6,7 +7,8 @@ export async function postJson<T>(
   schema: z.ZodSchema<T>,
   options?: { signal?: AbortSignal },
 ): Promise<T> {
-  const res = await fetch(url, {
+  const fullUrl = withApiBase(url);
+  const res = await fetch(fullUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -22,7 +24,8 @@ export async function getJson<T>(
   schema: z.ZodSchema<T>,
   options?: { signal?: AbortSignal },
 ): Promise<T> {
-  const res = await fetch(url, { method: "GET", signal: options?.signal });
+  const fullUrl = withApiBase(url);
+  const res = await fetch(fullUrl, { method: "GET", signal: options?.signal });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const json = await res.json();
   return schema.parse(json);

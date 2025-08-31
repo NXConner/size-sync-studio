@@ -12,6 +12,7 @@ import { openapiSpec } from "./openapi.js";
 import { z } from "zod";
 
 const app = express();
+const router = express.Router();
 if (config.SENTRY_DSN) {
   Sentry.init({ dsn: config.SENTRY_DSN, tracesSampleRate: 0.1 });
   app.use(Sentry.requestHandler());
@@ -62,7 +63,7 @@ const cache = {
   redditAuth: { token: null, expiresAt: 0 },
 };
 app.use(express.json({ limit: "1mb" }));
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+app.use(`${config.API_PREFIX}/docs`, swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 const refusalMessage =
   "I can’t provide instructions for sexual techniques, enlargement, or pressure/time routines. " +
@@ -93,7 +94,7 @@ function isDisallowed(query) {
 }
 
 const ChatBody = z.object({ message: z.string().min(1).max(1000) });
-app.post("/api/chat", async (req, res) => {
+router.post(`/chat`, async (req, res) => {
   const parsed = ChatBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid body" });
@@ -133,7 +134,7 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // Streaming chat (SSE) - streams a generic wellness message in chunks
-app.get("/api/chat/stream", async (req, res) => {
+router.get(`/chat/stream`, async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -162,7 +163,7 @@ app.get("/api/chat/stream", async (req, res) => {
 });
 
 // Safe Reddit retrieval: titles and links only from r/gettingbigger
-app.get("/api/reddit/gettingbigger", async (_req, res) => {
+router.get(`/reddit/gettingbigger`, async (_req, res) => {
   try {
     // Serve from cache if fresh (10 min TTL)
     const now = Date.now();
@@ -251,7 +252,7 @@ app.get("/api/reddit/gettingbigger", async (_req, res) => {
 });
 
 // Simple SVG diagram endpoint (non-graphic): wellness routine schedule block
-app.get("/api/image/schedule", (req, res) => {
+router.get(`/image/schedule`, (req, res) => {
   const width = 640;
   const height = 360;
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -288,7 +289,7 @@ app.get("/api/image/schedule", (req, res) => {
   res.set("Content-Type", "image/svg+xml").send(svg);
 });
 
-app.get("/api/health", (_req, res) => {
+router.get(`/health`, (_req, res) => {
   res.json({ status: "ok" });
 });
 
@@ -300,7 +301,7 @@ const FeedbackBody = z.object({
   rating: z.enum(["up", "down"]).optional().nullable(),
   reasons: z.array(z.string()).max(5).optional().default([]),
 });
-app.post("/api/feedback", (req, res) => {
+router.post(`/feedback`, (req, res) => {
   const parsed = FeedbackBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid body" });
@@ -323,6 +324,7 @@ if (config.SENTRY_DSN) {
   app.use(Sentry.errorHandler());
 }
 
+app.use(config.API_PREFIX, router);
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });
