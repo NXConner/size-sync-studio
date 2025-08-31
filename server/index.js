@@ -3,11 +3,13 @@ import cors from "cors";
 import fetch from "node-fetch";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 import { config, hasRedditCredentials } from "./config.js";
 import * as Sentry from "@sentry/node";
 import crypto from "node:crypto";
 import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
+import { z } from "zod";
 
 const app = express();
 if (config.SENTRY_DSN) {
@@ -44,6 +46,7 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
+app.use(compression());
 app.use(
   rateLimit({
     windowMs: 60 * 1000,
@@ -89,8 +92,13 @@ function isDisallowed(query) {
   return disallowedKeywords.some((k) => text.includes(k));
 }
 
+const ChatBody = z.object({ message: z.string().min(1).max(1000) });
 app.post("/api/chat", async (req, res) => {
-  const { message } = req.body || {};
+  const parsed = ChatBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid body" });
+  }
+  const { message } = parsed.data;
   if (isDisallowed(message)) {
     return res.json({
       reply: refusalMessage,
@@ -286,15 +294,25 @@ app.get("/api/health", (_req, res) => {
 
 // Feedback endpoint (in-memory capture)
 const feedbackStore = [];
+const FeedbackBody = z.object({
+  message: z.string().optional().default(""),
+  reply: z.string().optional().default(""),
+  rating: z.enum(["up", "down"]).optional().nullable(),
+  reasons: z.array(z.string()).max(5).optional().default([]),
+});
 app.post("/api/feedback", (req, res) => {
-  const { message, reply, rating, reasons } = req.body || {};
+  const parsed = FeedbackBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid body" });
+  }
+  const { message, reply, rating, reasons } = parsed.data;
   const entry = {
     id: String(Date.now()) + Math.random().toString(36).slice(2),
     ts: new Date().toISOString(),
-    message: String(message || ""),
-    reply: String(reply || ""),
-    rating: rating === "up" || rating === "down" ? rating : null,
-    reasons: Array.isArray(reasons) ? reasons.slice(0, 5).map(String) : [],
+    message,
+    reply,
+    rating: rating ?? null,
+    reasons,
   };
   feedbackStore.push(entry);
   if (feedbackStore.length > 500) feedbackStore.shift();

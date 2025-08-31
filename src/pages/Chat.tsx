@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getJson, postJson, ChatResponseSchema, OkResponseSchema, RedditPayloadSchema } from "@/lib/api";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -116,15 +117,11 @@ export default function Chat() {
       try {
         const controller = new AbortController();
         abortRef.current = controller;
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text }),
+        const data = await postJson("/api/chat", { message: text }, ChatResponseSchema, {
           signal: controller.signal,
         });
-        const data = await res.json();
-        setSources(Array.isArray(data.sources) ? data.sources : []);
-        const reply = String(data.reply || "");
+        setSources(data.sources ?? []);
+        const reply = data.reply;
         setMessages((m) => [...m, { role: "assistant", content: reply }]);
         setLastAssistant(reply);
       } catch (err) {
@@ -141,11 +138,11 @@ export default function Chat() {
 
   async function sendFeedback(rating: "up" | "down") {
     try {
-      await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: lastUser, reply: lastAssistant, rating, reasons: [] }),
-      });
+      await postJson(
+        "/api/feedback",
+        { message: lastUser, reply: lastAssistant, rating, reasons: [] },
+        OkResponseSchema,
+      );
     } catch {
       // no-op
     }
@@ -262,16 +259,15 @@ export default function Chat() {
               setRedditError(null);
               setRedditLoading(true);
               try {
-                const res = await fetch("/api/reddit/gettingbigger");
-                if (!res.ok) throw new Error("Failed to load");
-                const data = await res.json();
-                const posts = (data.posts || []).map((p: any) => ({
-                  id: String(p.id),
-                  title: String(p.title || ""),
-                  permalink: String(p.permalink || ""),
-                  author: String(p.author || ""),
-                }));
-                setRedditPosts(posts);
+                const data = await getJson("/api/reddit/gettingbigger", RedditPayloadSchema);
+                setRedditPosts(
+                  (data.posts ?? []).map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    permalink: p.permalink,
+                    author: p.author,
+                  })),
+                );
               } catch (e: any) {
                 setRedditError("Could not load subreddit.");
               } finally {
