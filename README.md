@@ -114,6 +114,33 @@ Vite proxy forwards `/api/*` to `http://localhost:3001` in development.
 - `GET /api/image/schedule` — Returns a simple non-graphic SVG wellness plan.
 - `GET /api/reddit/gettingbigger` — Fetches titles/links from r/gettingbigger top posts (titles and links only). Upstream may block or rate-limit.
 
+## OpenCV.js (manual local hosting)
+
+If your environment blocks CDNs or you want offline support, you can host OpenCV locally. The app already prefers a local copy at `/opencv/opencv.js` before trying CDNs.
+
+Steps:
+
+1) Create folder `public/opencv/` and add both files:
+- `public/opencv/opencv.js`
+- `public/opencv/opencv_js.wasm`
+
+2) Use matching versions for JS and WASM. Typical sources:
+- `@techstark/opencv-js` npm package (look under its `dist/` or `build/` folder)
+- Official docs host (versioned), e.g. `https://docs.opencv.org/4.x/`
+
+3) Verify the files are served in dev:
+- Start dev server: `npm run dev`
+- Visit `http://localhost:5173/opencv/opencv.js` and `http://localhost:5173/opencv/opencv_js.wasm` — both should return files (not 404).
+
+4) Build/serve:
+- Build: `npm run build`
+- Preview: `npm run preview` (or Docker image). Ensure `GET /opencv/opencv.js` and `/opencv/opencv_js.wasm` succeed.
+
+Notes:
+- Our loader sets `cvModule.locateFile` so the wasm is requested from the same directory as `opencv.js`. Keep both files together in `public/opencv/`.
+- If you update versions, keep JS and WASM compatible. Mismatched versions can cause initialization failures.
+- If local files are present, they will be used; otherwise, the loader falls back to multiple CDNs automatically.
+
 ## Safety and Scope
 
 - The chatbot explicitly declines to provide sexual technique, enlargement, routines, pressures, or medical instructions.

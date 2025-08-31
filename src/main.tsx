@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import * as Sentry from '@sentry/react'
+import { prefetchOpenCV } from "./utils/opencv";
 
 if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -19,3 +20,6 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>,
 );
+
+// Optionally start fetching OpenCV early to reduce perceived latency
+prefetchOpenCV();
