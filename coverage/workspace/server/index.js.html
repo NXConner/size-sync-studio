@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/310</span>
+                <span class='fraction'>0/328</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/310</span>
+                <span class='fraction'>0/328</span>
             </div>
         
             
@@ -373,7 +373,43 @@
 <a name='L308'></a><a href='#L308'>308</a>
 <a name='L309'></a><a href='#L309'>309</a>
 <a name='L310'></a><a href='#L310'>310</a>
-<a name='L311'></a><a href='#L311'>311</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -688,11 +724,13 @@
 <span class="cstat-no" title="statement not covered" >import fetch from "node-fetch";</span>
 <span class="cstat-no" title="statement not covered" >import helmet from "helmet";</span>
 <span class="cstat-no" title="statement not covered" >import rateLimit from "express-rate-limit";</span>
+<span class="cstat-no" title="statement not covered" >import compression from "compression";</span>
 <span class="cstat-no" title="statement not covered" >import { config, hasRedditCredentials } from "./config.js";</span>
 <span class="cstat-no" title="statement not covered" >import * as Sentry from "@sentry/node";</span>
 <span class="cstat-no" title="statement not covered" >import crypto from "node:crypto";</span>
 <span class="cstat-no" title="statement not covered" >import swaggerUi from "swagger-ui-express";</span>
 <span class="cstat-no" title="statement not covered" >import { openapiSpec } from "./openapi.js";</span>
+<span class="cstat-no" title="statement not covered" >import { z } from "zod";</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >const app = express();</span>
 <span class="cstat-no" title="statement not covered" >if (config.SENTRY_DSN) {</span>
@@ -729,6 +767,7 @@
 <span class="cstat-no" title="statement not covered" >    crossOriginResourcePolicy: { policy: "cross-origin" },</span>
 <span class="cstat-no" title="statement not covered" >  }),</span>
 <span class="cstat-no" title="statement not covered" >);</span>
+<span class="cstat-no" title="statement not covered" >app.use(compression());</span>
 <span class="cstat-no" title="statement not covered" >app.use(</span>
 <span class="cstat-no" title="statement not covered" >  rateLimit({</span>
 <span class="cstat-no" title="statement not covered" >    windowMs: 60 * 1000,</span>
@@ -774,8 +813,13 @@
 <span class="cstat-no" title="statement not covered" >  return disallowedKeywords.some((k) =&gt; text.includes(k));</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 <span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >const ChatBody = z.object({ message: z.string().min(1).max(1000) });</span>
 <span class="cstat-no" title="statement not covered" >app.post("/api/chat", async (req, res) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  const { message } = req.body || {};</span>
+<span class="cstat-no" title="statement not covered" >  const parsed = ChatBody.safeParse(req.body);</span>
+<span class="cstat-no" title="statement not covered" >  if (!parsed.success) {</span>
+<span class="cstat-no" title="statement not covered" >    return res.status(400).json({ error: "Invalid body" });</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  const { message } = parsed.data;</span>
 <span class="cstat-no" title="statement not covered" >  if (isDisallowed(message)) {</span>
 <span class="cstat-no" title="statement not covered" >    return res.json({</span>
 <span class="cstat-no" title="statement not covered" >      reply: refusalMessage,</span>
@@ -971,15 +1015,25 @@
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >// Feedback endpoint (in-memory capture)</span>
 <span class="cstat-no" title="statement not covered" >const feedbackStore = [];</span>
+<span class="cstat-no" title="statement not covered" >const FeedbackBody = z.object({</span>
+<span class="cstat-no" title="statement not covered" >  message: z.string().optional().default(""),</span>
+<span class="cstat-no" title="statement not covered" >  reply: z.string().optional().default(""),</span>
+<span class="cstat-no" title="statement not covered" >  rating: z.enum(["up", "down"]).optional().nullable(),</span>
+<span class="cstat-no" title="statement not covered" >  reasons: z.array(z.string()).max(5).optional().default([]),</span>
+<span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" >app.post("/api/feedback", (req, res) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  const { message, reply, rating, reasons } = req.body || {};</span>
+<span class="cstat-no" title="statement not covered" >  const parsed = FeedbackBody.safeParse(req.body);</span>
+<span class="cstat-no" title="statement not covered" >  if (!parsed.success) {</span>
+<span class="cstat-no" title="statement not covered" >    return res.status(400).json({ error: "Invalid body" });</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  const { message, reply, rating, reasons } = parsed.data;</span>
 <span class="cstat-no" title="statement not covered" >  const entry = {</span>
 <span class="cstat-no" title="statement not covered" >    id: String(Date.now()) + Math.random().toString(36).slice(2),</span>
 <span class="cstat-no" title="statement not covered" >    ts: new Date().toISOString(),</span>
-<span class="cstat-no" title="statement not covered" >    message: String(message || ""),</span>
-<span class="cstat-no" title="statement not covered" >    reply: String(reply || ""),</span>
-<span class="cstat-no" title="statement not covered" >    rating: rating === "up" || rating === "down" ? rating : null,</span>
-<span class="cstat-no" title="statement not covered" >    reasons: Array.isArray(reasons) ? reasons.slice(0, 5).map(String) : [],</span>
+<span class="cstat-no" title="statement not covered" >    message,</span>
+<span class="cstat-no" title="statement not covered" >    reply,</span>
+<span class="cstat-no" title="statement not covered" >    rating: rating ?? null,</span>
+<span class="cstat-no" title="statement not covered" >    reasons,</span>
 <span class="cstat-no" title="statement not covered" >  };</span>
 <span class="cstat-no" title="statement not covered" >  feedbackStore.push(entry);</span>
 <span class="cstat-no" title="statement not covered" >  if (feedbackStore.length &gt; 500) feedbackStore.shift();</span>
@@ -1000,7 +1054,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-31T05:21:35.471Z
+                at 2025-08-31T06:19:47.173Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

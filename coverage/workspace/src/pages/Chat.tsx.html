@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/249</span>
+                <span class='fraction'>0/242</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/249</span>
+                <span class='fraction'>0/242</span>
             </div>
         
             
@@ -368,11 +368,8 @@
 <a name='L303'></a><a href='#L303'>303</a>
 <a name='L304'></a><a href='#L304'>304</a>
 <a name='L305'></a><a href='#L305'>305</a>
-<a name='L306'></a><a href='#L306'>306</a>
-<a name='L307'></a><a href='#L307'>307</a>
-<a name='L308'></a><a href='#L308'>308</a>
-<a name='L309'></a><a href='#L309'>309</a>
-<a name='L310'></a><a href='#L310'>310</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L306'></a><a href='#L306'>306</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -508,10 +505,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -519,7 +512,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -644,8 +637,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -682,6 +674,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { useEffect, useRef, useState } from "react";</span></span></span>
+import { getJson, postJson, ChatResponseSchema, OkResponseSchema, RedditPayloadSchema } from "@/lib/api";
 &nbsp;
 type ChatMessage = {
   role: "user" | "assistant";
@@ -799,15 +792,11 @@ type ChatMessage = {
 <span class="cstat-no" title="statement not covered" >      try {</span>
 <span class="cstat-no" title="statement not covered" >        const controller = new AbortController();</span>
 <span class="cstat-no" title="statement not covered" >        abortRef.current = controller;</span>
-<span class="cstat-no" title="statement not covered" >        const res = await fetch("/api/chat", {</span>
-<span class="cstat-no" title="statement not covered" >          method: "POST",</span>
-<span class="cstat-no" title="statement not covered" >          headers: { "Content-Type": "application/json" },</span>
-<span class="cstat-no" title="statement not covered" >          body: JSON.stringify({ message: text }),</span>
+<span class="cstat-no" title="statement not covered" >        const data = await postJson("/api/chat", { message: text }, ChatResponseSchema, {</span>
 <span class="cstat-no" title="statement not covered" >          signal: controller.signal,</span>
 <span class="cstat-no" title="statement not covered" >        });</span>
-<span class="cstat-no" title="statement not covered" >        const data = await res.json();</span>
-<span class="cstat-no" title="statement not covered" >        setSources(Array.isArray(data.sources) ? data.sources : []);</span>
-<span class="cstat-no" title="statement not covered" >        const reply = String(data.reply || "");</span>
+<span class="cstat-no" title="statement not covered" >        setSources(data.sources ?? []);</span>
+<span class="cstat-no" title="statement not covered" >        const reply = data.reply;</span>
 <span class="cstat-no" title="statement not covered" >        setMessages((m) =&gt; [...m, { role: "assistant", content: reply }]);</span>
 <span class="cstat-no" title="statement not covered" >        setLastAssistant(reply);</span>
 <span class="cstat-no" title="statement not covered" >      } catch (err) {</span>
@@ -824,11 +813,11 @@ type ChatMessage = {
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  async function sendFeedback(rating: "up" | "down") {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await fetch("/api/feedback", {</span>
-<span class="cstat-no" title="statement not covered" >        method: "POST",</span>
-<span class="cstat-no" title="statement not covered" >        headers: { "Content-Type": "application/json" },</span>
-<span class="cstat-no" title="statement not covered" >        body: JSON.stringify({ message: lastUser, reply: lastAssistant, rating, reasons: [] }),</span>
-<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      await postJson(</span>
+<span class="cstat-no" title="statement not covered" >        "/api/feedback",</span>
+<span class="cstat-no" title="statement not covered" >        { message: lastUser, reply: lastAssistant, rating, reasons: [] },</span>
+<span class="cstat-no" title="statement not covered" >        OkResponseSchema,</span>
+      );
 <span class="cstat-no" title="statement not covered" >    } catch {</span>
 <span class="cstat-no" title="statement not covered" >      // no-op</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
@@ -945,16 +934,15 @@ type ChatMessage = {
 <span class="cstat-no" title="statement not covered" >              setRedditError(null);</span>
 <span class="cstat-no" title="statement not covered" >              setRedditLoading(true);</span>
 <span class="cstat-no" title="statement not covered" >              try {</span>
-<span class="cstat-no" title="statement not covered" >                const res = await fetch("/api/reddit/gettingbigger");</span>
-<span class="cstat-no" title="statement not covered" >                if (!res.ok) throw new Error("Failed to load");</span>
-<span class="cstat-no" title="statement not covered" >                const data = await res.json();</span>
-<span class="cstat-no" title="statement not covered" >                const posts = (data.posts || []).map((p: any) =&gt; ({</span>
-<span class="cstat-no" title="statement not covered" >                  id: String(p.id),</span>
-<span class="cstat-no" title="statement not covered" >                  title: String(p.title || ""),</span>
-<span class="cstat-no" title="statement not covered" >                  permalink: String(p.permalink || ""),</span>
-<span class="cstat-no" title="statement not covered" >                  author: String(p.author || ""),</span>
-<span class="cstat-no" title="statement not covered" >                }));</span>
-<span class="cstat-no" title="statement not covered" >                setRedditPosts(posts);</span>
+<span class="cstat-no" title="statement not covered" >                const data = await getJson("/api/reddit/gettingbigger", RedditPayloadSchema);</span>
+<span class="cstat-no" title="statement not covered" >                setRedditPosts(</span>
+<span class="cstat-no" title="statement not covered" >                  (data.posts ?? []).map((p) =&gt; ({</span>
+<span class="cstat-no" title="statement not covered" >                    id: p.id,</span>
+<span class="cstat-no" title="statement not covered" >                    title: p.title,</span>
+<span class="cstat-no" title="statement not covered" >                    permalink: p.permalink,</span>
+<span class="cstat-no" title="statement not covered" >                    author: p.author,</span>
+<span class="cstat-no" title="statement not covered" >                  })),</span>
+                );
 <span class="cstat-no" title="statement not covered" >              } catch (e: any) {</span>
 <span class="cstat-no" title="statement not covered" >                setRedditError("Could not load subreddit.");</span>
 <span class="cstat-no" title="statement not covered" >              } finally {</span>
@@ -997,7 +985,7 @@ type ChatMessage = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-31T05:21:35.471Z
+                at 2025-08-31T06:19:47.173Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

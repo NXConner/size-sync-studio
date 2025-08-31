@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for workspace/src/components/ui/alert.tsx</title>
+    <title>Code coverage report for workspace/src/components/measure/CalibrationCard.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../../prettify.css" />
     <link rel="stylesheet" href="../../../../base.css" />
@@ -19,13 +19,13 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">workspace/src/components/ui</a> alert.tsx</h1>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">workspace/src/components/measure</a> CalibrationCard.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/30</span>
+                <span class='fraction'>0/23</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/30</span>
+                <span class='fraction'>0/23</span>
             </div>
         
             
@@ -108,19 +108,17 @@
 <a name='L43'></a><a href='#L43'>43</a>
 <a name='L44'></a><a href='#L44'>44</a>
 <a name='L45'></a><a href='#L45'>45</a>
-<a name='L46'></a><a href='#L46'>46</a>
-<a name='L47'></a><a href='#L47'>47</a>
-<a name='L48'></a><a href='#L48'>48</a>
-<a name='L49'></a><a href='#L49'>49</a>
-<a name='L50'></a><a href='#L50'>50</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -132,14 +130,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -148,68 +142,62 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import * as React from "react";</span></span></span>
-import { cva, type VariantProps } from "class-variance-authority";
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 &nbsp;
-import { cn } from "@/lib/utils";
+type CalibrationCardProps = {
+  calibrationInches: number;
+  onChangeCalibrationInches: (val: number) =&gt; void;
+  onStartCalibrating: () =&gt; void;
+  pixelsPerInch: number;
+};
 &nbsp;
-<span class="cstat-no" title="statement not covered" >const alertVariants = cva(</span>
-<span class="cstat-no" title="statement not covered" >  "relative w-full rounded-lg border p-4 [&amp;&gt;svg~*]:pl-7 [&amp;&gt;svg+div]:translate-y-[-3px] [&amp;&gt;svg]:absolute [&amp;&gt;svg]:left-4 [&amp;&gt;svg]:top-4 [&amp;&gt;svg]:text-foreground",</span>
-<span class="cstat-no" title="statement not covered" >  {</span>
-<span class="cstat-no" title="statement not covered" >    variants: {</span>
-<span class="cstat-no" title="statement not covered" >      variant: {</span>
-<span class="cstat-no" title="statement not covered" >        default: "bg-background text-foreground",</span>
-<span class="cstat-no" title="statement not covered" >        destructive:</span>
-<span class="cstat-no" title="statement not covered" >          "border-destructive/50 text-destructive dark:border-destructive [&amp;&gt;svg]:text-destructive",</span>
-<span class="cstat-no" title="statement not covered" >      },</span>
-<span class="cstat-no" title="statement not covered" >    },</span>
-<span class="cstat-no" title="statement not covered" >    defaultVariants: {</span>
-<span class="cstat-no" title="statement not covered" >      variant: "default",</span>
-<span class="cstat-no" title="statement not covered" >    },</span>
-<span class="cstat-no" title="statement not covered" >  },</span>
-);
+<span class="cstat-no" title="statement not covered" >export function CalibrationCard({</span>
+<span class="cstat-no" title="statement not covered" >  calibrationInches,</span>
+<span class="cstat-no" title="statement not covered" >  onChangeCalibrationInches,</span>
+<span class="cstat-no" title="statement not covered" >  onStartCalibrating,</span>
+<span class="cstat-no" title="statement not covered" >  pixelsPerInch,</span>
+<span class="cstat-no" title="statement not covered" >}: CalibrationCardProps) {</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;CardHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;CardTitle&gt;Calibration&lt;/CardTitle&gt;</span>
+      &lt;/CardHeader&gt;
+<span class="cstat-no" title="statement not covered" >      &lt;CardContent className="space-y-3"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="text-sm text-muted-foreground"&gt;</span>
+          Draw a line on the overlay that equals the known real-world length, then enter that
+          length.
+        &lt;/div&gt;
+<span class="cstat-no" title="statement not covered" >        &lt;div className="flex items-center gap-2"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Input</span>
+<span class="cstat-no" title="statement not covered" >            type="number"</span>
+<span class="cstat-no" title="statement not covered" >            step="0.1"</span>
+<span class="cstat-no" title="statement not covered" >            value={calibrationInches}</span>
+<span class="cstat-no" title="statement not covered" >            onChange={(e) =&gt; onChangeCalibrationInches(parseFloat(e.target.value) || 1)}</span>
+          /&gt;
+<span class="cstat-no" title="statement not covered" >          &lt;span className="text-sm"&gt;in&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Button size="sm" onClick={onStartCalibrating}&gt;</span>
+            Start
+          &lt;/Button&gt;
+        &lt;/div&gt;
+<span class="cstat-no" title="statement not covered" >        &lt;div className="text-xs"&gt;Current scale: {pixelsPerInch.toFixed(1)} px/in&lt;/div&gt;</span>
+      &lt;/CardContent&gt;
+    &lt;/Card&gt;
+  );
+<span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >const Alert = React.forwardRef&lt;</span>
-  HTMLDivElement,
-  React.HTMLAttributes&lt;HTMLDivElement&gt; &amp; VariantProps&lt;typeof alertVariants&gt;
-<span class="cstat-no" title="statement not covered" >&gt;(({ className, variant, ...props }, ref) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >  &lt;div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} /&gt;</span>
-));
-<span class="cstat-no" title="statement not covered" >Alert.displayName = "Alert";</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >const AlertTitle = React.forwardRef&lt;HTMLParagraphElement, React.HTMLAttributes&lt;HTMLHeadingElement&gt;&gt;(</span>
-<span class="cstat-no" title="statement not covered" >  ({ className, ...props }, ref) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >    &lt;h5</span>
-<span class="cstat-no" title="statement not covered" >      ref={ref}</span>
-<span class="cstat-no" title="statement not covered" >      className={cn("mb-1 font-medium leading-none tracking-tight", className)}</span>
-<span class="cstat-no" title="statement not covered" >      {...props}</span>
-    /&gt;
-  ),
-);
-<span class="cstat-no" title="statement not covered" >AlertTitle.displayName = "AlertTitle";</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >const AlertDescription = React.forwardRef&lt;</span>
-  HTMLParagraphElement,
-  React.HTMLAttributes&lt;HTMLParagraphElement&gt;
-<span class="cstat-no" title="statement not covered" >&gt;(({ className, ...props }, ref) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >  &lt;div ref={ref} className={cn("text-sm [&amp;_p]:leading-relaxed", className)} {...props} /&gt;</span>
-));
-<span class="cstat-no" title="statement not covered" >AlertDescription.displayName = "AlertDescription";</span>
-&nbsp;
-export { Alert, AlertTitle, AlertDescription };
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
