@@ -56,8 +56,12 @@ export function SessionPresetCard({ preset, onStart }: SessionPresetCardProps) {
           </div>
           <div className="flex items-center space-x-2 text-muted-foreground">
             <Gauge className="w-4 h-4" />
-            <span>Level {preset.pressure}</span>
+            <span>Pressure level {preset.pressure}</span>
           </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          Rest at minutes: {preset.restPeriods.join(", ")}
         </div>
 
         {preset.warnings.length > 0 && (
