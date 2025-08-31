@@ -68,7 +68,7 @@ export default function Measure() {
   const lastAutoCaptureTsRef = useRef<number>(0);
   const stabilityHistoryRef = useRef<Array<{ ts: number; len: number; girth: number }>>([]);
   const [autoStatus, setAutoStatus] = useState<string>("idle");
-  const [detectionIntervalMs, setDetectionIntervalMs] = useState<number>(1200);
+  const [detectionIntervalMs, setDetectionIntervalMs] = useState<number>(800);
   const [selectedHandle, setSelectedHandle] = useState<null | "base" | "tip">(null);
   const [nudgeStep, setNudgeStep] = useState<number>(1);
   const [isAutoCalibrating, setIsAutoCalibrating] = useState<boolean>(false);
@@ -577,6 +577,28 @@ export default function Measure() {
     setIsCalibrating(false);
   };
 
+  // Prefer previous base point to decide which endpoint is base
+  const chooseBaseAndTip = (
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ): { base: { x: number; y: number }; tip: { x: number; y: number } } => {
+    const prevBase = basePointRef.current;
+    if (prevBase) {
+      const da = Math.hypot(a.x - prevBase.x, a.y - prevBase.y);
+      const db = Math.hypot(b.x - prevBase.x, b.y - prevBase.y);
+      return da <= db ? { base: a, tip: b } : { base: b, tip: a };
+    }
+    return a.x <= b.x ? { base: a, tip: b } : { base: b, tip: a };
+  };
+
+  // Lightweight smoothing helpers for live updates
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const smoothPoint = (
+    prev: { x: number; y: number } | null,
+    next: { x: number; y: number },
+    alpha: number,
+  ) => (prev ? { x: lerp(prev.x, next.x, alpha), y: lerp(prev.y, next.y, alpha) } : next);
+
   const autoCalibrateFromImage = async () => {
     if (mode !== "upload") {
       toast({ title: "Switch to Upload", description: "Use an uploaded image for this calibration.", variant: "destructive" });
@@ -707,6 +729,24 @@ export default function Measure() {
       const ycrcb = new cv.Mat();
       cv.cvtColor(rgba, hsv, cv.COLOR_RGB2HSV);
       cv.cvtColor(rgba, ycrcb, cv.COLOR_RGB2YCrCb);
+      try {
+        if (typeof (cv as any).createCLAHE === "function") {
+          const channels = new cv.MatVector();
+          cv.split(ycrcb, channels);
+          const y = channels.get(0);
+          const cr = channels.get(1);
+          const cb = channels.get(2);
+          const clahe = (cv as any).createCLAHE(2.0, new cv.Size(8, 8));
+          const yEq = new cv.Mat();
+          clahe.apply(y, yEq);
+          const merged = new cv.Mat();
+          const mv = new cv.MatVector();
+          mv.push_back(yEq); mv.push_back(cr); mv.push_back(cb);
+          cv.merge(mv, merged);
+          merged.copyTo(ycrcb);
+          y.delete(); cr.delete(); cb.delete(); yEq.delete(); merged.delete(); mv.delete(); channels.delete();
+        }
+      } catch {}
 
       // Skin masking in YCrCb and HSV, then combine
       const mask1 = new cv.Mat();
@@ -722,6 +762,11 @@ export default function Measure() {
 
       // Morphology to clean up
       const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7));
+      try {
+        const tmp = new cv.Mat();
+        cv.bilateralFilter(rgba, tmp, 5, 75, 75, cv.BORDER_DEFAULT);
+        tmp.delete();
+      } catch {}
       cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
       cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
 
@@ -751,6 +796,7 @@ export default function Measure() {
         axisUy = 0;
       let end1: { x: number; y: number } | null = null;
       let end2: { x: number; y: number } | null = null;
+      let bestCnt: any = null;
 
       if (bestIdx >= 0) {
         const cnt = contours2.get(bestIdx);
@@ -781,7 +827,7 @@ export default function Measure() {
         }
         end1 = minPt;
         end2 = maxPt;
-        cnt.delete();
+        bestCnt = cnt;
       }
 
       // Fallback using Hough if contour failed
@@ -833,11 +879,7 @@ export default function Measure() {
 
         const p1 = mapPoint(end1.x, end1.y);
         const p2 = mapPoint(end2.x, end2.y);
-        // Choose base as the endpoint with smaller x (heuristic) to stabilize
-        const base = end1.x <= end2.x ? p1 : p2;
-        const tip = base === p1 ? p2 : p1;
-        setBasePoint(base);
-        setTipPoint(tip);
+        const chosen = chooseBaseAndTip(p1, p2);
 
         // Build binary mask Mat for sampling if not already
         const maskForSample = mask;
@@ -847,7 +889,7 @@ export default function Measure() {
         const totalLen = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
         const centerX = (end1.x + end2.x) / 2;
         const centerY = (end1.y + end2.y) / 2;
-        const ts = [-0.1, -0.05, 0, 0.05, 0.1]; // around mid
+        const ts = [-0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2]; // around mid
         const widths: number[] = [];
         const maxScan = Math.floor(Math.min(w, h) * 0.25);
         const isInside = (x: number, y: number) => {
@@ -876,11 +918,42 @@ export default function Measure() {
           const width = left + right;
           if (width > 0) widths.push(width);
         }
+        // Confidence metrics and apply
+        let elongation = 0;
+        let solidity = 1;
+        const lengthPx = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
         if (widths.length) {
-          // median to reduce outliers
           widths.sort((a, b) => a - b);
-          const median = widths[Math.floor(widths.length / 2)] * scale;
-          setGirthPixels(median);
+          const medianW = widths[Math.floor(widths.length / 2)];
+          elongation = lengthPx / Math.max(1, medianW);
+        }
+        try {
+          if (bestCnt) {
+            const hull = new cv.Mat();
+            cv.convexHull(bestCnt, hull, false, true);
+            const area = cv.contourArea(bestCnt, false);
+            const hullArea = Math.max(1, cv.contourArea(hull, false));
+            solidity = Math.min(1, area / hullArea);
+            hull.delete();
+          }
+        } catch {}
+        const areaFraction = bestArea / (w * h);
+        let confidence = 0;
+        confidence += Math.min(1, (elongation || 0) / 3) * 0.45;
+        confidence += Math.min(1, areaFraction / 0.2) * 0.25;
+        confidence += Math.min(1, solidity) * 0.30;
+        if (confidence >= 0.5) {
+          const alpha = 1.0; // single image: snap
+          const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
+          const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
+          setBasePoint(smBase);
+          setTipPoint(smTip);
+          if (widths.length) {
+            const median = widths[Math.floor(widths.length / 2)] * scale;
+            setGirthPixels(median);
+          }
+        } else {
+          toast({ title: "Low confidence", description: "Detection skipped due to low confidence.", variant: "destructive" });
         }
 
         // Mask preview export
@@ -904,6 +977,7 @@ export default function Measure() {
       mask2.delete();
       mask.delete();
       kernel.delete();
+      if (bestCnt) bestCnt.delete();
       contours2.delete();
       hierarchy2.delete();
       if (voiceEnabled) {
@@ -921,21 +995,26 @@ export default function Measure() {
     }
   };
 
-  const detectFromLive = async () => {
+  const detectFromLive = async (opts?: { silent?: boolean }) => {
+    const silent = !!opts?.silent;
     if (mode !== "live") {
-      toast({ title: "Switch to Live", description: "Use the camera to auto-detect.", variant: "destructive" });
+      if (!silent) toast({ title: "Switch to Live", description: "Use the camera to auto-detect.", variant: "destructive" });
       return;
     }
     const video = videoRef.current;
     if (!video || !video.videoWidth || !video.videoHeight) {
-      toast({ title: "Camera not ready", description: "Wait for the camera stream to start.", variant: "destructive" });
+      if (!silent) toast({ title: "Camera not ready", description: "Wait for the camera stream to start.", variant: "destructive" });
       return;
     }
     setIsDetecting(true);
     try {
       const cv = await loadOpenCV();
-      const w = video.videoWidth;
-      const h = video.videoHeight;
+      const w0 = video.videoWidth;
+      const h0 = video.videoHeight;
+      const targetMax = 640;
+      const scaleDown = Math.min(1, targetMax / Math.max(w0, h0));
+      const w = Math.max(1, Math.round(w0 * scaleDown));
+      const h = Math.max(1, Math.round(h0 * scaleDown));
 
       // Draw current frame to processing canvas
       const procCanvas = document.createElement("canvas");
@@ -952,6 +1031,24 @@ export default function Measure() {
       const ycrcb = new cv.Mat();
       cv.cvtColor(rgba, hsv, cv.COLOR_RGB2HSV);
       cv.cvtColor(rgba, ycrcb, cv.COLOR_RGB2YCrCb);
+      try {
+        if (typeof (cv as any).createCLAHE === "function") {
+          const channels = new cv.MatVector();
+          cv.split(ycrcb, channels);
+          const y = channels.get(0);
+          const cr = channels.get(1);
+          const cb = channels.get(2);
+          const clahe = (cv as any).createCLAHE(2.0, new cv.Size(8, 8));
+          const yEq = new cv.Mat();
+          clahe.apply(y, yEq);
+          const merged = new cv.Mat();
+          const mv = new cv.MatVector();
+          mv.push_back(yEq); mv.push_back(cr); mv.push_back(cb);
+          cv.merge(mv, merged);
+          merged.copyTo(ycrcb);
+          y.delete(); cr.delete(); cb.delete(); yEq.delete(); merged.delete(); mv.delete(); channels.delete();
+        }
+      } catch {}
 
       // Skin masking
       const mask1 = new cv.Mat();
@@ -967,6 +1064,11 @@ export default function Measure() {
 
       // Morphology
       const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7));
+      try {
+        const tmp = new cv.Mat();
+        cv.bilateralFilter(rgba, tmp, 5, 75, 75, cv.BORDER_DEFAULT);
+        tmp.delete();
+      } catch {}
       cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
       cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
 
@@ -994,6 +1096,7 @@ export default function Measure() {
       let axisUx = 1, axisUy = 0;
       let end1: { x: number; y: number } | null = null;
       let end2: { x: number; y: number } | null = null;
+      let bestCnt: any = null;
       if (bestIdx >= 0) {
         const cnt = contours2.get(bestIdx);
         const moments = cv.moments(cnt, false);
@@ -1015,7 +1118,7 @@ export default function Measure() {
           if (s > maxS) { maxS = s; maxPt = { x, y }; }
         }
         end1 = minPt; end2 = maxPt;
-        cnt.delete();
+        bestCnt = cnt;
       }
 
       // Fallback Hough
@@ -1049,18 +1152,17 @@ export default function Measure() {
       if (end1 && end2 && container) {
         const containerW = container.clientWidth;
         const containerH = container.clientHeight;
-        const scale = Math.min(containerW / w, containerH / h);
+        const invScale = 1 / (scaleDown || 1);
+        const wOrig = w * invScale; const hOrig = h * invScale;
+        const scale = Math.min(containerW / wOrig, containerH / hOrig);
         const drawW = w * scale;
         const drawH = h * scale;
         const offsetX = (containerW - drawW) / 2;
         const offsetY = (containerH - drawH) / 2;
-        const mapPoint = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
+        const mapPoint = (ix: number, iy: number) => ({ x: offsetX + (ix * invScale) * scale, y: offsetY + (iy * invScale) * scale });
         const p1 = mapPoint(end1.x, end1.y);
         const p2 = mapPoint(end2.x, end2.y);
-        const base = end1.x <= end2.x ? p1 : p2;
-        const tip = base === p1 ? p2 : p1;
-        setBasePoint(base);
-        setTipPoint(tip);
+        const chosen = chooseBaseAndTip(p1, p2);
 
         const maskForSample = mask;
         const perpUx = -axisUy;
@@ -1068,7 +1170,7 @@ export default function Measure() {
         const totalLen = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
         const centerX = (end1.x + end2.x) / 2;
         const centerY = (end1.y + end2.y) / 2;
-        const ts = [-0.1, -0.05, 0, 0.05, 0.1];
+        const ts = [-0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2];
         const widths: number[] = [];
         const maxScan = Math.floor(Math.min(w, h) * 0.25);
         const isInside = (x: number, y: number) => {
@@ -1086,10 +1188,45 @@ export default function Measure() {
           const width = left + right;
           if (width > 0) widths.push(width);
         }
+        // Confidence + smoothing
+        let elongation = 0;
+        let solidity = 1;
+        const lengthPx = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
         if (widths.length) {
           widths.sort((a, b) => a - b);
-          const median = widths[Math.floor(widths.length / 2)] * scale;
-          setGirthPixels(median);
+          const medianW = widths[Math.floor(widths.length / 2)];
+          elongation = lengthPx / Math.max(1, medianW);
+        }
+        try {
+          if (bestCnt) {
+            const hull = new cv.Mat();
+            cv.convexHull(bestCnt, hull, false, true);
+            const area = cv.contourArea(bestCnt, false);
+            const hullArea = Math.max(1, cv.contourArea(hull, false));
+            solidity = Math.min(1, area / hullArea);
+            hull.delete();
+          }
+        } catch {}
+        const areaFraction = bestArea / (w * h);
+        let confidence = 0;
+        confidence += Math.min(1, (elongation || 0) / 3) * 0.45;
+        confidence += Math.min(1, areaFraction / 0.2) * 0.25;
+        confidence += Math.min(1, solidity) * 0.30;
+
+        if (confidence >= 0.5) {
+          const alpha = 0.35;
+          const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
+          const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
+          setBasePoint(smBase);
+          setTipPoint(smTip);
+          if (widths.length) {
+            const median = widths[Math.floor(widths.length / 2)] * (scale * invScale);
+            const smG = lerp(girthPixelsRef.current || 0, median, alpha);
+            setGirthPixels(smG);
+          }
+          setAutoStatus(`detect: ${confidence.toFixed(2)}`);
+        } else {
+          setAutoStatus(`weak: ${confidence.toFixed(2)}`);
         }
 
         // Mask preview export
@@ -1107,13 +1244,14 @@ export default function Measure() {
       // Cleanup
       src.delete(); rgba.delete(); hsv.delete(); ycrcb.delete();
       mask1.delete(); mask2.delete(); mask.delete(); kernel.delete();
+      if (bestCnt) bestCnt.delete();
       contours2.delete(); hierarchy2.delete();
-      if (voiceEnabled) {
+      if (!silent && voiceEnabled) {
         try { await playHumDetect(); } catch {}
       }
-      toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
+      if (!silent) toast({ title: "Auto-detect complete", description: "Review and adjust points if needed." });
     } catch (err: any) {
-      toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
+      if (!silent) toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
     } finally {
       setIsDetecting(false);
     }
@@ -1232,7 +1370,7 @@ export default function Measure() {
       if (!isDetecting && now - lastDetectTsRef.current > detectionIntervalMs) {
         lastDetectTsRef.current = now;
         try {
-          await detectFromLive();
+          await detectFromLive({ silent: true });
           // Update stability history after a detect pass
           const len = parseFloat(lengthDisplayRef.current || "0") || 0;
           const girth = parseFloat(girthDisplayRef.current || "0") || 0;
