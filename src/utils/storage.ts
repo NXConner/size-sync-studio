@@ -126,3 +126,28 @@ export const getPhoto = async (id: string): Promise<Blob | null> => {
     };
   });
 };
+
+export const deletePhoto = async (id: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("SizeSeekerPhotos", 1);
+
+    request.onerror = () => reject(request.error);
+
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction(["photos"], "readwrite");
+      const store = transaction.objectStore("photos");
+      const delRequest = store.delete(id);
+
+      delRequest.onsuccess = () => resolve();
+      delRequest.onerror = () => reject(delRequest.error);
+    };
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("photos")) {
+        db.createObjectStore("photos", { keyPath: "id" });
+      }
+    };
+  });
+};

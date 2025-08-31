@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Camera, Calendar, Ruler, Search, Trash2 } from "lucide-react";
-import { getMeasurements, deleteMeasurement, getPhoto } from "@/utils/storage";
+import { getMeasurements, deleteMeasurement, getPhoto, deletePhoto } from "@/utils/storage";
 import { Measurement } from "@/types";
 
 export default function Gallery() {
@@ -88,8 +88,12 @@ export default function Gallery() {
   const handleDelete = async (measurementId: string) => {
     if (confirm("Are you sure you want to delete this photo and measurement?")) {
       deleteMeasurement(measurementId);
+      try {
+        await deletePhoto(measurementId);
+      } catch (_e) {
+        // ignore cleanup errors
+      }
 
-      // Revoke object URL to free memory
       if (photoUrls[measurementId]) {
         URL.revokeObjectURL(photoUrls[measurementId]);
       }
