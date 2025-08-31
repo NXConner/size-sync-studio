@@ -54,12 +54,21 @@ export default function Measure() {
   const [isFrozen, setIsFrozen] = useState<boolean>(false);
   const [frozenUrl, setFrozenUrl] = useState<string>("");
   const [autoDetect, setAutoDetect] = useState<boolean>(false);
+  const [autoCapture, setAutoCapture] = useState<boolean>(false);
+  const [stabilitySeconds, setStabilitySeconds] = useState<number>(1.5);
+  const [stabilityLenTolInches, setStabilityLenTolInches] = useState<number>(0.05);
+  const [stabilityGirthTolInches, setStabilityGirthTolInches] = useState<number>(0.1);
+  const [autoCaptureCooldownSec, setAutoCaptureCooldownSec] = useState<number>(10);
   const [showMask, setShowMask] = useState<boolean>(false);
   const [maskUrl, setMaskUrl] = useState<string>("");
   const [maskGeom, setMaskGeom] = useState<{ offsetX: number; offsetY: number; drawW: number; drawH: number } | null>(null);
   const [maskOpacity, setMaskOpacity] = useState<number>(35);
   const autoDetectRafRef = useRef<number | null>(null);
   const lastDetectTsRef = useRef<number>(0);
+  const lastAutoCaptureTsRef = useRef<number>(0);
+  const stabilityHistoryRef = useRef<Array<{ ts: number; len: number; girth: number }>>([]);
+  const [autoStatus, setAutoStatus] = useState<string>("idle");
+  const [detectionIntervalMs, setDetectionIntervalMs] = useState<number>(1200);
   const [selectedHandle, setSelectedHandle] = useState<null | "base" | "tip">(null);
   const [nudgeStep, setNudgeStep] = useState<number>(1);
   const [isAutoCalibrating, setIsAutoCalibrating] = useState<boolean>(false);
@@ -1210,18 +1219,44 @@ export default function Measure() {
     }, "image/png");
   };
 
-  // Continuous auto-detect for live video
+  // Continuous auto-detect for live video with stability-based auto-capture
   useEffect(() => {
     if (!autoDetect || mode !== "live" || isFrozen) {
       if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
       autoDetectRafRef.current = null;
+      setAutoStatus("idle");
       return;
     }
     const loop = async () => {
       const now = performance.now();
-      if (!isDetecting && now - lastDetectTsRef.current > 1200) {
+      if (!isDetecting && now - lastDetectTsRef.current > detectionIntervalMs) {
         lastDetectTsRef.current = now;
-        try { await detectFromLive(); } catch {}
+        try {
+          await detectFromLive();
+          // Update stability history after a detect pass
+          const len = parseFloat(lengthDisplayRef.current || "0") || 0;
+          const girth = parseFloat(girthDisplayRef.current || "0") || 0;
+          const hist = stabilityHistoryRef.current;
+          const cutoff = now - stabilitySeconds * 1000;
+          hist.push({ ts: now, len, girth });
+          while (hist.length && hist[0].ts < cutoff) hist.shift();
+          if (hist.length >= 3) {
+            const lenVals = hist.map((h) => h.len);
+            const girVals = hist.map((h) => h.girth);
+            const lenRange = Math.max(...lenVals) - Math.min(...lenVals);
+            const girRange = Math.max(...girVals) - Math.min(...girVals);
+            const stable = lenRange <= stabilityLenTolInches && girRange <= stabilityGirthTolInches;
+            setAutoStatus(stable ? "locked" : "stabilizing");
+            const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
+            if (stable && autoCapture && cooldownOk) {
+              try { await capture(); } catch {}
+              lastAutoCaptureTsRef.current = now;
+              setAutoStatus("captured");
+            }
+          } else {
+            setAutoStatus("scanning");
+          }
+        } catch {}
       }
       autoDetectRafRef.current = requestAnimationFrame(loop);
     };
@@ -1230,7 +1265,7 @@ export default function Measure() {
       if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
       autoDetectRafRef.current = null;
     };
-  }, [autoDetect, mode, isFrozen, isDetecting]);
+  }, [autoDetect, mode, isFrozen, isDetecting, detectionIntervalMs, autoCapture, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec]);
 
   const exportOverlayPNG = async () => {
     const overlay = overlayRef.current;
@@ -1498,6 +1533,33 @@ export default function Measure() {
               <div className="flex items-center justify-between">
                 <span className="text-sm">Live auto-detect</span>
                 <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Auto-capture when stable</span>
+                <Switch checked={autoCapture} onCheckedChange={setAutoCapture} />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Status: {autoStatus}
+              </div>
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">Detection interval: {Math.round(detectionIntervalMs)} ms</label>
+                <Slider value={[detectionIntervalMs]} min={300} max={2000} step={50} onValueChange={(v) => setDetectionIntervalMs(v[0])} />
+              </div>
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">Stability window: {stabilitySeconds.toFixed(1)} s</label>
+                <Slider value={[stabilitySeconds]} min={0.5} max={5} step={0.1} onValueChange={(v) => setStabilitySeconds(v[0])} />
+              </div>
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">Length tolerance: {stabilityLenTolInches.toFixed(2)} in</label>
+                <Slider value={[stabilityLenTolInches]} min={0.01} max={0.5} step={0.01} onValueChange={(v) => setStabilityLenTolInches(v[0])} />
+              </div>
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">Girth tolerance: {stabilityGirthTolInches.toFixed(2)} in</label>
+                <Slider value={[stabilityGirthTolInches]} min={0.05} max={1.0} step={0.01} onValueChange={(v) => setStabilityGirthTolInches(v[0])} />
+              </div>
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">Auto-capture cooldown: {autoCaptureCooldownSec}s</label>
+                <Slider value={[autoCaptureCooldownSec]} min={5} max={60} step={1} onValueChange={(v) => setAutoCaptureCooldownSec(v[0])} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show mask preview</span>
