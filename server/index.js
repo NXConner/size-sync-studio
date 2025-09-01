@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
 import { z } from "zod";
+import path from "node:path";
 
 const app = express();
 const router = express.Router();
@@ -325,6 +326,13 @@ if (config.SENTRY_DSN) {
 }
 
 app.use(config.API_PREFIX, router);
+
+// Serve Secret View Haven static app under /wellness
+const wellnessDir = "/workspace/secret-view-haven/dist";
+app.use("/wellness", express.static(wellnessDir));
+app.get("/wellness/*", (_req, res) => {
+  res.sendFile(path.join(wellnessDir, "index.html"));
+});
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });
