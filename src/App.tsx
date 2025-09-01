@@ -16,6 +16,10 @@ const SessionRunner = lazy(() => import("./pages/SessionRunner"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Chat = lazy(() => import("./pages/Chat"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
+const WellnessSettings = lazy(() => import("./features/mediax/pages/Settings"));
+const MediaXExplore = lazy(() => import("./features/mediax/pages/Explore"));
+import WellnessErrorBoundary from "./features/mediax/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +49,9 @@ const App = () => (
               <Route path="/measure" element={<Measure />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/run-session" element={<SessionRunner />} />
+              <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
+              <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />
+              <Route path="/mediax/explore" element={<WellnessErrorBoundary><MediaXExplore /></WellnessErrorBoundary>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
