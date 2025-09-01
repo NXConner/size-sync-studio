@@ -14,7 +14,8 @@ export const PinLock: React.FC = () => {
     setStep(hasPin ? 'unlock' : 'set')
   }, [hasPin])
 
-  if (!isLocked && hasPin) return null
+  // Only render the lock UI when a PIN exists and the vault is currently locked
+  if (!hasPin || !isLocked) return null
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
