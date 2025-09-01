@@ -1,148 +1,173 @@
-# Welcome to your Lovable project
+# Size Seeker — Wellness & Measurement App
 
-## Project info
+Size Seeker is a Vite + React + TypeScript app with an Express API focused on safe, wellness‑oriented tracking. It includes guided sessions, a camera‑assisted measurement tool (OpenCV.js), safety guidance, tips, a gallery, and a safety‑scoped chat.
 
-**URL**: https://lovable.dev/projects/16d96009-e518-4ad6-887b-ccbb25d2315a
+## Table of Contents
+- Overview
+- Features
+- Architecture
+- Getting Started (Local)
+- Environment Configuration
+- Running with Docker
+- OpenCV.js Local Hosting
+- Scripts
+- Testing
+- Deployment Notes
+- API Overview
+- Privacy & Data Storage
+- Troubleshooting
 
-## How can I edit this code?
+## Overview
+- Frontend: Vite, React 18, TypeScript, Tailwind, shadcn‑ui
+- Backend: Express with rate limiting, Helmet, CORS, compression, optional Sentry
+- Dev proxy: Vite proxies API requests to the Express server
+- Mobile: Capacitor config is present for Android builds
 
-There are several ways of editing your application.
+## Features
+- Guided Sessions with presets and a live Session Runner
+- Camera‑assisted Measure page with manual/auto calibration, overlays, and OpenCV.js
+- Safety page emphasizing non‑graphic, harm‑minimizing guidance
+- Tips page with curated advice
+- Gallery for progress photos with overlay comparison
+- Chat for general wellness guidance with explicit refusals for sexual techniques
 
-**Use Lovable**
+## Architecture
+- Frontend app entry: `src/main.tsx`, routes in `src/App.tsx`
+- Pages: `src/pages/` → `Index`, `Sessions`, `SessionRunner`, `Measure`, `Gallery`, `Chat`, `Safety`, `Tips`
+- Utilities: `src/utils/` → `opencv.ts`, `audio.ts`, `storage.ts`
+- API server: `server/index.js` (mounted at `API_PREFIX`, default `/api`)
+- Config: `src/lib/config.ts` (`VITE_APP_BASENAME`, `VITE_API_BASE`); `server/config.js`
+- Docker: `Dockerfile.api`, `Dockerfile.web`, `docker-compose.yml`, Nginx static + proxy
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/16d96009-e518-4ad6-887b-ccbb25d2315a) and start prompting.
+## Getting Started (Local)
+Prereqs: Node.js >= 20 and npm
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1) Install dependencies:
+```bash
+npm install
 ```
 
-**Edit a file directly in GitHub**
+2) Start API and Web (two terminals) or together:
+```bash
+# terminal A
+npm run server
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# terminal B
+npm run dev
 
-**Use GitHub Codespaces**
+# or concurrently
+npm run dev:all
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+3) Open the app:
+- Web: `http://localhost:8080` (Vite dev server)
+- API health: `http://localhost:3001/api/health`
 
-## What technologies are used for this project?
+Proxy: Vite forwards `${VITE_API_BASE || "/api"}` to `http://localhost:3001` in dev.
 
-This project is built with:
+## Environment Configuration
+Create `.env` for the API (server) if needed:
+```env
+NODE_ENV=development
+PORT=3001
+API_PREFIX=/api
+WEB_ORIGIN=http://localhost:8080
+# Optional Sentry
+SENTRY_DSN=
+# Optional Reddit OAuth for richer subreddit fetches
+REDDIT_CLIENT_ID=
+REDDIT_CLIENT_SECRET=
+REDDIT_USERNAME=
+REDDIT_PASSWORD=
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Frontend (Vite) env (optional) via `.env.local`:
+```env
+VITE_APP_BASENAME=
+VITE_API_BASE=/api
+# Optional Sentry DSN for frontend init at build time
+VITE_SENTRY_DSN=
+```
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/16d96009-e518-4ad6-887b-ccbb25d2315a) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## Backend (API) Setup
-
-## Docker
-
-Build and run both API and Web with Docker Compose:
-
+## Running with Docker
+Build and run both services via Compose:
 ```bash
 docker compose up --build
 ```
+- Web: `http://localhost:8080`
+- API (proxied at `/api`): `http://localhost:8080/api/health`
 
-- Web: http://localhost:8080
-- API (proxied by Nginx at /api): http://localhost:8080/api/health
-
-To run API only:
-
+Run API only:
 ```bash
 docker build -t sizeseeker-api -f Dockerfile.api .
 docker run -p 3001:3001 --env-file .env sizeseeker-api
 ```
 
-To run Web only (serves built assets via Nginx and proxies /api to API container):
-
+Run Web only (Nginx serves build and proxies `/api` to API container):
 ```bash
 docker build -t sizeseeker-web -f Dockerfile.web .
 docker run -p 8080:80 sizeseeker-web
 ```
 
-This project includes a minimal Express backend with safety guardrails.
-
-- Install deps: `npm install`
-- Start API server: `npm run server`
-- Start frontend: `npm run dev`
-- Or run both: `npm run dev:all`
-
-Vite proxy forwards `/api/*` to `http://localhost:3001` in development.
-
-### Endpoints
-
-- `POST /api/chat` — Safe chat. Refuses sexual technique or enlargement instructions and returns general wellness guidance.
-- `GET /api/image/schedule` — Returns a simple non-graphic SVG wellness plan.
-- `GET /api/reddit/gettingbigger` — Fetches titles/links from r/gettingbigger top posts (titles and links only). Upstream may block or rate-limit.
-
-## OpenCV.js (manual local hosting)
-
-If your environment blocks CDNs or you want offline support, you can host OpenCV locally. The app already prefers a local copy at `/opencv/opencv.js` before trying CDNs.
+## OpenCV.js Local Hosting
+If CDNs are blocked or you need offline support, provide local OpenCV assets. The loader prefers `/opencv/opencv.js`.
 
 Steps:
-
-1) Create folder `public/opencv/` and add both files:
-- `public/opencv/opencv.js`
-- `public/opencv/opencv_js.wasm`
-
-2) Use matching versions for JS and WASM. Typical sources:
-- `@techstark/opencv-js` npm package (look under its `dist/` or `build/` folder)
-- Official docs host (versioned), e.g. `https://docs.opencv.org/4.x/`
-
-3) Verify the files are served in dev:
-- Start dev server: `npm run dev`
-- Visit `http://localhost:5173/opencv/opencv.js` and `http://localhost:5173/opencv/opencv_js.wasm` — both should return files (not 404).
-
-4) Build/serve:
-- Build: `npm run build`
-- Preview: `npm run preview` (or Docker image). Ensure `GET /opencv/opencv.js` and `/opencv/opencv_js.wasm` succeed.
+1) Place files in `public/opencv/`:
+   - `opencv.js`
+   - `opencv_js.wasm` (version‑matched)
+2) Verify in dev:
+   - `npm run dev`
+   - Visit `http://localhost:8080/opencv/opencv.js` and `/opencv/opencv_js.wasm`
+3) Build and preview:
+   - `npm run build && npm run preview`
 
 Notes:
-- Our loader sets `cvModule.locateFile` so the wasm is requested from the same directory as `opencv.js`. Keep both files together in `public/opencv/`.
-- If you update versions, keep JS and WASM compatible. Mismatched versions can cause initialization failures.
-- If local files are present, they will be used; otherwise, the loader falls back to multiple CDNs automatically.
+- The loader sets `cvModule.locateFile` so WASM loads from the same directory as `opencv.js`.
+- If local files are absent, multiple CDN fallbacks are attempted.
 
-## Safety and Scope
+## Scripts
+- `npm run dev` — Start Vite dev server
+- `npm run server` — Start Express API on port 3001
+- `npm run dev:all` — Run both dev server and API
+- `npm run build` — Build frontend
+- `npm run preview` — Preview built frontend
+- `npm run test` — Run vitest with coverage
+- `npm run typecheck` — TypeScript check
+- `npm run lint` — ESLint
 
-- The chatbot explicitly declines to provide sexual technique, enlargement, routines, pressures, or medical instructions.
-- It provides general non-graphic wellness guidance (sleep, stress, exercise, nutrition).
-- Not medical advice. For concerns, consult a licensed clinician/urologist.
+## Testing
+```bash
+npm test
+```
+Vitest + jsdom are configured. Add tests under `tests/` and `src/**/__tests__/**` as needed.
+
+## Deployment Notes
+- Static build is served by Nginx (see `Dockerfile.web`, `nginx.conf`). `/api` is proxied to the API service.
+- If hosting under a sub‑path, set `VITE_APP_BASENAME` and ensure server proxy and Nginx match paths.
+- Optional Sentry is supported via env on both client and server.
+
+## API Overview
+Base path: `${API_PREFIX}` (default `/api`). See `GET {API_PREFIX}/docs` for Swagger UI.
+
+Endpoints:
+- `POST /chat` — Returns safe wellness guidance; refuses sexual technique/enlargement requests
+- `GET /chat/stream` — SSE stream of a short wellness message
+- `GET /reddit/gettingbigger` — Titles/links only; may use Reddit OAuth if configured
+- `GET /image/schedule` — Simple SVG wellness plan
+- `POST /feedback` — Capture chat feedback in memory
+- `GET /health` — Health check `{ status: "ok" }`
+
+Security middleware: Helmet (CSP in prod), rate limit, CORS restricted by `WEB_ORIGIN`, compression.
+
+## Privacy & Data Storage
+- Measurements, sessions, goals: stored in `localStorage` keys `size-seeker-*`
+- Photos: stored in IndexedDB (`SizeSeekerPhotos` store)
+- Data remains in the browser unless you export or clear it
+
+## Troubleshooting
+- OpenCV load failures: ensure `public/opencv/opencv.js` and matching `opencv_js.wasm` exist and are reachable. Check console for CORS/404.
+- CORS errors in dev: set `WEB_ORIGIN=http://localhost:8080` on the API; ensure `VITE_API_BASE=/api` client‑side.
+- API 502 on subreddit fetch: Reddit may block; configure OAuth creds or try later.
+- Camera errors on Measure: grant camera permissions and ensure a camera is available; switch facing mode if needed.
+- Running under sub‑path: set `VITE_APP_BASENAME` and redeploy; confirm Nginx `try_files` and proxy prefix.
