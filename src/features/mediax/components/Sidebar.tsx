@@ -91,11 +91,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo((props) => {
             Privacy
           </h3>
           <div className="space-y-1">
-            <button onClick={() => navigate('/settings?tab=security')} className="w-full flex items-center gap-3 p-3 hover:bg-gray-700/50 rounded-lg transition-colors text-gray-300 hover:text-white">
+            <button onClick={() => navigate('/mediax/settings?tab=security')} className="w-full flex items-center gap-3 p-3 hover:bg-gray-700/50 rounded-lg transition-colors text-gray-300 hover:text-white">
               <Shield size={18} />
               <span className="font-medium">Security Settings</span>
             </button>
-            <button onClick={() => navigate('/settings?tab=preferences')} className="w-full flex items-center gap-3 p-3 hover:bg-gray-700/50 rounded-lg transition-colors text-gray-300 hover:text-white">
+            <button onClick={() => navigate('/mediax/settings?tab=preferences')} className="w-full flex items-center gap-3 p-3 hover:bg-gray-700/50 rounded-lg transition-colors text-gray-300 hover:text-white">
               <Settings size={18} />
               <span className="font-medium">Preferences</span>
             </button>

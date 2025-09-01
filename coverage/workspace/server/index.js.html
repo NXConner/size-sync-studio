@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/330</span>
+                <span class='fraction'>0/341</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/330</span>
+                <span class='fraction'>0/341</span>
             </div>
         
             
@@ -393,7 +393,29 @@
 <a name='L328'></a><a href='#L328'>328</a>
 <a name='L329'></a><a href='#L329'>329</a>
 <a name='L330'></a><a href='#L330'>330</a>
-<a name='L331'></a><a href='#L331'>331</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -735,6 +757,7 @@
 <span class="cstat-no" title="statement not covered" >import swaggerUi from "swagger-ui-express";</span>
 <span class="cstat-no" title="statement not covered" >import { openapiSpec } from "./openapi.js";</span>
 <span class="cstat-no" title="statement not covered" >import { z } from "zod";</span>
+<span class="cstat-no" title="statement not covered" >import path from "node:path";</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >const app = express();</span>
 <span class="cstat-no" title="statement not covered" >const router = express.Router();</span>
@@ -759,12 +782,15 @@
 <span class="cstat-no" title="statement not covered" >  }),</span>
 <span class="cstat-no" title="statement not covered" >);</span>
 <span class="cstat-no" title="statement not covered" >const isProd = config.NODE_ENV === "production";</span>
+<span class="cstat-no" title="statement not covered" >// Strict CSP for production (no inline). For dev, CSP disabled below.</span>
 <span class="cstat-no" title="statement not covered" >const cspDirectives = {</span>
 <span class="cstat-no" title="statement not covered" >  defaultSrc: ["'self'"],</span>
-<span class="cstat-no" title="statement not covered" >  scriptSrc: ["'self'", "'unsafe-inline'"],</span>
-<span class="cstat-no" title="statement not covered" >  styleSrc: ["'self'", "'unsafe-inline'"],</span>
-<span class="cstat-no" title="statement not covered" >  imgSrc: ["'self'", "data:", "https:"],</span>
-<span class="cstat-no" title="statement not covered" >  connectSrc: ["'self'", "https:", "http:"],</span>
+<span class="cstat-no" title="statement not covered" >  scriptSrc: ["'self'"],</span>
+<span class="cstat-no" title="statement not covered" >  styleSrc: ["'self'"],</span>
+<span class="cstat-no" title="statement not covered" >  imgSrc: ["'self'", "data:"],</span>
+<span class="cstat-no" title="statement not covered" >  connectSrc: ["'self'"],</span>
+<span class="cstat-no" title="statement not covered" >  objectSrc: ["'none'"],</span>
+<span class="cstat-no" title="statement not covered" >  baseUri: ["'self'"],</span>
 <span class="cstat-no" title="statement not covered" >};</span>
 <span class="cstat-no" title="statement not covered" >app.use(</span>
 <span class="cstat-no" title="statement not covered" >  helmet({</span>
@@ -1050,6 +1076,13 @@
 <span class="cstat-no" title="statement not covered" >}</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >app.use(config.API_PREFIX, router);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >// Serve Secret View Haven static app under /mediax</span>
+<span class="cstat-no" title="statement not covered" >const mediaxDir = "/workspace/secret-view-haven/dist";</span>
+<span class="cstat-no" title="statement not covered" >app.use("/mediax", express.static(mediaxDir));</span>
+<span class="cstat-no" title="statement not covered" >app.get("/mediax/*", (_req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  res.sendFile(path.join(mediaxDir, "index.html"));</span>
+<span class="cstat-no" title="statement not covered" >});</span>
 <span class="cstat-no" title="statement not covered" >app.listen(port, () =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  console.log(`[server] listening on http://localhost:${port}`);</span>
 <span class="cstat-no" title="statement not covered" >});</span>
@@ -1060,7 +1093,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-01T06:01:58.795Z
+                at 2025-09-01T10:28:39.465Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
