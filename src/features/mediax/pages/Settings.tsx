@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@mediax/components/ui/
 import { Button } from '@mediax/components/ui/button'
 import { Input } from '@mediax/components/ui/input'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { usePinLock } from '@mediax/hooks/usePinLock'
 
 const PreferencesTab: React.FC = () => {
   return (
@@ -30,49 +29,11 @@ const PreferencesTab: React.FC = () => {
 }
 
 const SecurityTab: React.FC = () => {
-  const { hasPin, setPin, unlock, isLocked, clearPin, lock } = usePinLock()
-  const [pin, setPinValue] = React.useState('')
-  const [confirm, setConfirm] = React.useState('')
-  const [message, setMessage] = React.useState<string | null>(null)
-
-  const onSet = async () => {
-    setMessage(null)
-    if (pin.length < 4) { setMessage('PIN must be at least 4 digits'); return }
-    if (pin !== confirm) { setMessage('PINs do not match'); return }
-    await setPin(pin)
-    setPinValue(''); setConfirm('')
-    setMessage('PIN set. Unlock required next time.')
-  }
-  const onUnlock = async () => {
-    setMessage(null)
-    const ok = await unlock(pin)
-    setMessage(ok ? 'Unlocked' : 'Incorrect PIN')
-    if (ok) setPinValue('')
-  }
-  const onClear = () => { clearPin(); setMessage('PIN removed') }
-
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-gray-700 bg-gray-800/70 p-4">
-        <h2 className="text-white font-semibold mb-2">PIN Lock</h2>
-        <p className="text-sm text-gray-300 mb-3">Secure your vault with a PIN.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-          <div>
-            <label className="block text-xs text-gray-300 mb-1">PIN</label>
-            <Input type="password" value={pin} onChange={(e) => setPinValue(e.target.value)} inputMode="numeric" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-300 mb-1">Confirm</label>
-            <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={onSet}>Set/Update</Button>
-            <Button variant="secondary" onClick={onUnlock} disabled={!hasPin || !isLocked}>Unlock</Button>
-            <Button variant="destructive" onClick={onClear} disabled={!hasPin}>Remove</Button>
-            <Button variant="outline" onClick={lock} disabled={isLocked}>Lock</Button>
-          </div>
-        </div>
-        {message && <p className="text-sm mt-2 text-gray-300">{message}</p>}
+        <h2 className="text-white font-semibold mb-2">Security</h2>
+        <p className="text-sm text-gray-300">PIN lock has been removed. No additional security settings are available.</p>
       </section>
     </div>
   )
