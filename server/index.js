@@ -327,11 +327,11 @@ if (config.SENTRY_DSN) {
 
 app.use(config.API_PREFIX, router);
 
-// Serve Secret View Haven static app under /wellness
-const wellnessDir = "/workspace/secret-view-haven/dist";
-app.use("/wellness", express.static(wellnessDir));
-app.get("/wellness/*", (_req, res) => {
-  res.sendFile(path.join(wellnessDir, "index.html"));
+// Serve Secret View Haven static app under /mediax
+const mediaxDir = "/workspace/secret-view-haven/dist";
+app.use("/mediax", express.static(mediaxDir));
+app.get("/mediax/*", (_req, res) => {
+  res.sendFile(path.join(mediaxDir, "index.html"));
 });
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);

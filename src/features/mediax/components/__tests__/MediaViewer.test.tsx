@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 /* no React import needed with jsx: react-jsx */
 import { describe, it, expect, vi } from 'vitest'
-import { MediaViewer } from '@svh/components/MediaViewer'
-import type { MediaItem } from '@svh/pages/Index'
+import { MediaViewer } from '@mediax/components/MediaViewer'
+import type { MediaItem } from '@mediax/pages/Index'
 
 const media: MediaItem = {
   id: 'm1',

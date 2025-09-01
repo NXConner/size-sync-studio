@@ -1,7 +1,7 @@
 import React from 'react'
-import { Button } from '@svh/components/ui/button'
-import { Input } from '@svh/components/ui/input'
-import { usePinLock } from '@svh/hooks/usePinLock'
+import { Button } from '@mediax/components/ui/button'
+import { Input } from '@mediax/components/ui/input'
+import { usePinLock } from '@mediax/hooks/usePinLock'
 
 export const PinLock: React.FC = () => {
   const { hasPin, isLocked, setPin, unlock } = usePinLock()

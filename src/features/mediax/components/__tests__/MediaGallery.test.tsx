@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 /* no React import needed with jsx: react-jsx */
 import { describe, it, expect, vi } from 'vitest'
-import { MediaGallery } from '@svh/components/MediaGallery'
-import type { MediaItem } from '@svh/pages/Index'
+import { MediaGallery } from '@mediax/components/MediaGallery'
+import type { MediaItem } from '@mediax/pages/Index'
 
 const sampleItems: MediaItem[] = [
   {

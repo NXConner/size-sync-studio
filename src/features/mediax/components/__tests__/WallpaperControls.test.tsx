@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 /* no React import needed with jsx: react-jsx */
 import { describe, it, expect } from 'vitest'
-import WallpaperControls from '@svh/components/WallpaperControls'
-import type { WallpaperConfig } from '@svh/components/BackgroundWallpaper'
+import WallpaperControls from '@mediax/components/WallpaperControls'
+import type { WallpaperConfig } from '@mediax/components/BackgroundWallpaper'
 
 describe('WallpaperControls', () => {
   it('renders nothing when value is null', () => {

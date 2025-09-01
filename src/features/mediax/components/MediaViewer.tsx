@@ -1,10 +1,10 @@
 
 import React, { useEffect, useState } from 'react'
 import { X, ChevronRight, ChevronLeft, Download, Image as ImageIcon } from 'lucide-react'
-import { buildSrcSet } from '@svh/lib/image';
-import type { MediaItem } from '@svh/pages/Index';
-import { Button } from '@svh/components/ui/button'
-import { Input } from '@svh/components/ui/input'
+import { buildSrcSet } from '@mediax/lib/image';
+import type { MediaItem } from '@mediax/pages/Index';
+import { Button } from '@mediax/components/ui/button'
+import { Input } from '@mediax/components/ui/input'
 
 export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper, onUpdateMeta }: {
   media: MediaItem;

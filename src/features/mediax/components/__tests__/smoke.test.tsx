@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 /* no React import needed with jsx: react-jsx */
 import { describe, it, expect } from 'vitest'
-import Index from '@svh/pages/Index'
+import Index from '@mediax/pages/Index'
 
 describe('App smoke test', () => {
   it('renders header and sidebar toggle', () => {

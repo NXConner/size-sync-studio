@@ -1,5 +1,5 @@
 import React from 'react'
-import { sha256Hex, deriveKeyFromPin } from '@svh/lib/crypto'
+import { sha256Hex, deriveKeyFromPin } from '@mediax/lib/crypto'
 
 const SALT_KEY = 'pmv:pinSalt'
 const HASH_KEY = 'pmv:pinHash'

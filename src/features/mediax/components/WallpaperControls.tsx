@@ -1,14 +1,14 @@
 import React from 'react';
-import { Slider } from '@svh/components/ui/slider';
-import { Switch } from '@svh/components/ui/switch';
+import { Slider } from '@mediax/components/ui/slider';
+import { Switch } from '@mediax/components/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@svh/components/ui/select';
-import { WallpaperConfig } from '@svh/components/BackgroundWallpaper';
+} from '@mediax/components/ui/select';
+import { WallpaperConfig } from '@mediax/components/BackgroundWallpaper';
 
 interface WallpaperControlsProps {
   value: WallpaperConfig | null;

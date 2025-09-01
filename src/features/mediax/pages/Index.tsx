@@ -1,18 +1,18 @@
 
 import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
-import { MediaGallery } from '@svh/components/MediaGallery';
-import { Sidebar } from '@svh/components/Sidebar';
-import { UploadDropzone } from '@svh/components/UploadDropzone';
-import { SearchBar } from '@svh/components/SearchBar';
+import { MediaGallery } from '@mediax/components/MediaGallery';
+import { Sidebar } from '@mediax/components/Sidebar';
+import { UploadDropzone } from '@mediax/components/UploadDropzone';
+import { SearchBar } from '@mediax/components/SearchBar';
 import { Menu, X, Settings2, ChevronDown, ChevronUp, ImagePlus } from 'lucide-react';
-import BackgroundWallpaper, { WallpaperConfig } from '@svh/components/BackgroundWallpaper';
-const MediaViewer = lazy(() => import('@svh/components/MediaViewer').then(m => ({ default: m.MediaViewer })));
-const WallpaperControls = lazy(() => import('@svh/components/WallpaperControls'));
-import { db, type MediaRecord } from '@svh/lib/db'
-import { usePinLock } from '@svh/hooks/usePinLock'
-import PinLock from '@svh/components/PinLock'
-import { encryptBlob, decryptToBlob } from '@svh/lib/crypto'
-import { hapticImpact } from '@svh/lib/native'
+import BackgroundWallpaper, { WallpaperConfig } from '@mediax/components/BackgroundWallpaper';
+const MediaViewer = lazy(() => import('@mediax/components/MediaViewer').then(m => ({ default: m.MediaViewer })));
+const WallpaperControls = lazy(() => import('@mediax/components/WallpaperControls'));
+import { db, type MediaRecord } from '@mediax/lib/db'
+import { usePinLock } from '@mediax/hooks/usePinLock'
+import PinLock from '@mediax/components/PinLock'
+import { encryptBlob, decryptToBlob } from '@mediax/lib/crypto'
+import { hapticImpact } from '@mediax/lib/native'
 
 export interface MediaItem {
   id: string;
@@ -261,7 +261,7 @@ const Index = () => {
                   {showWallpaperControls ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
                 </button>
                 {showWallpaperControls && (
-                  <div className="mt-3" onMouseEnter={() => { void import('@svh/components/WallpaperControls'); }}>
+                  <div className="mt-3" onMouseEnter={() => { void import('@mediax/components/WallpaperControls'); }}>
                     <Suspense fallback={<div className="text-sm text-gray-400">Loading controls…</div>}>
                       <WallpaperControls value={wallpaper} onChange={setWallpaper} />
                     </Suspense>

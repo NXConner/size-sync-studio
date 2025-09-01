@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { buildSrcSet, responsiveSizes } from '@svh/lib/image';
-import type { MediaItem } from '@svh/pages/Index';
+import { buildSrcSet, responsiveSizes } from '@mediax/lib/image';
+import type { MediaItem } from '@mediax/pages/Index';
 import { Play, Image } from 'lucide-react';
 
 interface MediaGalleryProps {
@@ -29,7 +29,7 @@ export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMed
           key={item.id}
           className="group relative aspect-square bg-gray-800 rounded-lg overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
           onClick={() => onMediaSelect(item)}
-          onMouseEnter={() => { void import('@svh/components/MediaViewer'); }}
+          onMouseEnter={() => { void import('@mediax/components/MediaViewer'); }}
         >
           {/* Media Thumbnail */}
           <picture>

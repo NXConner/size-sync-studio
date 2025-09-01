@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 /* no React import needed with jsx: react-jsx */
 import { describe, it, expect, vi } from 'vitest'
-import { Sidebar } from '@svh/components/Sidebar'
+import { Sidebar } from '@mediax/components/Sidebar'
 
 describe('Sidebar (app-specific)', () => {
   it('renders collections and triggers actions', () => {

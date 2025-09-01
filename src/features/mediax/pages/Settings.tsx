@@ -1,9 +1,9 @@
 import React from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@svh/components/ui/tabs'
-import { Button } from '@svh/components/ui/button'
-import { Input } from '@svh/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@mediax/components/ui/tabs'
+import { Button } from '@mediax/components/ui/button'
+import { Input } from '@mediax/components/ui/input'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { usePinLock } from '@svh/hooks/usePinLock'
+import { usePinLock } from '@mediax/hooks/usePinLock'
 
 const PreferencesTab: React.FC = () => {
   return (
