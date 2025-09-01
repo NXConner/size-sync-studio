@@ -35,12 +35,15 @@ app.use(
   }),
 );
 const isProd = config.NODE_ENV === "production";
+// Strict CSP for production (no inline). For dev, CSP disabled below.
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "'unsafe-inline'"],
-  styleSrc: ["'self'", "'unsafe-inline'"],
-  imgSrc: ["'self'", "data:", "https:"],
-  connectSrc: ["'self'", "https:", "http:"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'"],
+  imgSrc: ["'self'", "data:"],
+  connectSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
 };
 app.use(
   helmet({

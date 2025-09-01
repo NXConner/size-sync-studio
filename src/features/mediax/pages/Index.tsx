@@ -297,11 +297,15 @@ const Index = () => {
             {/* Upload Dropzone */}
             <UploadDropzone onFileUpload={handleFileUpload} isUploading={isUploading} progress={uploadProgress} error={uploadError} />
             
-            {/* Media Gallery */}
-            <MediaGallery
-              mediaItems={filteredMedia}
-              onMediaSelect={setSelectedMedia}
-            />
+            {/* Media Gallery (PIN-gated) */}
+            {pin.isLocked ? (
+              <div className="mt-6 text-sm text-muted-foreground">Locked. Set or enter your PIN in Settings.</div>
+            ) : (
+              <MediaGallery
+                mediaItems={filteredMedia}
+                onMediaSelect={setSelectedMedia}
+              />
+            )}
           </div>
         </main>
       </div>
