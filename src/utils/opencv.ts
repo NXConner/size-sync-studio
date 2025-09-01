@@ -43,7 +43,12 @@ export async function loadOpenCV(): Promise<any> {
         if (cv && typeof cv.getBuildInformation === "function") {
           resolve(cv);
         } else {
-          setTimeout(check, 50);
+          // Use requestIdleCallback to avoid blocking the main thread
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => setTimeout(check, 50));
+          } else {
+            setTimeout(check, 50);
+          }
         }
       };
       check();
@@ -53,10 +58,13 @@ export async function loadOpenCV(): Promise<any> {
     let lastError: any = null;
     for (const src of candidateSrcs) {
       try {
+        console.log(`Attempting to load OpenCV from: ${src}`);
         const cv = await withTimeout(loadFromSrc(src), 15000, `Timed out loading OpenCV.js from ${src}`);
+        console.log('OpenCV loaded successfully');
         resolve(cv);
         return;
       } catch (e) {
+        console.warn(`Failed to load OpenCV from ${src}:`, e);
         lastError = e;
       }
     }
@@ -71,6 +79,7 @@ function loadFromSrc(srcUrl: string): Promise<any> {
     const script = document.createElement("script");
     script.id = "opencv-js";
     script.async = true;
+    script.defer = true; // Defer execution to avoid blocking
     script.crossOrigin = "anonymous";
     script.src = srcUrl;
 
@@ -81,6 +90,24 @@ function loadFromSrc(srcUrl: string): Promise<any> {
         if (path.endsWith(".wasm")) return base + path;
         return base + path;
       },
+      onRuntimeInitialized: () => {
+        // Use requestIdleCallback to yield to main thread
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            const cv = (window as any).cv;
+            if (cv && typeof cv.getBuildInformation === "function") {
+              resolve(cv);
+            }
+          });
+        } else {
+          setTimeout(() => {
+            const cv = (window as any).cv;
+            if (cv && typeof cv.getBuildInformation === "function") {
+              resolve(cv);
+            }
+          }, 0);
+        }
+      }
     };
 
     script.onload = () => {
@@ -94,14 +121,30 @@ function loadFromSrc(srcUrl: string): Promise<any> {
         return;
       }
       // onRuntimeInitialized is called once wasm is ready
-      cv["onRuntimeInitialized"] = () => resolve(cv);
+      cv["onRuntimeInitialized"] = () => {
+        // Use requestIdleCallback to avoid blocking main thread
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => resolve(cv));
+        } else {
+          setTimeout(() => resolve(cv), 0);
+        }
+      };
       // Safety timeout
       setTimeout(() => {
-        if (typeof cv.getBuildInformation === "function") resolve(cv);
+        const cv = (window as any).cv;
+        if (cv && typeof cv.getBuildInformation === "function") {
+          resolve(cv);
+        }
       }, 7000);
     };
     script.onerror = () => reject(new Error(`Failed to load OpenCV.js script from ${srcUrl}`));
-    document.body.appendChild(script);
+    
+    // Use requestIdleCallback to add script during idle time
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(() => document.body.appendChild(script));
+    } else {
+      setTimeout(() => document.body.appendChild(script), 0);
+    }
   });
 }
 

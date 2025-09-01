@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
-    process.env.VITE_SENTRY_DSN && sentryVitePlugin({
+    ...(mode === "development" ? [componentTagger()] : []),
+    ...(process.env.VITE_SENTRY_DSN ? [sentryVitePlugin({
       org: process.env.SENTRY_ORG || '',
       project: process.env.SENTRY_PROJECT || '',
       // authToken is read from SENTRY_AUTH_TOKEN env in CI if you later enable uploads
@@ -35,15 +35,14 @@ export default defineConfig(({ mode }) => ({
       release: {
         name: process.env.GITHUB_SHA || undefined,
       },
-    }),
-    mode === "analyze" &&
-      visualizer({
-        filename: "dist/stats.html",
-        gzipSize: true,
-        brotliSize: true,
-        template: "treemap",
-      }),
-  ].filter(Boolean),
+    })] : []),
+    ...(mode === "analyze" ? [visualizer({
+      filename: "dist/stats.html",
+      gzipSize: true,
+      brotliSize: true,
+      template: "treemap",
+    })] : []),
+  ],
   build: {
     sourcemap: false,
     rollupOptions: {

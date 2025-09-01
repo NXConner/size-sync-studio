@@ -1,7 +1,6 @@
 import React from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@mediax/components/ui/tabs'
 import { Button } from '@mediax/components/ui/button'
-import { Input } from '@mediax/components/ui/input'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const PreferencesTab: React.FC = () => {
