@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
 import { z } from "zod";
+import path from "node:path";
 
 const app = express();
 const router = express.Router();
@@ -34,12 +35,15 @@ app.use(
   }),
 );
 const isProd = config.NODE_ENV === "production";
+// Strict CSP for production (no inline). For dev, CSP disabled below.
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "'unsafe-inline'"],
-  styleSrc: ["'self'", "'unsafe-inline'"],
-  imgSrc: ["'self'", "data:", "https:"],
-  connectSrc: ["'self'", "https:", "http:"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'"],
+  imgSrc: ["'self'", "data:"],
+  connectSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
 };
 app.use(
   helmet({
@@ -325,6 +329,13 @@ if (config.SENTRY_DSN) {
 }
 
 app.use(config.API_PREFIX, router);
+
+// Serve Secret View Haven static app under /mediax
+const mediaxDir = "/workspace/secret-view-haven/dist";
+app.use("/mediax", express.static(mediaxDir));
+app.get("/mediax/*", (_req, res) => {
+  res.sendFile(path.join(mediaxDir, "index.html"));
+});
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });
