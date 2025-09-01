@@ -9,9 +9,7 @@ import BackgroundWallpaper, { WallpaperConfig } from '@mediax/components/Backgro
 const MediaViewer = lazy(() => import('@mediax/components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const WallpaperControls = lazy(() => import('@mediax/components/WallpaperControls'));
 import { db, type MediaRecord } from '@mediax/lib/db'
-import { usePinLock } from '@mediax/hooks/usePinLock'
 import PinLock from '@mediax/components/PinLock'
-import { encryptBlob, decryptToBlob } from '@mediax/lib/crypto'
 import { hapticImpact } from '@mediax/lib/native'
 
 export interface MediaItem {
@@ -37,7 +35,7 @@ const Index = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [wallpaper, setWallpaper] = useState<WallpaperConfig | null>(null);
   const [showWallpaperControls, setShowWallpaperControls] = useState(false);
-  const pin = usePinLock()
+  // PIN removed; media is always visible
 
   // Initial load: hydrate from IndexedDB; if empty, seed with mock data once
   useEffect(() => {
@@ -72,25 +70,12 @@ const Index = () => {
         const loaded = seed.map(r => ({ ...r, uploadDate: new Date(r.uploadDate) })) as unknown as MediaItem[]
         setMediaItems(loaded)
       } else {
-        // If encrypted, attempt to decrypt only when unlocked; otherwise skip showing those items
-        const loaded: MediaItem[] = []
-        for (const r of records) {
-          try {
-            if (r.encIvHex && r.encData && r.encMimeType) {
-              if (!pin.key) continue
-              const blob = await decryptToBlob(r.encIvHex, r.encData, pin.key, r.encMimeType)
-              const url = URL.createObjectURL(blob)
-              loaded.push({ ...r, url, thumbnail: url, uploadDate: new Date(r.uploadDate) } as unknown as MediaItem)
-            } else {
-              loaded.push({ ...r, uploadDate: new Date(r.uploadDate) } as unknown as MediaItem)
-            }
-          } catch { /* ignore corrupt entries */ }
-        }
+        const loaded = records.map(r => ({ ...r, uploadDate: new Date(r.uploadDate) } as unknown as MediaItem))
         setMediaItems(loaded)
       }
     }
     load()
-  }, [pin.key])
+  }, [])
 
   // Load wallpaper from localStorage
   useEffect(() => {
@@ -151,40 +136,19 @@ const Index = () => {
         let url = ''
         let thumbnail = ''
         const createUrl = () => URL.createObjectURL(file)
-        if (pin.key) {
-          const { ivHex, data, mimeType } = await encryptBlob(file, pin.key)
-          await db.media.put({
-            id,
-            type,
-            url: '',
-            thumbnail: '',
-            title: file.name,
-            collection: 'recent',
-            tags: ['uploaded'],
-            uploadDate: now,
-            size: file.size,
-            encIvHex: ivHex,
-            encData: data,
-            encMimeType: mimeType,
-          })
-          const blob = await decryptToBlob(ivHex, data, pin.key, mimeType)
-          url = URL.createObjectURL(blob)
-          thumbnail = url
-        } else {
-          url = createUrl()
-          thumbnail = createUrl()
-          await db.media.put({
-            id,
-            type,
-            url,
-            thumbnail,
-            title: file.name,
-            collection: 'recent',
-            tags: ['uploaded'],
-            uploadDate: now,
-            size: file.size,
-          })
-        }
+        url = createUrl()
+        thumbnail = createUrl()
+        await db.media.put({
+          id,
+          type,
+          url,
+          thumbnail,
+          title: file.name,
+          collection: 'recent',
+          tags: ['uploaded'],
+          uploadDate: now,
+          size: file.size,
+        })
         records.push({ id, type, url, thumbnail, title: file.name, collection: 'recent', tags: ['uploaded'], uploadDate: now, size: file.size })
         setUploadProgress(Math.round(((index + 1) / total) * 100))
       }
@@ -297,15 +261,10 @@ const Index = () => {
             {/* Upload Dropzone */}
             <UploadDropzone onFileUpload={handleFileUpload} isUploading={isUploading} progress={uploadProgress} error={uploadError} />
             
-            {/* Media Gallery (PIN-gated) */}
-            {pin.isLocked ? (
-              <div className="mt-6 text-sm text-muted-foreground">Locked. Set or enter your PIN in Settings.</div>
-            ) : (
-              <MediaGallery
-                mediaItems={filteredMedia}
-                onMediaSelect={setSelectedMedia}
-              />
-            )}
+            <MediaGallery
+              mediaItems={filteredMedia}
+              onMediaSelect={setSelectedMedia}
+            />
           </div>
         </main>
       </div>
