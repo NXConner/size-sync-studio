@@ -2,19 +2,22 @@ import { render, screen, fireEvent } from '@testing-library/react'
 /* no React import needed with jsx: react-jsx */
 import { describe, it, expect, vi } from 'vitest'
 import { Sidebar } from '@mediax/components/Sidebar'
+import { MemoryRouter } from 'react-router-dom'
 
 describe('Sidebar (app-specific)', () => {
   it('renders collections and triggers actions', () => {
     const onChange = vi.fn()
     const onUpload = vi.fn()
     render(
-      <Sidebar
-        isOpen
-        collections={['all', 'recent', 'favorites']}
-        selectedCollection="all"
-        onCollectionChange={onChange}
-        onUpload={onUpload}
-      />
+      <MemoryRouter>
+        <Sidebar
+          isOpen
+          collections={['all', 'recent', 'favorites']}
+          selectedCollection="all"
+          onCollectionChange={onChange}
+          onUpload={onUpload}
+        />
+      </MemoryRouter>
     )
 
     // Upload button

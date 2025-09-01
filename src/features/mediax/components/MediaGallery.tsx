@@ -12,6 +12,8 @@ interface MediaGalleryProps {
 // using shared responsive helpers
 
 export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMediaSelect }: MediaGalleryProps) {
+  let stealth = false
+  try { stealth = typeof localStorage !== 'undefined' && localStorage.getItem('mediax:stealth') === '1' } catch { stealth = false }
   if (mediaItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400">
@@ -48,14 +50,14 @@ export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMed
               srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200])}
               sizes={responsiveSizes}
               alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 [transition-filter]"
+              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 [transition-filter] ${stealth ? 'blur-sm' : ''}`}
               loading="lazy"
               decoding="async"
               // React warns on non-standard prop casing; use lowercase attribute
               // @ts-expect-error React DOM attribute casing workaround
               fetchpriority="low"
-              style={{ filter: 'blur(12px)' }}
-              onLoad={(e) => { (e.currentTarget as HTMLImageElement).style.filter = 'blur(0px)'; }}
+              style={stealth ? undefined : { filter: 'blur(12px)' }}
+              onLoad={(e) => { if (!stealth) { (e.currentTarget as HTMLImageElement).style.filter = 'blur(0px)'; } }}
             />
           </picture>
           
