@@ -77,6 +77,9 @@ export default function Measure() {
   const confidenceRef = useRef<number>(0);
   const [minConfidence, setMinConfidence] = useState<number>(0.6);
   const [showHud, setShowHud] = useState<boolean>(true);
+  const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
+  const [snapRadiusPx, setSnapRadiusPx] = useState<number>(18);
+  const [retakeSuggested, setRetakeSuggested] = useState<boolean>(false);
 
   // Refs to avoid stale closures inside the RAF overlay loop
   const calibStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -92,6 +95,113 @@ export default function Measure() {
   const setVoice = (v: boolean) => {
     setVoiceEnabledState(v);
     setVoiceEnabled(v);
+  };
+
+  // Rolling edge buffer for multi-frame stabilization (live mode)
+  const edgeBufferRef = useRef<Uint8ClampedArray[]>([]);
+  const edgeBufferSizeRef = useRef<{ w: number; h: number } | null>(null);
+  const lastEdgeImageRef = useRef<ImageData | null>(null);
+
+  // Snap helpers: find nearest strong edge pixel within radius
+  const snapToEdgeIfAvailable = (x: number, y: number): { x: number; y: number } => {
+    if (!snapEnabled) return { x, y };
+    const img = lastEdgeImageRef.current;
+    if (!img) return { x, y };
+    const { width, height, data } = img;
+    const r = Math.max(2, Math.min(60, snapRadiusPx));
+    const xi = Math.round(x);
+    const yi = Math.round(y);
+    let bestDx = 0;
+    let bestDy = 0;
+    let bestDist2 = Number.POSITIVE_INFINITY;
+    const thresh = 200; // edge intensity threshold
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+    const x0 = clamp(xi - r, 0, width - 1);
+    const x1 = clamp(xi + r, 0, width - 1);
+    const y0 = clamp(yi - r, 0, height - 1);
+    const y1 = clamp(yi + r, 0, height - 1);
+    for (let yy = y0; yy <= y1; yy++) {
+      const dy = yy - y;
+      for (let xx = x0; xx <= x1; xx++) {
+        const dx = xx - x;
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 > r * r || dist2 >= bestDist2) continue;
+        const idx = (yy * width + xx) * 4;
+        const val = data[idx];
+        if (val >= thresh) {
+          bestDist2 = dist2;
+          bestDx = dx;
+          bestDy = dy;
+        }
+      }
+    }
+    if (bestDist2 < Number.POSITIVE_INFINITY) {
+      return { x: x + bestDx, y: y + bestDy };
+    }
+    return { x, y };
+  };
+
+  // Update the temporal edge map for snapping and stabilization
+  const updateEdgeOverlayFromMat = (
+    cv: any,
+    edges: any,
+    processedW: number,
+    processedH: number,
+    offsetX: number,
+    offsetY: number,
+    drawW: number,
+    drawH: number,
+  ) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const outW = container.clientWidth;
+    const outH = container.clientHeight;
+    if (outW <= 0 || outH <= 0) return;
+
+    const edgesCanvas = document.createElement("canvas");
+    edgesCanvas.width = processedW;
+    edgesCanvas.height = processedH;
+    (cv as any).imshow(edgesCanvas, edges);
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    const octx = outCanvas.getContext("2d");
+    if (!octx) return;
+    octx.clearRect(0, 0, outW, outH);
+    // black background
+    octx.fillStyle = "#000";
+    octx.fillRect(0, 0, outW, outH);
+    // draw scaled edges into the same rectangle as the media
+    octx.drawImage(edgesCanvas, 0, 0, processedW, processedH, offsetX, offsetY, drawW, drawH);
+    const img = octx.getImageData(0, 0, outW, outH);
+
+    // Maintain temporal buffer (max 4)
+    if (!edgeBufferSizeRef.current || edgeBufferSizeRef.current.w !== outW || edgeBufferSizeRef.current.h !== outH) {
+      edgeBufferRef.current = [];
+      edgeBufferSizeRef.current = { w: outW, h: outH };
+    }
+    // store copy
+    edgeBufferRef.current.push(new Uint8ClampedArray(img.data));
+    if (edgeBufferRef.current.length > 4) edgeBufferRef.current.shift();
+
+    // Combine via per-pixel max on the red channel
+    const combined = octx.createImageData(outW, outH);
+    const buf = combined.data;
+    const bufs = edgeBufferRef.current;
+    const n = bufs.length;
+    for (let i = 0; i < buf.length; i += 4) {
+      let maxR = 0;
+      for (let k = 0; k < n; k++) {
+        const r = bufs[k][i];
+        if (r > maxR) maxR = r;
+      }
+      buf[i] = maxR; // R
+      buf[i + 1] = maxR; // G
+      buf[i + 2] = maxR; // B
+      buf[i + 3] = maxR; // A
+    }
+    lastEdgeImageRef.current = combined;
   };
 
   // Keep refs in sync with state for use inside RAF loop
@@ -396,8 +506,10 @@ export default function Measure() {
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+    const snapped = snapToEdgeIfAvailable(x, y);
+    x = snapped.x; y = snapped.y;
 
     if (isCalibrating) {
       if (!calibStart) {
@@ -458,8 +570,10 @@ export default function Measure() {
   const handleOverlayMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!dragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+    const snapped = snapToEdgeIfAvailable(x, y);
+    x = snapped.x; y = snapped.y;
     if (dragging.type === "base") setBasePoint({ x, y });
     if (dragging.type === "tip") setTipPoint({ x, y });
     if (dragging.type === "calibStart") setCalibStart({ x, y });
@@ -473,23 +587,27 @@ export default function Measure() {
   // Keyboard nudge controls
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!selectedHandle) return;
       const overlay = overlayRef.current;
       if (!overlay) return;
+      if (e.key.toLowerCase() === "s") {
+        setSnapEnabled((v) => !v);
+        return;
+      }
+      if (!selectedHandle) return;
       const step = (e.shiftKey ? 5 : 1) * (nudgeStep || 1);
       const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
       const move = (dx: number, dy: number) => {
         if (selectedHandle === "base" && basePoint) {
-          setBasePoint({
-            x: clamp(basePoint.x + dx, 0, overlay.width),
-            y: clamp(basePoint.y + dy, 0, overlay.height),
-          });
+          const nx = clamp(basePoint.x + dx, 0, overlay.width);
+          const ny = clamp(basePoint.y + dy, 0, overlay.height);
+          const snapped = snapToEdgeIfAvailable(nx, ny);
+          setBasePoint({ x: snapped.x, y: snapped.y });
         }
         if (selectedHandle === "tip" && tipPoint) {
-          setTipPoint({
-            x: clamp(tipPoint.x + dx, 0, overlay.width),
-            y: clamp(tipPoint.y + dy, 0, overlay.height),
-          });
+          const nx = clamp(tipPoint.x + dx, 0, overlay.width);
+          const ny = clamp(tipPoint.y + dy, 0, overlay.height);
+          const snapped = snapToEdgeIfAvailable(nx, ny);
+          setTipPoint({ x: snapped.x, y: snapped.y });
         }
       };
       if (e.key === "ArrowUp") { e.preventDefault(); move(0, -step); }
@@ -963,6 +1081,7 @@ export default function Measure() {
           }
         } else {
           toast({ title: "Low confidence", description: `Score ${confidence.toFixed(2)} below threshold ${minConfidence.toFixed(2)}.`, variant: "destructive" });
+          setRetakeSuggested(true);
         }
 
         // Mask preview export
@@ -1223,6 +1342,28 @@ export default function Measure() {
         confidence += Math.min(1, solidity) * 0.30;
 
         setConfidence(confidence);
+        // Update temporal edge map for snapping/stabilization
+        try {
+          const edgesForOverlay = new cv.Mat();
+          const grayTmp = new cv.Mat();
+          cv.cvtColor(src, grayTmp, cv.COLOR_RGBA2GRAY);
+          const blurredTmp = new cv.Mat();
+          cv.GaussianBlur(grayTmp, blurredTmp, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+          cv.Canny(blurredTmp, edgesForOverlay, 50, 150);
+          updateEdgeOverlayFromMat(
+            cv,
+            edgesForOverlay,
+            w,
+            h,
+            offsetX,
+            offsetY,
+            drawW,
+            drawH,
+          );
+          edgesForOverlay.delete();
+          grayTmp.delete();
+          blurredTmp.delete();
+        } catch {}
         if (confidence >= minConfidence) {
           const alpha = 0.35;
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -1373,6 +1514,7 @@ export default function Measure() {
       if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
       autoDetectRafRef.current = null;
       setAutoStatus("idle");
+      setRetakeSuggested(false);
       return;
     }
     const loop = async () => {
@@ -1401,8 +1543,11 @@ export default function Measure() {
               lastAutoCaptureTsRef.current = now;
               setAutoStatus("captured");
             }
+            // Suggest retake when confidence is low or instability persists
+            setRetakeSuggested(!stable || (confidenceRef.current || 0) < minConfidence);
           } else {
             setAutoStatus("scanning");
+            setRetakeSuggested(false);
           }
         } catch {}
       }
@@ -1581,6 +1726,9 @@ export default function Measure() {
                     </div>
                     <span className="whitespace-nowrap">{Math.max(0, Math.min(1, confidence)).toFixed(2)}</span>
                     <span className="opacity-70 whitespace-nowrap">min {minConfidence.toFixed(2)}</span>
+                    {retakeSuggested && (
+                      <span className="text-amber-300 whitespace-nowrap">Retake suggested</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -1604,6 +1752,14 @@ export default function Measure() {
             <CardContent className="space-y-3">
               <div className="text-sm text-muted-foreground">
                 Drag to match on-screen width at mid-shaft; we estimate circumference.
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Snap to edge (S)</span>
+                <Switch checked={snapEnabled} onCheckedChange={setSnapEnabled} />
+              </div>
+              <div className="pt-2 space-y-2">
+                <label className="text-xs text-muted-foreground">Snap radius: {snapRadiusPx}px</label>
+                <Slider value={[snapRadiusPx]} min={4} max={60} step={1} onValueChange={(v) => setSnapRadiusPx(v[0])} />
               </div>
               <Slider
                 value={[girthPixels]}
