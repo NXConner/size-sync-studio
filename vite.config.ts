@@ -57,6 +57,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@mediax": path.resolve(__dirname, "./src/features/mediax"),
     },
   },
   test: {
