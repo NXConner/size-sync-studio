@@ -10,6 +10,7 @@ const navigation = [
   { name: "Measure", href: "/measure", icon: Ruler },
   { name: "Gallery", href: "/gallery", icon: Camera },
   { name: "mediaX", href: "/mediax", icon: HeartPulse },
+  { name: "Explore", href: "/mediax/explore", icon: HeartPulse },
 ];
 
 export function Navbar() {
