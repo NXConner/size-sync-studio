@@ -26,10 +26,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@mediax/*": ["./src/features/mediax/*"]
-    },
-    "types": ["vitest", "@testing-library/jest-dom"]
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "vite-env.d.ts"]
 }

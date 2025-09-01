@@ -9,7 +9,6 @@ import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/s
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { CalibrationCard } from "@/components/measure/CalibrationCard";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadOpenCV } from "@/utils/opencv";
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
@@ -73,10 +72,6 @@ export default function Measure() {
   const [selectedHandle, setSelectedHandle] = useState<null | "base" | "tip">(null);
   const [nudgeStep, setNudgeStep] = useState<number>(1);
   const [isAutoCalibrating, setIsAutoCalibrating] = useState<boolean>(false);
-  const [confidence, setConfidence] = useState<number>(0);
-  const confidenceRef = useRef<number>(0);
-  const [minConfidence, setMinConfidence] = useState<number>(0.6);
-  const [showHud, setShowHud] = useState<boolean>(true);
 
   // Refs to avoid stale closures inside the RAF overlay loop
   const calibStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -122,9 +117,6 @@ export default function Measure() {
   useEffect(() => {
     girthDisplayRef.current = girthDisplay;
   }, [girthDisplay]);
-  useEffect(() => {
-    confidenceRef.current = confidence;
-  }, [confidence]);
 
   // Load previous photos once
   useEffect(() => {
@@ -950,8 +942,7 @@ export default function Measure() {
         confidence += Math.min(1, (elongation || 0) / 3) * 0.45;
         confidence += Math.min(1, areaFraction / 0.2) * 0.25;
         confidence += Math.min(1, solidity) * 0.30;
-        setConfidence(confidence);
-        if (confidence >= minConfidence) {
+        if (confidence >= 0.5) {
           const alpha = 1.0; // single image: snap
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
           const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
@@ -962,7 +953,7 @@ export default function Measure() {
             setGirthPixels(median);
           }
         } else {
-          toast({ title: "Low confidence", description: `Score ${confidence.toFixed(2)} below threshold ${minConfidence.toFixed(2)}.`, variant: "destructive" });
+          toast({ title: "Low confidence", description: "Detection skipped due to low confidence.", variant: "destructive" });
         }
 
         // Mask preview export
@@ -1222,8 +1213,7 @@ export default function Measure() {
         confidence += Math.min(1, areaFraction / 0.2) * 0.25;
         confidence += Math.min(1, solidity) * 0.30;
 
-        setConfidence(confidence);
-        if (confidence >= minConfidence) {
+        if (confidence >= 0.5) {
           const alpha = 0.35;
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
           const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
@@ -1393,7 +1383,7 @@ export default function Measure() {
             const girVals = hist.map((h) => h.girth);
             const lenRange = Math.max(...lenVals) - Math.min(...lenVals);
             const girRange = Math.max(...girVals) - Math.min(...girVals);
-            const stable = lenRange <= stabilityLenTolInches && girRange <= stabilityGirthTolInches && (confidenceRef.current || 0) >= minConfidence;
+            const stable = lenRange <= stabilityLenTolInches && girRange <= stabilityGirthTolInches;
             setAutoStatus(stable ? "locked" : "stabilizing");
             const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
             if (stable && autoCapture && cooldownOk) {
@@ -1572,18 +1562,6 @@ export default function Measure() {
                   </Button>
                 </div>
               )}
-              {showHud && (
-                <div className="absolute left-3 bottom-3 right-3 pointer-events-none select-none">
-                  <div className="bg-black/50 rounded-md p-2 text-xs text-white flex items-center gap-3">
-                    <span className="whitespace-nowrap">{autoStatus}</span>
-                    <div className="flex-1">
-                      <Progress value={Math.max(0, Math.min(100, Math.round(confidence * 100)))} />
-                    </div>
-                    <span className="whitespace-nowrap">{Math.max(0, Math.min(1, confidence)).toFixed(2)}</span>
-                    <span className="opacity-70 whitespace-nowrap">min {minConfidence.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
             </div>
             {streamError && <p className="text-sm text-destructive mt-2">{streamError}</p>}
           </CardContent>
@@ -1691,10 +1669,6 @@ export default function Measure() {
                 <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Show HUD</span>
-                <Switch checked={showHud} onCheckedChange={setShowHud} />
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-sm">Live auto-detect</span>
                 <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
               </div>
@@ -1704,10 +1678,6 @@ export default function Measure() {
               </div>
               <div className="text-xs text-muted-foreground">
                 Status: {autoStatus}
-              </div>
-              <div className="pt-2 space-y-2">
-                <label className="text-xs text-muted-foreground">Minimum confidence: {minConfidence.toFixed(2)}</label>
-                <Slider value={[minConfidence]} min={0.3} max={0.9} step={0.01} onValueChange={(v) => setMinConfidence(v[0])} />
               </div>
               <div className="pt-2 space-y-2">
                 <label className="text-xs text-muted-foreground">Detection interval: {Math.round(detectionIntervalMs)} ms</label>
