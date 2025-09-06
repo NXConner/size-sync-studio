@@ -2135,12 +2135,22 @@ export default function Measure() {
                   </select>
                 </>
               )}
-              <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
-                Calibrate
-              </Button>
-              <Button variant="outline" size="sm" onClick={clearPoints}>
-                <RefreshCw className="w-4 h-4 mr-1" /> Reset
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
+                    Calibrate
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Click two points of a known distance</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={clearPoints}>
+                    <RefreshCw className="w-4 h-4 mr-1" /> Reset
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Clear measurement points</TooltipContent>
+              </Tooltip>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as "in" | "cm")}
@@ -2233,16 +2243,31 @@ export default function Measure() {
               )}
               {mode === "live" && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
-                  <Button variant="outline" size="sm" title={capabilities ? (capabilities.canTorch ? "Back camera likely active" : "Front camera likely active") : "Flip camera"} onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
-                    Flip
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={toggleFreeze}>
-                    {isFrozen ? "Unfreeze" : "Freeze"}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" title={capabilities ? (capabilities.canTorch ? "Back camera likely active" : "Front camera likely active") : "Flip camera"} onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
+                        Flip
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Switch front/back camera</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={toggleFreeze}>
+                        {isFrozen ? "Unfreeze" : "Freeze"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Freeze the current frame</TooltipContent>
+                  </Tooltip>
                   {capabilities?.canTorch && (
-                    <Button variant="outline" size="sm" onClick={() => setTorchOn((v) => !v)}>
-                      {torchOn ? "Torch off" : "Torch on"}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={() => setTorchOn((v) => !v)}>
+                          {torchOn ? "Torch off" : "Torch on"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Toggle device torch</TooltipContent>
+                    </Tooltip>
                   )}
                   {capabilities?.canZoom && capabilities.zoom && (
                     <div className="flex items-center gap-2 bg-black/40 rounded px-2 py-1">
