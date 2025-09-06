@@ -21,7 +21,8 @@ import {
   applyFrameRate as applyFrameRateTrack,
   measureVideoFps,
 } from "@/utils/camera";
-import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
+import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine } from "@/utils/audio";
+import { Textarea } from "@/components/ui/textarea";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
 
 // Helper: convert cm <-> inches
@@ -90,6 +91,9 @@ export default function Measure() {
   const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
   const [snapRadiusPx, setSnapRadiusPx] = useState<number>(18);
   const [retakeSuggested, setRetakeSuggested] = useState<boolean>(false);
+  // Voice customization
+  const [useCustomVoice, setUseCustomVoice] = useState<boolean>(getUseCustomVoiceLines());
+  const [customVoiceText, setCustomVoiceText] = useState<string>(getCustomVoiceLines().join("\n"));
   // Camera controls
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>("");
@@ -433,6 +437,18 @@ export default function Measure() {
       localStorage.setItem("measure.prefs", JSON.stringify(prefs));
     } catch {}
   }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, showPrevOverlay, overlayOpacity, unit]);
+
+  // Persist voice customization
+  useEffect(() => {
+    setUseCustomVoiceLines(useCustomVoice);
+  }, [useCustomVoice]);
+  useEffect(() => {
+    const lines = customVoiceText
+      .split(/\r?\n/g)
+      .map((s) => s.replace(/\s+/g, " ").trim())
+      .filter((s) => s.length > 0);
+    setCustomVoiceLines(lines);
+  }, [customVoiceText]);
 
   // Manage camera stream based on mode and selected options
   useEffect(() => {
@@ -2218,6 +2234,39 @@ export default function Measure() {
 
           <Card>
             <CardHeader>
+              <CardTitle className="flex items-center gap-2">Voice Coach</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Enable voice</span>
+                <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Use custom lines</span>
+                <Switch checked={useCustomVoice} onCheckedChange={setUseCustomVoice} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Custom lines (one per line)</label>
+                <Textarea
+                  value={customVoiceText}
+                  onChange={(e) => setCustomVoiceText(e.target.value)}
+                  placeholder={"Enter phrases, one per line"}
+                  className="min-h-[120px]"
+                />
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => { const arr = getCustomVoiceLines(); if (arr.length) void playCustomLine(arr[Math.floor(Math.random()*arr.length)]); }} disabled={!voiceEnabled}>
+                    Test custom line
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { void playCompliment(); }} disabled={!voiceEnabled}>
+                    Test compliment
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ImageIcon className="w-4 h-4" /> Overlay Tools
               </CardTitle>
@@ -2244,10 +2293,6 @@ export default function Measure() {
                   <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }))}><ArrowDown className="w-4 h-4" /></Button>
                   <div></div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Voice feedback</span>
-                <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show HUD</span>

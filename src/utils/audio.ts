@@ -1,4 +1,6 @@
 const VOICE_ENABLED_KEY = "size-seeker-voice-enabled";
+const CUSTOM_VOICE_USE_KEY = "size-seeker-voice-custom-use";
+const CUSTOM_VOICE_LINES_KEY = "size-seeker-voice-custom-lines"; // JSON string[]
 
 export function getVoiceEnabled(): boolean {
   if (typeof window === "undefined") return false;
@@ -9,6 +11,40 @@ export function getVoiceEnabled(): boolean {
 export function setVoiceEnabled(enabled: boolean): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(VOICE_ENABLED_KEY, String(enabled));
+}
+
+export function getUseCustomVoiceLines(): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = window.localStorage.getItem(CUSTOM_VOICE_USE_KEY);
+  return raw === "true";
+}
+
+export function setUseCustomVoiceLines(useCustom: boolean): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CUSTOM_VOICE_USE_KEY, String(useCustom));
+}
+
+export function getCustomVoiceLines(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_VOICE_LINES_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.map((s) => String(s)).filter((s) => s.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export function setCustomVoiceLines(lines: string[]): void {
+  if (typeof window === "undefined") return;
+  const cleaned = (Array.isArray(lines) ? lines : [])
+    .map((s) => String(s))
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter((s) => s.length > 0)
+    .slice(0, 200);
+  window.localStorage.setItem(CUSTOM_VOICE_LINES_KEY, JSON.stringify(cleaned));
 }
 
 async function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
@@ -47,7 +83,7 @@ function pickFemaleEnglishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesis
   return english[0] || null;
 }
 
-async function speak(text: string, opts?: { rate?: number; pitch?: number; volume?: number }) {
+export async function speak(text: string, opts?: { rate?: number; pitch?: number; volume?: number }) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const synth = window.speechSynthesis;
   // Stop any current utterance to avoid overlap
@@ -70,14 +106,26 @@ export async function playHumDetect(): Promise<void> {
 }
 
 export async function playCompliment(): Promise<void> {
-  const choices = [
-    "You're doing great",
-    "Nice focus and consistency",
-    "Solid progress—keep it up",
-    "Strong form and steady hands",
-    "Proud of your dedication",
-  ];
-  const text = choices[Math.floor(Math.random() * choices.length)];
+  const useCustom = getUseCustomVoiceLines();
+  const custom = getCustomVoiceLines();
+  let text: string | null = null;
+  if (useCustom && custom.length > 0) {
+    text = custom[Math.floor(Math.random() * custom.length)];
+  } else {
+    const choices = [
+      "You're doing great",
+      "Nice focus and consistency",
+      "Solid progress—keep it up",
+      "Strong form and steady hands",
+      "Proud of your dedication",
+    ];
+    text = choices[Math.floor(Math.random() * choices.length)];
+  }
   await speak(text, { rate: 1.0, pitch: 1.05, volume: 1.0 });
+}
+
+export async function playCustomLine(text: string): Promise<void> {
+  if (!text || !text.trim()) return;
+  await speak(text.trim(), { rate: 1.0, pitch: 1.05, volume: 1.0 });
 }
 
