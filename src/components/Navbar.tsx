@@ -37,7 +37,7 @@ export function Navbar() {
   };
 
   return (
-    <nav className="gradient-card border-b border-border/20 sticky top-0 z-50 backdrop-blur-sm">
+    <nav className="gradient-card border-b border-border/20 sticky top-0 z-50 backdrop-blur-sm" role="navigation" aria-label="Primary">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center space-x-2">
@@ -81,7 +81,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile menu */}
-          <div className="md:hidden flex space-x-1">
+          <div className="md:hidden flex space-x-1" aria-label="Primary mobile">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (

@@ -64,6 +64,7 @@ const App = () => (
           <Navbar />
           {/* PWA update notifier */}
           <PwaUpdate />
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-background border rounded px-2 py-1">Skip to content</a>
           <main role="main" id="main-content">
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
             <Routes>
