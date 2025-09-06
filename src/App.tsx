@@ -46,6 +46,7 @@ const App = () => (
           <Navbar />
           {/* PWA update notifier */}
           <PwaUpdate />
+          <main role="main">
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </main>
         </div>
       </BrowserRouter>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

@@ -2,6 +2,66 @@ name: CI
 
 on:
   push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build web
+        run: npm run build
+
+      - name: Build Docker images
+        run: |
+          docker build -t app-web -f Dockerfile.web .
+          docker build -t app-api -f Dockerfile.api .
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Start API
+        run: nohup npm run server >/dev/null 2>&1 &
+
+      - name: Start Preview
+        run: nohup npm run preview -- --host 0.0.0.0 --port 4173 >/dev/null 2>&1 &
+
+      - name: Wait for services
+        run: |
+          for i in {1..60}; do nc -z localhost 3001 && break || sleep 1; done
+          for i in {1..60}; do nc -z localhost 4173 && break || sleep 1; done
+
+      - name: E2E tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:4173
+        run: npm run e2e
+
+name: CI
+
+on:
+  push:
     branches: [main]
   pull_request:
     branches: [main]
