@@ -27,6 +27,7 @@ import {
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext, stopSpeaking } from "@/utils/audio";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
 
 // Helper: convert cm <-> inches
@@ -108,6 +109,9 @@ export default function Measure() {
   const autoplayTimerRef = useRef<number | null>(null);
   const [speakOnCapture, setSpeakOnCaptureState] = useState<boolean>(getSpeakOnCapture());
   const [speakOnLock, setSpeakOnLockState] = useState<boolean>(getSpeakOnLock());
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    try { return localStorage.getItem("measure.onboarded") !== "1"; } catch { return false; }
+  });
   // Camera controls
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>("");
@@ -489,6 +493,11 @@ export default function Measure() {
   useEffect(() => { setAutoplayIntervalMs(autoplayIntervalMs); }, [autoplayIntervalMs]);
   useEffect(() => { setSpeakOnCapture(speakOnCapture); }, [speakOnCapture]);
   useEffect(() => { setSpeakOnLock(speakOnLock); }, [speakOnLock]);
+  useEffect(() => {
+    if (!showOnboarding) {
+      try { localStorage.setItem("measure.onboarded", "1"); } catch {}
+    }
+  }, [showOnboarding]);
 
   // Autoplay timer
   useEffect(() => {
@@ -2177,6 +2186,17 @@ export default function Measure() {
             </div>
           </CardHeader>
           <CardContent>
+            {showOnboarding && (
+              <div className="mb-3">
+                <Alert>
+                  <AlertDescription>
+                    Tip: Calibrate first for accurate units. For Live, use good lighting and contrast.
+                    You can enable Voice Coach to auto-speak on capture and lock.
+                    <Button variant="link" className="pl-2" onClick={() => setShowOnboarding(false)}>Got it</Button>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
             <div className="relative w-full" ref={containerRef}>
               {mode === "live" ? (
                 isFrozen && frozenUrl ? (
