@@ -8,6 +8,7 @@ const CORE_ASSETS = [
   '/robots.txt',
   '/opencv/opencv.js',
   '/offline.html',
+  '/opencv/opencv_js.wasm'
 ];
 
 self.addEventListener('install', (event) => {
