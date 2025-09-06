@@ -1382,8 +1382,7 @@ export default function Measure() {
                 mctx.putImageData(img, 0, 0);
                 const url = maskCanvas.toDataURL("image/png");
                 setMaskUrl(url);
-                const containerW2 = container.clientWidth; const containerH2 = container.clientHeight;
-                const scale2 = Math.min(containerW2 / w, containerH2 / h);
+                // reserved for future scaling of mask preview
                 setMaskGeom({ offsetX, offsetY, drawW, drawH });
               }
             } catch {}
@@ -2538,9 +2537,8 @@ export default function Measure() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
                   <span>Placeholders:</span>
-                  {(["{length_in}", "{length_cm}", "{girth_in}", "{girth_cm}", "{confidence}"] as const).map((ph) => (
+                  {["{length_in}", "{length_cm}", "{girth_in}", "{girth_cm}", "{confidence}"].map((ph) => (
                     <Badge key={ph} variant="secondary" className="cursor-pointer" onClick={() => {
-                      const ta = document.activeElement as HTMLTextAreaElement | null;
                       const token = ph;
                       setCustomVoiceText((prev) => prev ? (prev.endsWith("\n") ? prev + token : prev + " " + token) : token);
                     }}>{ph}</Badge>
