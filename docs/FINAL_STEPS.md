@@ -76,3 +76,8 @@ Notes:
 - This repo has been prepared for namespacing via `VITE_APP_BASENAME`, `VITE_API_BASE`, and server `API_PREFIX`.
 - For fastest adoption, keep the prefix `/wellness` and `/api/wellness` as shown.
 
+### OpenCV WASM/SIMD (optional but recommended)
+- Place `public/opencv/opencv_js.wasm` (SIMD-enabled build if available). Ensure it is served with `Content-Type: application/wasm`.
+- The runtime loader uses `locateFile` so the `.wasm` will be fetched from the same directory as `opencv.js`.
+- The Service Worker caches `/opencv/opencv_js.wasm` for offline support.
+

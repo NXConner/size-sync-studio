@@ -24,15 +24,13 @@ export async function loadOpenCV(): Promise<any> {
 
   const isProd = Boolean((import.meta as any).env && (import.meta as any).env.PROD);
   // Sources: in prod, only local; in dev, allow CDN fallbacks
-  const candidateSrcs: string[] = isProd
-    ? ["/opencv/opencv.js"]
-    : [
-        "/opencv/opencv.js",
-        "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.8.0/dist/opencv.js",
-        "https://unpkg.com/@techstark/opencv-js@4.8.0/dist/opencv.js",
-        "https://docs.opencv.org/4.10.0/opencv.js",
-        "https://docs.opencv.org/4.x/opencv.js",
-      ];
+  const candidateSrcs: string[] = [
+    "/opencv/opencv.js",
+    "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.8.0/dist/opencv.js",
+    "https://unpkg.com/@techstark/opencv-js@4.8.0/dist/opencv.js",
+    "https://docs.opencv.org/4.10.0/opencv.js",
+    "https://docs.opencv.org/4.x/opencv.js",
+  ];
 
   opencvLoadPromise = new Promise(async (resolve, reject) => {
     // If a script tag already exists, just wait for cv readiness
