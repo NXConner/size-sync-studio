@@ -3,14 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
+import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Copy as CopyIcon, HelpCircle } from "lucide-react";
 import { Measurement } from "@/types";
 import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { CalibrationCard } from "@/components/measure/CalibrationCard";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { loadOpenCV } from "@/utils/opencv";
 import {
   startCamera,
@@ -21,7 +24,10 @@ import {
   applyFrameRate as applyFrameRateTrack,
   measureVideoFps,
 } from "@/utils/camera";
-import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
+import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext, stopSpeaking } from "@/utils/audio";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
 
 // Helper: convert cm <-> inches
@@ -90,6 +96,22 @@ export default function Measure() {
   const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
   const [snapRadiusPx, setSnapRadiusPx] = useState<number>(18);
   const [retakeSuggested, setRetakeSuggested] = useState<boolean>(false);
+  // Voice customization
+  const [useCustomVoice, setUseCustomVoice] = useState<boolean>(getUseCustomVoiceLines());
+  const [customVoiceText, setCustomVoiceText] = useState<string>(getCustomVoiceLines().join("\n"));
+  const [voiceList, setVoiceList] = useState<SpeechSynthesisVoice[]>([]);
+  const [voiceName, setVoiceNameState] = useState<string | null>(getVoiceName());
+  const [voiceRate, setVoiceRateState] = useState<number>(getVoiceRate());
+  const [voicePitch, setVoicePitchState] = useState<number>(getVoicePitch());
+  const [voiceVolume, setVoiceVolumeState] = useState<number>(getVoiceVolume());
+  const [autoplayEnabled, setAutoplayEnabledState] = useState<boolean>(getAutoplayEnabled());
+  const [autoplayIntervalMs, setAutoplayIntervalMsState] = useState<number>(getAutoplayIntervalMs());
+  const autoplayTimerRef = useRef<number | null>(null);
+  const [speakOnCapture, setSpeakOnCaptureState] = useState<boolean>(getSpeakOnCapture());
+  const [speakOnLock, setSpeakOnLockState] = useState<boolean>(getSpeakOnLock());
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    try { return localStorage.getItem("measure.onboarded") !== "1"; } catch { return false; }
+  });
   // Camera controls
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>("");
@@ -433,6 +455,71 @@ export default function Measure() {
       localStorage.setItem("measure.prefs", JSON.stringify(prefs));
     } catch {}
   }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, showPrevOverlay, overlayOpacity, unit]);
+
+  // Persist voice customization
+  useEffect(() => {
+    setUseCustomVoiceLines(useCustomVoice);
+  }, [useCustomVoice]);
+  useEffect(() => {
+    const lines = customVoiceText
+      .split(/\r?\n/g)
+      .map((s) => s.replace(/\s+/g, " ").trim())
+      .filter((s) => s.length > 0);
+    setCustomVoiceLines(lines);
+  }, [customVoiceText]);
+
+  // Voice list init and persistence for TTS settings
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const list = await getVoicesAsync();
+        if (!cancelled) setVoiceList(list);
+      } catch {}
+    };
+    load();
+    const handler = () => { void load(); };
+    try { window.speechSynthesis.addEventListener("voiceschanged", handler as any); } catch {}
+    return () => {
+      cancelled = true;
+      try { window.speechSynthesis.removeEventListener("voiceschanged", handler as any); } catch {}
+    };
+  }, []);
+  useEffect(() => { setVoiceName(voiceName || ""); }, [voiceName]);
+  useEffect(() => { setVoiceRate(voiceRate); }, [voiceRate]);
+  useEffect(() => { setVoicePitch(voicePitch); }, [voicePitch]);
+  useEffect(() => { setVoiceVolume(voiceVolume); }, [voiceVolume]);
+  useEffect(() => { setAutoplayEnabled(autoplayEnabled); }, [autoplayEnabled]);
+  useEffect(() => { setAutoplayIntervalMs(autoplayIntervalMs); }, [autoplayIntervalMs]);
+  useEffect(() => { setSpeakOnCapture(speakOnCapture); }, [speakOnCapture]);
+  useEffect(() => { setSpeakOnLock(speakOnLock); }, [speakOnLock]);
+  useEffect(() => {
+    if (!showOnboarding) {
+      try { localStorage.setItem("measure.onboarded", "1"); } catch {}
+    }
+  }, [showOnboarding]);
+
+  // Autoplay timer
+  useEffect(() => {
+    if (!voiceEnabled || !autoplayEnabled) {
+      if (autoplayTimerRef.current) cancelInterval();
+      return;
+    }
+    scheduleInterval();
+    return () => cancelInterval();
+    function scheduleInterval() {
+      cancelInterval();
+      autoplayTimerRef.current = window.setInterval(() => {
+        void playCompliment();
+      }, Math.max(1000, autoplayIntervalMs));
+    }
+    function cancelInterval() {
+      if (autoplayTimerRef.current != null) {
+        clearInterval(autoplayTimerRef.current);
+        autoplayTimerRef.current = null;
+      }
+    }
+  }, [voiceEnabled, autoplayEnabled, autoplayIntervalMs]);
 
   // Manage camera stream based on mode and selected options
   useEffect(() => {
@@ -833,6 +920,21 @@ export default function Measure() {
     const onKey = (e: KeyboardEvent) => {
       const overlay = overlayRef.current;
       if (!overlay) return;
+      if (e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        void detectFromLive();
+        return;
+      }
+      if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        void capture();
+        return;
+      }
+      if (e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        toggleFreeze();
+        return;
+      }
       if (e.key.toLowerCase() === "s") {
         setSnapEnabled((v) => !v);
         return;
@@ -1810,13 +1912,41 @@ export default function Measure() {
           "Significant girth increase. Consider longer rest intervals and monitor for edema.";
       if (dL > 0.25)
         recommendation = "Great length gain. Maintain current protocol; avoid overtraining.";
-      if (voiceEnabled) { try { await playCompliment(); } catch {} }
+      if (voiceEnabled) {
+        try {
+          if (speakOnCapture) {
+            await playComplimentWithContext({
+              length_in: measurement.length,
+              length_cm: inToCm(measurement.length),
+              girth_in: measurement.girth,
+              girth_cm: inToCm(measurement.girth),
+              confidence,
+            });
+          } else {
+            await playCompliment();
+          }
+        } catch {}
+      }
       toast({
         title: "Captured & Saved",
         description: `Δ Length ${trend(dL)}, Δ Girth ${trend(dG)}. ${recommendation}`,
       });
     } else {
-      if (voiceEnabled) { try { await playCompliment(); } catch {} }
+      if (voiceEnabled) {
+        try {
+          if (speakOnCapture) {
+            await playComplimentWithContext({
+              length_in: measurement.length,
+              length_cm: inToCm(measurement.length),
+              girth_in: measurement.girth,
+              girth_cm: inToCm(measurement.girth),
+              confidence,
+            });
+          } else {
+            await playCompliment();
+          }
+        } catch {}
+      }
       toast({ title: "Captured & Saved", description: "First measurement stored." });
     }
   };
@@ -1872,7 +2002,26 @@ export default function Measure() {
             const lenRange = Math.max(...lenVals) - Math.min(...lenVals);
             const girRange = Math.max(...girVals) - Math.min(...girVals);
             const stable = lenRange <= stabilityLenTolInches && girRange <= stabilityGirthTolInches && (confidenceRef.current || 0) >= minConfidence;
-            setAutoStatus(stable ? "locked" : "stabilizing");
+            const prevStatus = autoStatus;
+            const nextStatus = stable ? "locked" : "stabilizing";
+            if (nextStatus !== prevStatus) {
+              setAutoStatus(nextStatus);
+              if (stable && voiceEnabled && speakOnLock) {
+                try {
+                  const lenIn = parseFloat(lengthDisplayRef.current || "0") || 0;
+                  const girIn = parseFloat(girthDisplayRef.current || "0") || 0;
+                  await playComplimentWithContext({
+                    length_in: lenIn,
+                    length_cm: inToCm(lenIn),
+                    girth_in: girIn,
+                    girth_cm: inToCm(girIn),
+                    confidence: confidenceRef.current || 0,
+                  });
+                } catch {}
+              }
+            } else {
+              setAutoStatus(nextStatus);
+            }
             const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
             if (stable && autoCapture && cooldownOk) {
               try { await capture(); } catch {}
@@ -1942,6 +2091,26 @@ export default function Measure() {
                   <TabsTrigger value="upload">Upload</TabsTrigger>
                 </TabsList>
               </Tabs>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="ml-1" title="Help (shortcuts)">
+                    <HelpCircle className="w-5 h-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Shortcuts & Tips</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2 text-sm">
+                    <div><Badge variant="outline">D</Badge> Auto-detect</div>
+                    <div><Badge variant="outline">C</Badge> Capture</div>
+                    <div><Badge variant="outline">F</Badge> Freeze / Unfreeze</div>
+                    <div><Badge variant="outline">S</Badge> Toggle Snap-to-edge</div>
+                    <div>Arrows: Nudge selected handle; Shift = faster</div>
+                    <div>Click two points to calibrate or measure manually.</div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <div className="flex gap-2">
               {mode === "live" && (
@@ -1988,12 +2157,22 @@ export default function Measure() {
                   </select>
                 </>
               )}
-              <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
-                Calibrate
-              </Button>
-              <Button variant="outline" size="sm" onClick={clearPoints}>
-                <RefreshCw className="w-4 h-4 mr-1" /> Reset
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
+                    Calibrate
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Click two points of a known distance</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={clearPoints}>
+                    <RefreshCw className="w-4 h-4 mr-1" /> Reset
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Clear measurement points</TooltipContent>
+              </Tooltip>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as "in" | "cm")}
@@ -2020,6 +2199,17 @@ export default function Measure() {
             </div>
           </CardHeader>
           <CardContent>
+            {showOnboarding && (
+              <div className="mb-3">
+                <Alert>
+                  <AlertDescription>
+                    Tip: Calibrate first for accurate units. For Live, use good lighting and contrast.
+                    You can enable Voice Coach to auto-speak on capture and lock.
+                    <Button variant="link" className="pl-2" onClick={() => setShowOnboarding(false)}>Got it</Button>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
             <div className="relative w-full" ref={containerRef}>
               {mode === "live" ? (
                 isFrozen && frozenUrl ? (
@@ -2086,16 +2276,31 @@ export default function Measure() {
               )}
               {mode === "live" && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
-                  <Button variant="outline" size="sm" title={capabilities ? (capabilities.canTorch ? "Back camera likely active" : "Front camera likely active") : "Flip camera"} onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
-                    Flip
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={toggleFreeze}>
-                    {isFrozen ? "Unfreeze" : "Freeze"}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" title={capabilities ? (capabilities.canTorch ? "Back camera likely active" : "Front camera likely active") : "Flip camera"} onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
+                        Flip
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Switch front/back camera</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={toggleFreeze}>
+                        {isFrozen ? "Unfreeze" : "Freeze"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Freeze the current frame</TooltipContent>
+                  </Tooltip>
                   {capabilities?.canTorch && (
-                    <Button variant="outline" size="sm" onClick={() => setTorchOn((v) => !v)}>
-                      {torchOn ? "Torch off" : "Torch on"}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={() => setTorchOn((v) => !v)}>
+                          {torchOn ? "Torch off" : "Torch on"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Toggle device torch</TooltipContent>
+                    </Tooltip>
                   )}
                   {capabilities?.canZoom && capabilities.zoom && (
                     <div className="flex items-center gap-2 bg-black/40 rounded px-2 py-1">
@@ -2116,9 +2321,9 @@ export default function Measure() {
                 </div>
               )}
               {showHud && (
-                <div className="absolute left-3 bottom-3 right-3 pointer-events-none select-none">
+                <div className="absolute left-3 bottom-3 right-3 pointer-events-none select-none" aria-live="polite" aria-atomic="true">
                   <div className="bg-black/50 rounded-md p-2 text-xs text-white flex items-center gap-3">
-                    <span className="whitespace-nowrap">{autoStatus}</span>
+                    <span className={`whitespace-nowrap ${autoStatus.includes('detect') ? 'text-sky-300' : autoStatus === 'locked' ? 'text-emerald-300' : autoStatus === 'captured' ? 'text-amber-300' : autoStatus.includes('weak') ? 'text-rose-300' : 'text-slate-300'}`}>{autoStatus}</span>
                     <div className="flex-1">
                       <Progress value={Math.max(0, Math.min(100, Math.round(confidence * 100)))} />
                     </div>
@@ -2134,7 +2339,15 @@ export default function Measure() {
                 </div>
               )}
             </div>
-            {streamError && <p className="text-sm text-destructive mt-2">{streamError}</p>}
+            {streamError && (
+              <div className="mt-2">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    {streamError}. Please allow camera permissions or switch to Upload mode.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -2210,6 +2423,150 @@ export default function Measure() {
                 <Button onClick={capture} className="gap-2">
                   <CameraIcon className="w-4 h-4" /> Capture
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" className="gap-2" onClick={async () => {
+                      const len = `${lengthDisplay} ${unit}`;
+                      const gir = `${girthDisplay} ${unit}`;
+                      const scale = `${pixelsPerInch.toFixed(1)} px/in`;
+                      const text = `Length: ${len}\nGirth: ${gir}\nScale: ${scale}`;
+                      try {
+                        await navigator.clipboard.writeText(text);
+                        toast({ title: "Copied", description: "Readouts copied to clipboard" });
+                      } catch {
+                        toast({ title: "Copy failed", description: "Clipboard not available", variant: "destructive" });
+                      }
+                    }}>
+                      <CopyIcon className="w-4 h-4" /> Copy values
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Copy length, girth, and scale</TooltipContent>
+                </Tooltip>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">Voice Coach</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Enable voice</span>
+                <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Use custom lines</span>
+                <Switch checked={useCustomVoice} onCheckedChange={setUseCustomVoice} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Voice</label>
+                  <Select value={voiceName ?? ""} onValueChange={(v) => setVoiceNameState(v || null)}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="System default" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">System default</SelectItem>
+                      {voiceList.map((v) => (
+                        <SelectItem key={v.name} value={v.name}>{v.name} ({v.lang})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Rate: {voiceRate.toFixed(2)}</label>
+                  <Slider value={[voiceRate]} min={0.5} max={2.0} step={0.01} onValueChange={(arr) => setVoiceRateState(arr[0])} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Pitch: {voicePitch.toFixed(2)}</label>
+                  <Slider value={[voicePitch]} min={0} max={2} step={0.01} onValueChange={(arr) => setVoicePitchState(arr[0])} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Volume: {Math.round(voiceVolume * 100)}%</label>
+                  <Slider value={[voiceVolume]} min={0} max={1} step={0.01} onValueChange={(arr) => setVoiceVolumeState(arr[0])} />
+                </div>
+              </div>
+              <div className="flex justify-end pt-1">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setVoiceNameState("");
+                  setVoiceRateState(1.0);
+                  setVoicePitchState(1.0);
+                  setVoiceVolumeState(1.0);
+                  setUseCustomVoice(false);
+                  setCustomVoiceText("");
+                  setAutoplayEnabledState(false);
+                }}>Reset voice defaults</Button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Custom lines (one per line)</label>
+                <div className="flex items-center gap-2">
+                  <Select onValueChange={(v) => {
+                    if (v === "concise") {
+                      setCustomVoiceText([
+                        "Length {length_in} in, girth {girth_in} in.",
+                        "Confidence {confidence}.",
+                      ].join("\n"));
+                    } else if (v === "metric") {
+                      setCustomVoiceText([
+                        "Length {length_cm} cm, girth {girth_cm} cm.",
+                        "Confidence {confidence}.",
+                      ].join("\n"));
+                    } else if (v === "clear") {
+                      setCustomVoiceText("");
+                    }
+                  }}>
+                    <SelectTrigger className="w-[220px]"><SelectValue placeholder="Load preset" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concise">Concise (inches)</SelectItem>
+                      <SelectItem value="metric">Metric (cm)</SelectItem>
+                      <SelectItem value="clear">Clear</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Textarea
+                  value={customVoiceText}
+                  onChange={(e) => setCustomVoiceText(e.target.value)}
+                  placeholder={"Enter phrases, one per line"}
+                  className="min-h-[120px]"
+                />
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => { const arr = getCustomVoiceLines(); if (arr.length) void playCustomLine(arr[Math.floor(Math.random()*arr.length)]); }} disabled={!voiceEnabled}>
+                    Test custom line
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { void playCompliment(); }} disabled={!voiceEnabled}>
+                    Test compliment
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { const lenIn = parseFloat(lengthDisplayRef.current || "0") || 0; const girIn = parseFloat(girthDisplayRef.current || "0") || 0; void playComplimentWithContext({ length_in: lenIn, length_cm: inToCm(lenIn), girth_in: girIn, girth_cm: inToCm(girIn), confidence: confidenceRef.current || 0 }); }} disabled={!voiceEnabled}>
+                    Test with values
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => stopSpeaking()} disabled={!voiceEnabled}>
+                    Stop voice
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                  <span>Placeholders:</span>
+                  {["{length_in}", "{length_cm}", "{girth_in}", "{girth_cm}", "{confidence}"].map((ph) => (
+                    <Badge key={ph} variant="secondary" className="cursor-pointer" onClick={() => {
+                      const token = ph;
+                      setCustomVoiceText((prev) => prev ? (prev.endsWith("\n") ? prev + token : prev + " " + token) : token);
+                    }}>{ph}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Speak on capture</span>
+                <Switch checked={speakOnCapture} onCheckedChange={setSpeakOnCaptureState} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Speak when detection locks</span>
+                <Switch checked={speakOnLock} onCheckedChange={setSpeakOnLockState} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Auto-play compliments</span>
+                <Switch checked={autoplayEnabled} onCheckedChange={setAutoplayEnabledState} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Auto-play interval: {Math.round(autoplayIntervalMs / 1000)}s</label>
+                <Slider value={[autoplayIntervalMs]} min={1000} max={60000} step={500} onValueChange={(arr) => setAutoplayIntervalMsState(arr[0])} />
               </div>
             </CardContent>
           </Card>
@@ -2242,10 +2599,6 @@ export default function Measure() {
                   <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }))}><ArrowDown className="w-4 h-4" /></Button>
                   <div></div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Voice feedback</span>
-                <Switch checked={voiceEnabled} onCheckedChange={setVoice} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show HUD</span>

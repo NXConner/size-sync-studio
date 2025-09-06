@@ -164,6 +164,12 @@ Size Seeker is a Vite + React + TypeScript app with an Express API focused on sa
 ## Features
 - Guided Sessions with presets and a live Session Runner
 - Camera‑assisted Measure page with manual/auto calibration, overlays, and OpenCV.js
+  - Live camera and Upload modes
+  - Auto‑detect axis and girth (confidence HUD, status colors)
+  - Manual two‑point measure, grid/snap assist
+  - Calibration by two‑point known distance or auto (credit card ratio)
+  - Voice Coach: system TTS with selectable voice, rate/pitch/volume, custom phrases, placeholders, auto‑play, event triggers (on capture/lock), Stop Voice
+  - Shortcuts: D (detect), C (capture), F (freeze), S (snap)
 - Safety page emphasizing non‑graphic, harm‑minimizing guidance
 - Tips page with curated advice
 - Gallery for progress photos with overlay comparison
@@ -280,6 +286,22 @@ npm test
 ```
 Vitest + jsdom are configured. Add tests under `tests/` and `src/**/__tests__/**` as needed.
 
+### Playwright (e2e)
+
+Minimal smoke test for Measure is at `tests/e2e/measure.spec.ts`.
+
+Run locally:
+```bash
+# in one terminal
+npm run dev
+
+# in another terminal
+npx playwright install
+npx playwright test -g "Measure smoke"
+```
+
+Note: In restricted CI/container environments, Playwright browsers may not install.
+
 ## Deployment Notes
 - Static build is served by Nginx (see `Dockerfile.web`, `nginx.conf`). `/api` is proxied to the API service.
 - If hosting under a sub‑path, set `VITE_APP_BASENAME` and ensure server proxy and Nginx match paths.
@@ -308,4 +330,6 @@ Security middleware: Helmet (CSP in prod), rate limit, CORS restricted by `WEB_O
 - CORS errors in dev: set `WEB_ORIGIN=http://localhost:8080` on the API; ensure `VITE_API_BASE=/api` client‑side.
 - API 502 on subreddit fetch: Reddit may block; configure OAuth creds or try later.
 - Camera errors on Measure: grant camera permissions and ensure a camera is available; switch facing mode if needed.
+- If voice is not heard: ensure system audio is available and that the TTS voice is installed; try different voice/rate/pitch.
+- If copy to clipboard fails: some browsers block clipboard in insecure contexts; try `localhost` over HTTP or a secure origin.
 - Running under sub‑path: set `VITE_APP_BASENAME` and redeploy; confirm Nginx `try_files` and proxy prefix.
