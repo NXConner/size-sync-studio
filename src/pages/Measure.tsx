@@ -1140,7 +1140,7 @@ export default function Measure() {
       cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
       cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
 
-      // Contour detection
+      // Contour detection (worker-first)
       const contours = new cv.MatVector();
       const hierarchy = new cv.Mat();
       cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
@@ -1231,6 +1231,63 @@ export default function Measure() {
         edges.delete();
         lines.delete();
       }
+
+      // Try worker detect path to compute endpoints, widths, confidence
+      try {
+        const frameCtx = procCanvas.getContext("2d");
+        if (frameCtx) {
+          const frame = frameCtx.getImageData(0, 0, w, h);
+          const det = await opencvWorker.detect({ width: w, height: h, imageData: frame.data });
+          if (det && det.end1 && det.end2) {
+            const container = containerRef.current;
+            if (!container) throw new Error("Container missing");
+            const containerW = container.clientWidth;
+            const containerH = container.clientHeight;
+            const scale = Math.min(containerW / w, containerH / h);
+            const drawW = w * scale;
+            const drawH = h * scale;
+            const offsetX = (containerW - drawW) / 2;
+            const offsetY = (containerH - drawH) / 2;
+            const mapPoint = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
+            const p1 = mapPoint(det.end1.x, det.end1.y);
+            const p2 = mapPoint(det.end2.x, det.end2.y);
+            const chosen = chooseBaseAndTip(p1, p2);
+            const conf = det.confidence || 0;
+            setConfidence(conf);
+            if (conf >= minConfidence) {
+              const alpha = 1.0;
+              const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
+              const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
+              setBasePoint(smBase);
+              setTipPoint(smTip);
+              if (Array.isArray(det.widths) && det.widths.length) {
+                const sorted = [...det.widths].sort((a, b) => a - b);
+                const median = sorted[Math.floor(sorted.length / 2)] * scale;
+                setGirthPixels(median);
+              }
+            } else {
+              setRetakeSuggested(true);
+            }
+            // Mask overlay export
+            try {
+              const maskCanvas = document.createElement("canvas");
+              maskCanvas.width = w;
+              maskCanvas.height = h;
+              const mctx = maskCanvas.getContext('2d');
+              if (mctx) {
+                const arr = det.maskImage instanceof Uint8ClampedArray ? det.maskImage : new Uint8ClampedArray(det.maskImage);
+                const img = new ImageData(arr, w, h);
+                mctx.putImageData(img, 0, 0);
+                const url = maskCanvas.toDataURL("image/png");
+                setMaskUrl(url);
+                const containerW2 = container.clientWidth; const containerH2 = container.clientHeight;
+                const scale2 = Math.min(containerW2 / w, containerH2 / h);
+                setMaskGeom({ offsetX, offsetY, drawW, drawH });
+              }
+            } catch {}
+          }
+        }
+      } catch {}
 
       // Map endpoints and compute girth by multi-slice sampling
       const container = containerRef.current;

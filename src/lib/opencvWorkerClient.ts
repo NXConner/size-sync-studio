@@ -51,6 +51,27 @@ export class OpenCVWorkerClient {
       (this.worker as Worker).postMessage(message, [input.imageData.buffer]);
     });
   }
+
+  async detect(input: { width: number; height: number; imageData: Uint8ClampedArray }): Promise<{
+    end1: { x: number; y: number } | null;
+    end2: { x: number; y: number } | null;
+    axisUx: number;
+    axisUy: number;
+    widths: number[];
+    bestArea: number;
+    width: number;
+    height: number;
+    confidence: number;
+    maskImage: Uint8ClampedArray;
+  }> {
+    if (!this.worker) throw new Error('Worker unavailable');
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const message = { id, type: 'detect', payload: { width: input.width, height: input.height, imageData: input.imageData.buffer } } as any;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      (this.worker as Worker).postMessage(message, [input.imageData.buffer]);
+    });
+  }
 }
 
 export const opencvWorker = new OpenCVWorkerClient();
