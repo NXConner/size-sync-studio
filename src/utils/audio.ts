@@ -70,7 +70,13 @@ export async function playHumDetect(): Promise<void> {
 }
 
 export async function playCompliment(): Promise<void> {
-  const choices = ["Hey sexy", "Hey big boy"];
+  const choices = [
+    "You're doing great",
+    "Nice focus and consistency",
+    "Solid progress—keep it up",
+    "Strong form and steady hands",
+    "Proud of your dedication",
+  ];
   const text = choices[Math.floor(Math.random() * choices.length)];
   await speak(text, { rate: 1.0, pitch: 1.05, volume: 1.0 });
 }
