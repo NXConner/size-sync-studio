@@ -1340,6 +1340,30 @@ export default function Measure() {
         } catch {}
       }
 
+      // Edge overlay via worker for uploaded image
+      try {
+        const container = containerRef.current;
+        if (container) {
+          const containerW = container.clientWidth;
+          const containerH = container.clientHeight;
+          const scale = Math.min(containerW / w, containerH / h);
+          const drawW = w * scale;
+          const drawH = h * scale;
+          const offsetX = (containerW - drawW) / 2;
+          const offsetY = (containerH - drawH) / 2;
+          const pctx2 = procCanvas.getContext("2d");
+          if (pctx2) {
+            const frame = pctx2.getImageData(0, 0, w, h);
+            const result = await opencvWorker.edges({ width: w, height: h, imageData: frame.data });
+            const typed = (result && (result as any).imageData && (result as any).imageData.BYTES_PER_ELEMENT)
+              ? (result as any).imageData as Uint8ClampedArray
+              : new Uint8ClampedArray((result as any).imageData);
+            const edgeImage = new ImageData(typed, (result as any).width || w, (result as any).height || h);
+            updateEdgeOverlayFromImageData(edgeImage, w, h, offsetX, offsetY, drawW, drawH);
+          }
+        }
+      } catch {}
+
       // Cleanup
       src.delete();
       rgba.delete();
