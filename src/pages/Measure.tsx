@@ -12,6 +12,15 @@ import { CalibrationCard } from "@/components/measure/CalibrationCard";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadOpenCV } from "@/utils/opencv";
+import {
+  startCamera,
+  stopStream,
+  enumerateVideoDevices,
+  applyZoom as applyZoomTrack,
+  setTorch as setTorchTrack,
+  applyFrameRate as applyFrameRateTrack,
+  measureVideoFps,
+} from "@/utils/camera";
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
 
 // Helper: convert cm <-> inches
@@ -80,6 +89,19 @@ export default function Measure() {
   const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
   const [snapRadiusPx, setSnapRadiusPx] = useState<number>(18);
   const [retakeSuggested, setRetakeSuggested] = useState<boolean>(false);
+  // Camera controls
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string>("");
+  const [capabilities, setCapabilities] = useState<{
+    canTorch: boolean;
+    canZoom: boolean;
+    zoom?: { min: number; max: number; step?: number };
+  } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number | null>(null);
+  const [torchOn, setTorchOn] = useState<boolean>(false);
+  const [targetFps, setTargetFps] = useState<number>(30);
+  const [measuredFps, setMeasuredFps] = useState<number>(0);
+  const [resolution, setResolution] = useState<{ w: number; h: number }>({ w: 1280, h: 720 });
 
   // Refs to avoid stale closures inside the RAF overlay loop
   const calibStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -101,6 +123,7 @@ export default function Measure() {
   const edgeBufferRef = useRef<Uint8ClampedArray[]>([]);
   const edgeBufferSizeRef = useRef<{ w: number; h: number } | null>(null);
   const lastEdgeImageRef = useRef<ImageData | null>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
 
   // Snap helpers: find nearest strong edge pixel within radius
   const snapToEdgeIfAvailable = (x: number, y: number): { x: number; y: number } => {
@@ -243,21 +266,70 @@ export default function Measure() {
     if (withPhotos.length > 0) setSelectedPrevId(withPhotos[0].id);
   }, []);
 
-  // Manage camera stream based on mode
+  // Enumerate video devices and listen for device changes
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const list = await enumerateVideoDevices();
+      if (!cancelled) setDevices(list);
+    };
+    refresh();
+    const handler = () => { void refresh(); };
+    try { navigator.mediaDevices.addEventListener("devicechange", handler as any); } catch {}
+    return () => {
+      cancelled = true;
+      try { navigator.mediaDevices.removeEventListener("devicechange", handler as any); } catch {}
+    };
+  }, []);
+
+  useEffect(() => {
+    if (devices.length && !deviceId) setDeviceId(devices[0].deviceId);
+  }, [devices, deviceId]);
+
+  // Manage camera stream based on mode and selected options
   useEffect(() => {
     let cancelled = false;
     const start = async () => {
       try {
         // Stop previous stream if any
         const prev = videoRef.current?.srcObject as MediaStream | undefined;
-        prev?.getTracks().forEach((t) => t.stop());
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode },
-          audio: false,
+        stopStream(prev);
+        if (videoRef.current) videoRef.current.srcObject = null;
+        trackRef.current = null;
+        setCapabilities(null);
+
+        const { stream, track, capabilities } = await startCamera({
+          deviceId: deviceId || undefined,
+          facingMode,
+          width: resolution.w,
+          height: resolution.h,
+          frameRate: targetFps,
+          preferExact: true,
         });
-        if (videoRef.current && !cancelled) {
+        if (cancelled) {
+          stopStream(stream);
+          return;
+        }
+        if (videoRef.current) {
           videoRef.current.srcObject = stream as MediaStream;
           await videoRef.current.play();
+        }
+        trackRef.current = track;
+        setCapabilities({ canTorch: capabilities.canTorch, canZoom: capabilities.canZoom, zoom: capabilities.zoom });
+        // Initialize zoom level
+        try {
+          const s: any = track.getSettings ? track.getSettings() : {};
+          if (s.zoom != null) setZoomLevel(Number(s.zoom));
+          else if (capabilities.zoom) setZoomLevel((capabilities.zoom.min + capabilities.zoom.max) / 2);
+        } catch {}
+        // Apply target FPS if possible
+        if (targetFps) { try { await applyFrameRateTrack(track, targetFps); } catch {} }
+        // Measure actual FPS
+        if (videoRef.current) {
+          try {
+            const fps = await measureVideoFps(videoRef.current, 800);
+            if (!cancelled) setMeasuredFps(fps);
+          } catch {}
         }
       } catch (err) {
         if (!cancelled) setStreamError("Camera access denied or not available.");
@@ -268,16 +340,38 @@ export default function Measure() {
     } else {
       // stop any active stream when switching away from live
       const stream = videoRef.current?.srcObject as MediaStream | undefined;
-      stream?.getTracks().forEach((t) => t.stop());
+      stopStream(stream);
       if (videoRef.current) videoRef.current.srcObject = null;
+      trackRef.current = null;
+      setCapabilities(null);
+      setMeasuredFps(0);
     }
     return () => {
       cancelled = true;
       if (mode !== "live") return;
       const stream = videoRef.current?.srcObject as MediaStream | undefined;
-      stream?.getTracks().forEach((t) => t.stop());
+      stopStream(stream);
     };
-  }, [mode, facingMode]);
+  }, [mode, facingMode, deviceId, resolution.w, resolution.h, targetFps]);
+
+  // Apply zoom changes
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (zoomLevel == null) return;
+    const z = capabilities?.zoom;
+    let level = zoomLevel;
+    if (z) level = Math.max(z.min, Math.min(z.max, level));
+    void applyZoomTrack(track, level);
+  }, [zoomLevel, capabilities]);
+
+  // Apply torch changes
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (!capabilities?.canTorch) return;
+    void setTorchTrack(track, torchOn);
+  }, [torchOn, capabilities]);
 
   // load selected previous overlay image
   useEffect(() => {
@@ -1608,6 +1702,50 @@ export default function Measure() {
               </Tabs>
             </div>
             <div className="flex gap-2">
+              {mode === "live" && (
+                <>
+                  <select
+                    value={deviceId}
+                    onChange={(e) => setDeviceId(e.target.value)}
+                    className="bg-card border border-border rounded-md px-2 py-1 text-sm max-w-[200px]"
+                    title="Camera device"
+                  >
+                    {devices.length === 0 && <option value="">No cameras</option>}
+                    {devices.map((d) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.label || `Camera ${d.deviceId.slice(0, 4)}`}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={`${resolution.w}x${resolution.h}`}
+                    onChange={(e) => {
+                      const [w, h] = e.target.value.split("x").map((n) => parseInt(n, 10));
+                      setResolution({ w, h });
+                    }}
+                    className="bg-card border border-border rounded-md px-2 py-1 text-sm"
+                    title="Resolution"
+                  >
+                    {[
+                      [640, 480],
+                      [1280, 720],
+                      [1920, 1080],
+                    ].map(([w, h]) => (
+                      <option key={`${w}x${h}`} value={`${w}x${h}`}>{w}x{h}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={String(targetFps)}
+                    onChange={(e) => setTargetFps(parseInt(e.target.value, 10))}
+                    className="bg-card border border-border rounded-md px-2 py-1 text-sm"
+                    title="Target FPS"
+                  >
+                    {[15, 24, 30, 60].map((f) => (
+                      <option key={f} value={f}>{f} fps</option>
+                    ))}
+                  </select>
+                </>
+              )}
               <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
                 Calibrate
               </Button>
@@ -1706,12 +1844,30 @@ export default function Measure() {
               )}
               {mode === "live" && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
+                  <Button variant="outline" size="sm" title={capabilities ? (capabilities.canTorch ? "Back camera likely active" : "Front camera likely active") : "Flip camera"} onClick={() => setFacingMode((v) => (v === "environment" ? "user" : "environment"))}>
                     Flip
                   </Button>
                   <Button variant="outline" size="sm" onClick={toggleFreeze}>
                     {isFrozen ? "Unfreeze" : "Freeze"}
                   </Button>
+                  {capabilities?.canTorch && (
+                    <Button variant="outline" size="sm" onClick={() => setTorchOn((v) => !v)}>
+                      {torchOn ? "Torch off" : "Torch on"}
+                    </Button>
+                  )}
+                  {capabilities?.canZoom && capabilities.zoom && (
+                    <div className="flex items-center gap-2 bg-black/40 rounded px-2 py-1">
+                      <span className="text-white text-xs">Zoom</span>
+                      <input
+                        type="range"
+                        min={capabilities.zoom.min}
+                        max={capabilities.zoom.max}
+                        step={capabilities.zoom.step ?? 0.1}
+                        value={zoomLevel ?? capabilities.zoom.min}
+                        onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                      />
+                    </div>
+                  )}
                   <Button size="sm" onClick={() => detectFromLive()} disabled={isDetecting || isFrozen}>
                     {isDetecting ? "Detecting…" : "Auto-detect"}
                   </Button>
@@ -1726,6 +1882,9 @@ export default function Measure() {
                     </div>
                     <span className="whitespace-nowrap">{Math.max(0, Math.min(1, confidence)).toFixed(2)}</span>
                     <span className="opacity-70 whitespace-nowrap">min {minConfidence.toFixed(2)}</span>
+                    {mode === "live" && (
+                      <span className="opacity-70 whitespace-nowrap">{measuredFps} fps</span>
+                    )}
                     {retakeSuggested && (
                       <span className="text-amber-300 whitespace-nowrap">Retake suggested</span>
                     )}
