@@ -21,6 +21,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Allow page to trigger immediate activation
+self.addEventListener('message', (event) => {
+  if (event && event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Navigation requests: network-first with offline fallback to index.html
 async function handleNavigate(request) {
   try {

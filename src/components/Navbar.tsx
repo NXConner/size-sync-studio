@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, Activity, Shield, Lightbulb, Camera, Ruler, HeartPulse } from "lucide-react";
+import { Home, Activity, Shield, Lightbulb, Camera, Ruler, HeartPulse, Download } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -15,6 +16,25 @@ const navigation = [
 
 export function Navbar() {
   const location = useLocation();
+  const [installEvent, setInstallEvent] = useState<any>(null);
+
+  useEffect(() => {
+    const onPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallEvent(e);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+  }, []);
+
+  const promptInstall = async () => {
+    try {
+      if (!installEvent) return;
+      installEvent.prompt();
+      await installEvent.userChoice;
+      setInstallEvent(null);
+    } catch {}
+  };
 
   return (
     <nav className="gradient-card border-b border-border/20 sticky top-0 z-50 backdrop-blur-sm">
@@ -49,6 +69,15 @@ export function Navbar() {
                 </Link>
               );
             })}
+            {installEvent && (
+              <button
+                className="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg border hover:bg-muted/60 text-sm"
+                onClick={promptInstall}
+                title="Install app"
+              >
+                <Download className="w-4 h-4" /> Install
+              </button>
+            )}
           </div>
 
           {/* Mobile menu */}

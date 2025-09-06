@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getJson, postJson, ChatResponseSchema, OkResponseSchema, RedditPayloadSchema } from "@/lib/api";
-import { withApiBase } from "@/lib/config";
+import { apiChat, apiChatStream, apiFeedback, apiRedditTop, ChatResponse, RedditPayload } from "@/lib/client";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -76,7 +75,7 @@ export default function Chat() {
     if (streaming) {
       // Stream via SSE
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
-      const evt = new EventSource(withApiBase(`/chat/stream`));
+      const evt = apiChatStream();
       sseRef.current = evt;
       let acc = "";
       setLoading(true);
@@ -118,9 +117,7 @@ export default function Chat() {
       try {
         const controller = new AbortController();
         abortRef.current = controller;
-        const data = await postJson("/api/chat", { message: text }, ChatResponseSchema, {
-          signal: controller.signal,
-        });
+        const data: ChatResponse = await apiChat(text, { signal: controller.signal });
         setSources(data.sources ?? []);
         const reply = data.reply;
         setMessages((m) => [...m, { role: "assistant", content: reply }]);
@@ -139,11 +136,7 @@ export default function Chat() {
 
   async function sendFeedback(rating: "up" | "down") {
     try {
-      await postJson(
-        "/api/feedback",
-        { message: lastUser, reply: lastAssistant, rating, reasons: [] },
-        OkResponseSchema,
-      );
+      await apiFeedback({ message: lastUser, reply: lastAssistant, rating, reasons: [] });
     } catch {
       // no-op
     }
@@ -260,9 +253,9 @@ export default function Chat() {
               setRedditError(null);
               setRedditLoading(true);
               try {
-                const data = await getJson("/api/reddit/gettingbigger", RedditPayloadSchema);
+                const data: RedditPayload = await apiRedditTop();
                 setRedditPosts(
-                  (data.posts ?? []).map((p) => ({
+                  (data.posts ?? []).map((p: any) => ({
                     id: p.id,
                     title: p.title,
                     permalink: p.permalink,

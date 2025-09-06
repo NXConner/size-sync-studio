@@ -25,6 +25,19 @@ createRoot(document.getElementById("root")!).render(
 // Register service worker for PWA in production
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      try {
+        reg.addEventListener('updatefound', () => {
+          const installing = reg.installing;
+          if (!installing) return;
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              (window as any).__SW_WAITING = installing;
+              try { window.dispatchEvent(new CustomEvent('pwa-update-available')); } catch {}
+            }
+          });
+        });
+      } catch {}
+    }).catch(() => {});
   });
 }

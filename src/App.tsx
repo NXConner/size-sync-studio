@@ -2,11 +2,14 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
+import { PwaUpdate } from "./components/PwaUpdate";
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Safety = lazy(() => import("./pages/Safety"));
@@ -31,14 +34,18 @@ const queryClient = new QueryClient({
   },
 });
 
+const persister = typeof window !== 'undefined' ? createSyncStoragePersister({ storage: window.localStorage }) : null as any;
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter basename={APP_BASENAME}>
         <div className="min-h-screen bg-background">
           <Navbar />
+          {/* PWA update notifier */}
+          <PwaUpdate />
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -60,7 +67,7 @@ const App = () => (
       </BrowserRouter>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;
