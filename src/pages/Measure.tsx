@@ -22,6 +22,7 @@ import {
   measureVideoFps,
 } from "@/utils/camera";
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
+import { opencvWorker } from "@/lib/opencvWorkerClient";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -164,7 +165,7 @@ export default function Measure() {
     return { x, y };
   };
 
-  // Update the temporal edge map for snapping and stabilization
+  // Update the temporal edge map for snapping and stabilization (cv Mat version)
   const updateEdgeOverlayFromMat = (
     cv: any,
     edges: any,
@@ -223,6 +224,65 @@ export default function Measure() {
       buf[i + 1] = maxR; // G
       buf[i + 2] = maxR; // B
       buf[i + 3] = maxR; // A
+    }
+    lastEdgeImageRef.current = combined;
+  };
+
+  // Update the temporal edge map from raw ImageData (worker result)
+  const updateEdgeOverlayFromImageData = (
+    edgeImage: ImageData,
+    processedW: number,
+    processedH: number,
+    offsetX: number,
+    offsetY: number,
+    drawW: number,
+    drawH: number,
+  ) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const outW = container.clientWidth;
+    const outH = container.clientHeight;
+    if (outW <= 0 || outH <= 0) return;
+
+    const edgesCanvas = document.createElement("canvas");
+    edgesCanvas.width = processedW;
+    edgesCanvas.height = processedH;
+    const ectx = edgesCanvas.getContext("2d");
+    if (!ectx) return;
+    ectx.putImageData(edgeImage, 0, 0);
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    const octx = outCanvas.getContext("2d");
+    if (!octx) return;
+    octx.clearRect(0, 0, outW, outH);
+    octx.fillStyle = "#000";
+    octx.fillRect(0, 0, outW, outH);
+    octx.drawImage(edgesCanvas, 0, 0, processedW, processedH, offsetX, offsetY, drawW, drawH);
+    const img = octx.getImageData(0, 0, outW, outH);
+
+    if (!edgeBufferSizeRef.current || edgeBufferSizeRef.current.w !== outW || edgeBufferSizeRef.current.h !== outH) {
+      edgeBufferRef.current = [];
+      edgeBufferSizeRef.current = { w: outW, h: outH };
+    }
+    edgeBufferRef.current.push(new Uint8ClampedArray(img.data));
+    if (edgeBufferRef.current.length > 4) edgeBufferRef.current.shift();
+
+    const combined = octx.createImageData(outW, outH);
+    const buf = combined.data;
+    const bufs = edgeBufferRef.current;
+    const n = bufs.length;
+    for (let i = 0; i < buf.length; i += 4) {
+      let maxR = 0;
+      for (let k = 0; k < n; k++) {
+        const r = bufs[k][i];
+        if (r > maxR) maxR = r;
+      }
+      buf[i] = maxR;
+      buf[i + 1] = maxR;
+      buf[i + 2] = maxR;
+      buf[i + 3] = maxR;
     }
     lastEdgeImageRef.current = combined;
   };
@@ -676,6 +736,8 @@ export default function Measure() {
 
   // Start overlay loop once
   useEffect(() => {
+    // Warm worker (non-blocking)
+    try { void opencvWorker.load(); } catch {}
     drawOverlayLoop();
     return () => {
       if (rafRef.current !== null) {
@@ -1078,7 +1140,7 @@ export default function Measure() {
       cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
       cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
 
-      // Contour detection
+      // Contour detection (worker-first)
       const contours = new cv.MatVector();
       const hierarchy = new cv.Mat();
       cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
@@ -1169,6 +1231,63 @@ export default function Measure() {
         edges.delete();
         lines.delete();
       }
+
+      // Try worker detect path to compute endpoints, widths, confidence
+      try {
+        const frameCtx = procCanvas.getContext("2d");
+        if (frameCtx) {
+          const frame = frameCtx.getImageData(0, 0, w, h);
+          const det = await opencvWorker.detect({ width: w, height: h, imageData: frame.data });
+          if (det && det.end1 && det.end2) {
+            const container = containerRef.current;
+            if (!container) throw new Error("Container missing");
+            const containerW = container.clientWidth;
+            const containerH = container.clientHeight;
+            const scale = Math.min(containerW / w, containerH / h);
+            const drawW = w * scale;
+            const drawH = h * scale;
+            const offsetX = (containerW - drawW) / 2;
+            const offsetY = (containerH - drawH) / 2;
+            const mapPoint = (ix: number, iy: number) => ({ x: offsetX + ix * scale, y: offsetY + iy * scale });
+            const p1 = mapPoint(det.end1.x, det.end1.y);
+            const p2 = mapPoint(det.end2.x, det.end2.y);
+            const chosen = chooseBaseAndTip(p1, p2);
+            const conf = det.confidence || 0;
+            setConfidence(conf);
+            if (conf >= minConfidence) {
+              const alpha = 1.0;
+              const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
+              const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
+              setBasePoint(smBase);
+              setTipPoint(smTip);
+              if (Array.isArray(det.widths) && det.widths.length) {
+                const sorted = [...det.widths].sort((a, b) => a - b);
+                const median = sorted[Math.floor(sorted.length / 2)] * scale;
+                setGirthPixels(median);
+              }
+            } else {
+              setRetakeSuggested(true);
+            }
+            // Mask overlay export
+            try {
+              const maskCanvas = document.createElement("canvas");
+              maskCanvas.width = w;
+              maskCanvas.height = h;
+              const mctx = maskCanvas.getContext('2d');
+              if (mctx) {
+                const arr = det.maskImage instanceof Uint8ClampedArray ? det.maskImage : new Uint8ClampedArray(det.maskImage);
+                const img = new ImageData(arr, w, h);
+                mctx.putImageData(img, 0, 0);
+                const url = maskCanvas.toDataURL("image/png");
+                setMaskUrl(url);
+                const containerW2 = container.clientWidth; const containerH2 = container.clientHeight;
+                const scale2 = Math.min(containerW2 / w, containerH2 / h);
+                setMaskGeom({ offsetX, offsetY, drawW, drawH });
+              }
+            } catch {}
+          }
+        }
+      } catch {}
 
       // Map endpoints and compute girth by multi-slice sampling
       const container = containerRef.current;
@@ -1277,6 +1396,30 @@ export default function Measure() {
           setMaskGeom({ offsetX, offsetY, drawW, drawH });
         } catch {}
       }
+
+      // Edge overlay via worker for uploaded image
+      try {
+        const container = containerRef.current;
+        if (container) {
+          const containerW = container.clientWidth;
+          const containerH = container.clientHeight;
+          const scale = Math.min(containerW / w, containerH / h);
+          const drawW = w * scale;
+          const drawH = h * scale;
+          const offsetX = (containerW - drawW) / 2;
+          const offsetY = (containerH - drawH) / 2;
+          const pctx2 = procCanvas.getContext("2d");
+          if (pctx2) {
+            const frame = pctx2.getImageData(0, 0, w, h);
+            const result = await opencvWorker.edges({ width: w, height: h, imageData: frame.data });
+            const typed = (result && (result as any).imageData && (result as any).imageData.BYTES_PER_ELEMENT)
+              ? (result as any).imageData as Uint8ClampedArray
+              : new Uint8ClampedArray((result as any).imageData);
+            const edgeImage = new ImageData(typed, (result as any).width || w, (result as any).height || h);
+            updateEdgeOverlayFromImageData(edgeImage, w, h, offsetX, offsetY, drawW, drawH);
+          }
+        }
+      } catch {}
 
       // Cleanup
       src.delete();
@@ -1524,28 +1667,41 @@ export default function Measure() {
         confidence += Math.min(1, solidity) * 0.30;
 
         setConfidence(confidence);
-        // Update temporal edge map for snapping/stabilization
+        // Update temporal edge map for snapping/stabilization via worker (fallback to main thread on failure)
         try {
-          const edgesForOverlay = new cv.Mat();
-          const grayTmp = new cv.Mat();
-          cv.cvtColor(src, grayTmp, cv.COLOR_RGBA2GRAY);
-          const blurredTmp = new cv.Mat();
-          cv.GaussianBlur(grayTmp, blurredTmp, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-          cv.Canny(blurredTmp, edgesForOverlay, 50, 150);
-          updateEdgeOverlayFromMat(
-            cv,
-            edgesForOverlay,
-            w,
-            h,
-            offsetX,
-            offsetY,
-            drawW,
-            drawH,
-          );
-          edgesForOverlay.delete();
-          grayTmp.delete();
-          blurredTmp.delete();
-        } catch {}
+          const ctx2 = procCanvas.getContext("2d");
+          if (ctx2) {
+            const frame = ctx2.getImageData(0, 0, w, h);
+            const result = await opencvWorker.edges({ width: w, height: h, imageData: frame.data });
+            const typed = (result && (result as any).imageData && (result as any).imageData.BYTES_PER_ELEMENT)
+              ? (result as any).imageData as Uint8ClampedArray
+              : new Uint8ClampedArray((result as any).imageData);
+            const edgeImage = new ImageData(typed, (result as any).width || w, (result as any).height || h);
+            updateEdgeOverlayFromImageData(edgeImage, w, h, offsetX, offsetY, drawW, drawH);
+          }
+        } catch {
+          try {
+            const edgesForOverlay = new cv.Mat();
+            const grayTmp = new cv.Mat();
+            cv.cvtColor(src, grayTmp, cv.COLOR_RGBA2GRAY);
+            const blurredTmp = new cv.Mat();
+            cv.GaussianBlur(grayTmp, blurredTmp, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            cv.Canny(blurredTmp, edgesForOverlay, 50, 150);
+            updateEdgeOverlayFromMat(
+              cv,
+              edgesForOverlay,
+              w,
+              h,
+              offsetX,
+              offsetY,
+              drawW,
+              drawH,
+            );
+            edgesForOverlay.delete();
+            grayTmp.delete();
+            blurredTmp.delete();
+          } catch {}
+        }
         if (confidence >= minConfidence) {
           const alpha = 0.35;
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);

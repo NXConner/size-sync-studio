@@ -2,11 +2,14 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
+import { PwaUpdate } from "./components/PwaUpdate";
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Safety = lazy(() => import("./pages/Safety"));
@@ -31,14 +34,38 @@ const queryClient = new QueryClient({
   },
 });
 
+const persister = typeof window !== 'undefined' ? createSyncStoragePersister({ storage: window.localStorage }) : null as any;
+
+function TitleUpdater() {
+  const location = useLocation();
+  const map: Record<string, string> = {
+    '/': 'Size Seeker – Dashboard',
+    '/sessions': 'Size Seeker – Sessions',
+    '/safety': 'Size Seeker – Safety',
+    '/tips': 'Size Seeker – Tips',
+    '/gallery': 'Size Seeker – Gallery',
+    '/measure': 'Size Seeker – Measure',
+    '/chat': 'Size Seeker – Chat',
+  };
+  const base = 'Size Seeker';
+  const title = map[location.pathname] || base;
+  if (typeof document !== 'undefined') document.title = title;
+  return null;
+}
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter basename={APP_BASENAME}>
+        <TitleUpdater />
         <div className="min-h-screen bg-background">
           <Navbar />
+          {/* PWA update notifier */}
+          <PwaUpdate />
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-background border rounded px-2 py-1">Skip to content</a>
+          <main role="main" id="main-content">
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -56,11 +83,12 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </main>
         </div>
       </BrowserRouter>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;

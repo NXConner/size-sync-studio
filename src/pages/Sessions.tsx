@@ -7,7 +7,8 @@ import { Search } from "lucide-react";
 // import { SessionPreset } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Clock, Gauge } from "lucide-react";
+import { Clock, Gauge, Download, Upload } from "lucide-react";
+import { exportAll, importAll } from "@/utils/storage";
 
 export default function Sessions() {
   const navigate = useNavigate();
@@ -118,6 +119,44 @@ export default function Sessions() {
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* Export / Import */}
+        <div className="pt-6 flex flex-col md:flex-row items-start md:items-center gap-3">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={async () => {
+              try {
+                const blob = await exportAll();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `size-seeker-backup-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+              } catch {}
+            }}
+          >
+            <Download className="w-4 h-4" /> Export data
+          </Button>
+          <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                try { await importAll(f); window.location.reload(); } catch {}
+              }}
+            />
+            <span className="px-3 py-2 rounded-md border bg-card hover:bg-muted/60">
+              <span className="inline-flex items-center gap-2"><Upload className="w-4 h-4" /> Import data</span>
+            </span>
+          </label>
         </div>
 
         {filteredPresets.length === 0 && (

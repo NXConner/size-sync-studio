@@ -1,4 +1,5 @@
 import { z } from "zod";
+export { z } from "zod";
 import { withApiBase } from "./config";
 
 export async function postJson<T>(

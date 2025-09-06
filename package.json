@@ -16,7 +16,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "e2e": "playwright test",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap add ios && npx cap sync ios",
+    "cap:ios:open": "npx cap open ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -55,7 +59,9 @@
     "@sentry/react": "^10.8.0",
     "@sentry/tracing": "^7.120.4",
     "@sentry/vite-plugin": "^4.2.0",
+    "@tanstack/query-sync-storage-persister": "^5.87.1",
     "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-query-persist-client": "^5.87.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -119,6 +125,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@playwright/test": "^1.47.2",
+    "msw": "^2.6.6"
   }
 }

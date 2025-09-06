@@ -38,13 +38,21 @@ const isProd = config.NODE_ENV === "production";
 // Strict CSP for production (no inline). For dev, CSP disabled below.
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'"],
+  scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
   styleSrc: ["'self'"],
-  imgSrc: ["'self'", "data:"],
+  imgSrc: ["'self'", "data:", "blob:"],
   connectSrc: ["'self'"],
+  workerSrc: ["'self'", "blob:"],
   objectSrc: ["'none'"],
   baseUri: ["'self'"],
 };
+if (config.SENTRY_DSN) {
+  try {
+    const u = new URL(config.SENTRY_DSN);
+    const host = u.host || 'sentry.io';
+    cspDirectives.connectSrc = Array.from(new Set([...(cspDirectives.connectSrc || []), `https://${host}`]));
+  } catch {}
+}
 app.use(
   helmet({
     contentSecurityPolicy: isProd ? { directives: cspDirectives } : false,
