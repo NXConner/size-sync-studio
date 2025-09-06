@@ -16,6 +16,23 @@ from geometry import compute_metrics
 from segmentation import segment_roi
 
 
+def _augment_image(image_bgr: np.ndarray, seed: int) -> np.ndarray:
+    rng = np.random.default_rng(seed)
+    img = image_bgr.copy().astype(np.float32)
+    # Brightness and contrast jitter
+    alpha = float(rng.normal(1.0, 0.05))  # contrast
+    beta = float(rng.normal(0.0, 5.0))    # brightness
+    img = img * alpha + beta
+    # Small Gaussian noise
+    noise = rng.normal(0.0, 1.5, size=img.shape).astype(np.float32)
+    img = img + noise
+    img = np.clip(img, 0, 255).astype(np.uint8)
+    # Slight blur or sharpen selection
+    if rng.random() < 0.4:
+        img = cv2.GaussianBlur(img, (3, 3), 0.6)
+    return img
+
+
 app = typer.Typer(add_completion=False)
 
 
@@ -25,6 +42,7 @@ def main(
     marker_mm: float = typer.Option(20.0, help="Reference marker side length in millimeters"),
     out: Optional[Path] = typer.Option(None, help="Output overlay image path (PNG)"),
     json_out: Optional[Path] = typer.Option(None, help="Output metrics JSON path"),
+    uncertainty_samples: int = typer.Option(0, min=0, max=32, help="If >0, run ensemble sampling for uncertainty"),
 ):
     """
     Analyze a capture image: detect ArUco scale, segment ROI, extract centerline, compute metrics.
@@ -74,12 +92,46 @@ def main(
         cv2.imwrite(str(out), seg_colored)
         print(f"[green]Saved overlay to {out}")
 
+    # Optional uncertainty via simple ensemble of augmented inputs
+    ci = None
+    if uncertainty_samples and uncertainty_samples > 0:
+        print(f"[bold]Estimating uncertainty with {uncertainty_samples} samples...[/bold]")
+        samples = {
+            "arc_length_mm": [],
+            "length_mm": [],
+            "max_curvature_deg": [],
+            "hinge_location_ratio": [],
+        }
+        seeds = np.random.SeedSequence().spawn(uncertainty_samples)
+        for i, ss in enumerate(seeds):
+            aug = _augment_image(image_bgr, seed=int(ss.entropy))
+            # Reuse detected scale from original to keep calibration stable
+            msk, _ = segment_roi(aug)
+            m_i, _, _ = compute_metrics(msk, pixels_per_mm=px_per_mm)
+            samples["arc_length_mm"].append(m_i.arc_length_mm)
+            samples["length_mm"].append(m_i.length_mm)
+            samples["max_curvature_deg"].append(m_i.max_curvature_deg)
+            samples["hinge_location_ratio"].append(m_i.hinge_location_ratio)
+
+        ci = {}
+        for k, arr in samples.items():
+            arr_np = np.array(arr, dtype=np.float32)
+            mean = float(np.mean(arr_np))
+            std = float(np.std(arr_np, ddof=1)) if len(arr_np) > 1 else 0.0
+            ci[k] = {
+                "mean": mean,
+                "std": std,
+                "ci95": 1.96 * std,
+            }
+
     # JSON output
     result = {
         "pixels_per_mm": px_per_mm,
         "detected_markers": scale.detected_markers,
         "metrics": asdict(metrics),
     }
+    if ci is not None:
+        result["uncertainty"] = ci
     if json_out is not None:
         json_out.parent.mkdir(parents=True, exist_ok=True)
         with open(json_out, "w", encoding="utf-8") as f:

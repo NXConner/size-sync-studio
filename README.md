@@ -9,6 +9,7 @@ Modules
   - live_capture.py: Live camera overlays with auto-capture and on-the-fly analysis
   - triage_cli.py & triage_rules.py: STD triage rule engine CLI
   - report_pdf.py: Generate clinician-style PDF from analysis outputs
+  - calibration_card.py: Generate printable Charuco/ArUco calibration card PDF
 
 Quick start (Linux/macOS)
 1) Create and activate a virtual environment
@@ -19,7 +20,7 @@ Quick start (Linux/macOS)
    pip install -r ml/prototype/requirements.txt
 
 3) Run analysis on an image
-   python ml/prototype/analyze_capture.py --image path/to/your_image.jpg --marker-mm 20 --out overlays.png --json metrics.json
+   python ml/prototype/analyze_capture.py --image path/to/your_image.jpg --marker-mm 20 --out overlays.png --json metrics.json --uncertainty-samples 16
 
    Arguments:
    - --image: Path to the input image containing both the subject and the printed calibration card (full card visible).
@@ -80,6 +81,12 @@ PDF report generation
    Provide --pdq-summary pdq.json to include questionnaire summaries in the report.
 
 Lab sandbox stub (local only)
+# Calibration card PDF
+1) Generate a printable card (letter size)
+   python ml/prototype/calibration_card.py generate --squares-x 6 --squares-y 4 --square-mm 10 --out-pdf calibration_card.pdf
+
+2) Print at 100% scale (no fit-to-page). Use matte paper.
+
 1) Create an order
    python ml/prototype/lab_stub_cli.py create_order --user-id usr_1 --panel-codes CG_NAAT HIV_AGAB_4TH_GEN SYPHILIS_RPR_TPPA
 
