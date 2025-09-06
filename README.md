@@ -7,6 +7,7 @@ Modules
 - ml/prototype: Python prototype for calibration (ArUco), segmentation (classical placeholder), and curvature/length metrics with a CLI tool.
   - analyze_capture.py: Single-image analysis CLI
   - live_capture.py: Live camera overlays with auto-capture and on-the-fly analysis
+  - triage_cli.py & triage_rules.py: STD triage rule engine CLI
 
 Quick start (Linux/macOS)
 1) Create and activate a virtual environment
@@ -48,6 +49,24 @@ Live capture (desktop webcam)
 
 Outputs
 - Overlay PNG and metrics JSON are saved under the specified output directory.
+
+STD triage rule engine (CLI)
+1) Prepare inputs
+   Write three JSON files, for example:
+   exposures.json
+   [
+     {"date": "2025-08-01", "site": "vaginal", "condom_used": false}
+   ]
+   symptoms.json
+   {"discharge": true, "dysuria_pain_urination": true}
+   profile.json
+   {"user_age": 25, "hepatitis_b_vaccinated": false, "injection_drug_use": false}
+
+2) Run triage
+   python ml/prototype/triage_cli.py run --exposures-json exposures.json --symptoms-json symptoms.json --profile-json profile.json --out triage_result.json
+
+3) Output
+   triage_result.json contains recommended panels, urgency flags, and guidance.
 
 # Size Seeker — Wellness & Measurement App
 
