@@ -1280,8 +1280,6 @@ export default function Measure() {
                 mctx.putImageData(img, 0, 0);
                 const url = maskCanvas.toDataURL("image/png");
                 setMaskUrl(url);
-                const containerW2 = container.clientWidth; const containerH2 = container.clientHeight;
-                const scale2 = Math.min(containerW2 / w, containerH2 / h);
                 setMaskGeom({ offsetX, offsetY, drawW, drawH });
               }
             } catch {}

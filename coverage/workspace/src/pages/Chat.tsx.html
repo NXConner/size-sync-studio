@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/242</span>
+                <span class='fraction'>0/237</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/242</span>
+                <span class='fraction'>0/237</span>
             </div>
         
             
@@ -362,15 +362,7 @@
 <a name='L297'></a><a href='#L297'>297</a>
 <a name='L298'></a><a href='#L298'>298</a>
 <a name='L299'></a><a href='#L299'>299</a>
-<a name='L300'></a><a href='#L300'>300</a>
-<a name='L301'></a><a href='#L301'>301</a>
-<a name='L302'></a><a href='#L302'>302</a>
-<a name='L303'></a><a href='#L303'>303</a>
-<a name='L304'></a><a href='#L304'>304</a>
-<a name='L305'></a><a href='#L305'>305</a>
-<a name='L306'></a><a href='#L306'>306</a>
-<a name='L307'></a><a href='#L307'>307</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L300'></a><a href='#L300'>300</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -505,16 +497,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -676,8 +662,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { useEffect, useRef, useState } from "react";</span></span></span>
-import { getJson, postJson, ChatResponseSchema, OkResponseSchema, RedditPayloadSchema } from "@/lib/api";
-import { withApiBase } from "@/lib/config";
+import { apiChat, apiChatStream, apiFeedback, apiRedditTop, ChatResponse, RedditPayload } from "@/lib/client";
 &nbsp;
 type ChatMessage = {
   role: "user" | "assistant";
@@ -753,7 +738,7 @@ type ChatMessage = {
 <span class="cstat-no" title="statement not covered" >    if (streaming) {</span>
 <span class="cstat-no" title="statement not covered" >      // Stream via SSE</span>
 <span class="cstat-no" title="statement not covered" >      setMessages((m) =&gt; [...m, { role: "assistant", content: "" }]);</span>
-<span class="cstat-no" title="statement not covered" >      const evt = new EventSource(withApiBase(`/chat/stream`));</span>
+<span class="cstat-no" title="statement not covered" >      const evt = apiChatStream();</span>
 <span class="cstat-no" title="statement not covered" >      sseRef.current = evt;</span>
 <span class="cstat-no" title="statement not covered" >      let acc = "";</span>
 <span class="cstat-no" title="statement not covered" >      setLoading(true);</span>
@@ -795,9 +780,7 @@ type ChatMessage = {
 <span class="cstat-no" title="statement not covered" >      try {</span>
 <span class="cstat-no" title="statement not covered" >        const controller = new AbortController();</span>
 <span class="cstat-no" title="statement not covered" >        abortRef.current = controller;</span>
-<span class="cstat-no" title="statement not covered" >        const data = await postJson("/api/chat", { message: text }, ChatResponseSchema, {</span>
-<span class="cstat-no" title="statement not covered" >          signal: controller.signal,</span>
-<span class="cstat-no" title="statement not covered" >        });</span>
+<span class="cstat-no" title="statement not covered" >        const data: ChatResponse = await apiChat(text, { signal: controller.signal });</span>
 <span class="cstat-no" title="statement not covered" >        setSources(data.sources ?? []);</span>
 <span class="cstat-no" title="statement not covered" >        const reply = data.reply;</span>
 <span class="cstat-no" title="statement not covered" >        setMessages((m) =&gt; [...m, { role: "assistant", content: reply }]);</span>
@@ -816,11 +799,7 @@ type ChatMessage = {
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  async function sendFeedback(rating: "up" | "down") {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await postJson(</span>
-<span class="cstat-no" title="statement not covered" >        "/api/feedback",</span>
-<span class="cstat-no" title="statement not covered" >        { message: lastUser, reply: lastAssistant, rating, reasons: [] },</span>
-<span class="cstat-no" title="statement not covered" >        OkResponseSchema,</span>
-      );
+<span class="cstat-no" title="statement not covered" >      await apiFeedback({ message: lastUser, reply: lastAssistant, rating, reasons: [] });</span>
 <span class="cstat-no" title="statement not covered" >    } catch {</span>
 <span class="cstat-no" title="statement not covered" >      // no-op</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
@@ -937,9 +916,9 @@ type ChatMessage = {
 <span class="cstat-no" title="statement not covered" >              setRedditError(null);</span>
 <span class="cstat-no" title="statement not covered" >              setRedditLoading(true);</span>
 <span class="cstat-no" title="statement not covered" >              try {</span>
-<span class="cstat-no" title="statement not covered" >                const data = await getJson("/api/reddit/gettingbigger", RedditPayloadSchema);</span>
+<span class="cstat-no" title="statement not covered" >                const data: RedditPayload = await apiRedditTop();</span>
 <span class="cstat-no" title="statement not covered" >                setRedditPosts(</span>
-<span class="cstat-no" title="statement not covered" >                  (data.posts ?? []).map((p) =&gt; ({</span>
+<span class="cstat-no" title="statement not covered" >                  (data.posts ?? []).map((p: any) =&gt; ({</span>
 <span class="cstat-no" title="statement not covered" >                    id: p.id,</span>
 <span class="cstat-no" title="statement not covered" >                    title: p.title,</span>
 <span class="cstat-no" title="statement not covered" >                    permalink: p.permalink,</span>
@@ -988,7 +967,7 @@ type ChatMessage = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T03:53:31.380Z
+                at 2025-09-06T13:13:38.315Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
