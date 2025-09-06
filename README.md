@@ -101,6 +101,13 @@ Lab sandbox stub (local only)
 
 # Size Seeker — Wellness & Measurement App
 
+Mobile V1 docs
+- Architecture: docs/mobile/ARCHITECTURE.md
+- iOS Scaffold: docs/mobile/iOS_SCAFFOLD.md
+- Android Scaffold: docs/mobile/ANDROID_SCAFFOLD.md
+- Camera Overlay Spec: docs/mobile/CAMERA_OVERLAY_SPEC.md
+- Data & Model Packaging: docs/mobile/DATA_MODEL_PACKAGING.md
+
 Size Seeker is a Vite + React + TypeScript app with an Express API focused on safe, wellness‑oriented tracking. It includes guided sessions, a camera‑assisted measurement tool (OpenCV.js), safety guidance, tips, a gallery, and a safety‑scoped chat.
 
 ## Table of Contents
