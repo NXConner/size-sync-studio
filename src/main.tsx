@@ -21,3 +21,10 @@ createRoot(document.getElementById("root")!).render(
 );
 
 // Removed OpenCV prefetch to avoid potential main-thread stalls on first interaction
+
+// Register service worker for PWA in production
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
