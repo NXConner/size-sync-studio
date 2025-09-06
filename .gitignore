@@ -1,3 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.json
+ml/prototype/data/
+ml/prototype/lab_stub_data/
+captures/
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+ml/training/runs/
+segmentation.onnx
+
 # Logs
 logs
 *.log

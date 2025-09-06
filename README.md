@@ -1,4 +1,142 @@
+Privacy-first Men's Health App (Prototype)
+
+Overview
+- This repository contains an initial ML prototype for the Peyronie's screening module and scaffolding for future components. The prototype runs on a desktop to validate the calibration, segmentation, and geometry metrics before porting to mobile on-device inference.
+
+Modules
+- ml/prototype: Python prototype for calibration (ArUco), segmentation (classical placeholder), and curvature/length metrics with a CLI tool.
+  - analyze_capture.py: Single-image analysis CLI
+  - live_capture.py: Live camera overlays with auto-capture and on-the-fly analysis
+  - triage_cli.py & triage_rules.py: STD triage rule engine CLI
+  - report_pdf.py: Generate clinician-style PDF from analysis outputs
+  - calibration_card.py: Generate printable Charuco/ArUco calibration card PDF
+
+Quick start (Linux/macOS)
+1) Create and activate a virtual environment
+   python3 -m venv .venv
+   source .venv/bin/activate
+
+2) Install dependencies
+   pip install -r ml/prototype/requirements.txt
+
+3) Run analysis on an image
+   python ml/prototype/analyze_capture.py --image path/to/your_image.jpg --marker-mm 20 --out overlays.png --json metrics.json --uncertainty-samples 16
+
+   Arguments:
+   - --image: Path to the input image containing both the subject and the printed calibration card (full card visible).
+   - --marker-mm: Real-world side length in millimeters for the reference square on the calibration card (default 20 mm).
+   - --out: Path to save the overlay image with detected centerline and annotations.
+   - --json: Path to save computed metrics in JSON format.
+
+4) Notes
+- Print the calibration card at 100% scale (no fit-to-page). Place the card flat, matte side up, and fully visible in the frame.
+- Use bright, even lighting and hold the camera parallel to the surface.
+- This prototype uses classical segmentation as a placeholder. A neural model will replace it in later iterations.
+
+Troubleshooting
+- If ArUco is not detected: Ensure you printed at 100%, the card occupies ~15%+ of the frame, and there is minimal glare.
+- If segmentation fails: Improve lighting and contrast. Adjust the frame so the subject is well separated from the background.
+
+License
+- For internal prototyping only. Do not distribute.
+
+Live capture (desktop webcam)
+1) Launch live capture with overlays and auto-capture
+   python ml/prototype/live_capture.py live --marker-mm 20 --threshold 85 --consecutive 10 --camera-index 0 --burst-frames 6 --out-dir captures
+
+2) Controls
+- The window shows a “good score” and guidance (Lighting/Stability/Marker/Distance/Framing).
+- When the score stays above the threshold for the required consecutive frames, a burst is captured and analyzed.
+- Press 'q' to quit.
+
+Outputs
+- Overlay PNG and metrics JSON are saved under the specified output directory.
+
+STD triage rule engine (CLI)
+1) Prepare inputs
+   Write three JSON files, for example:
+   exposures.json
+   [
+     {"date": "2025-08-01", "site": "vaginal", "condom_used": false}
+   ]
+   symptoms.json
+   {"discharge": true, "dysuria_pain_urination": true}
+   profile.json
+   {"user_age": 25, "hepatitis_b_vaccinated": false, "injection_drug_use": false}
+
+2) Run triage
+   python ml/prototype/triage_cli.py run --exposures-json exposures.json --symptoms-json symptoms.json --profile-json profile.json --out triage_result.json
+
+3) Output
+   triage_result.json contains recommended panels, urgency flags, and guidance.
+
+PDF report generation
+1) Install dependencies if not already installed
+   pip install -r ml/prototype/requirements.txt
+
+2) Generate a report from prior analysis outputs
+   python ml/prototype/report_pdf.py generate --metrics-json /abs/path/metrics.json --overlay-image /abs/path/overlays.png --out-pdf curvature_report.pdf
+
+3) Optional PDQ summary
+   Provide --pdq-summary pdq.json to include questionnaire summaries in the report.
+
+Lab sandbox stub (local only)
+# Calibration card PDF
+1) Generate a printable card (letter size)
+   python ml/prototype/calibration_card.py generate --squares-x 6 --squares-y 4 --square-mm 10 --out-pdf calibration_card.pdf
+
+2) Print at 100% scale (no fit-to-page). Use matte paper.
+
+1) Create an order
+   python ml/prototype/lab_stub_cli.py create_order --user-id usr_1 --panel-codes CG_NAAT HIV_AGAB_4TH_GEN SYPHILIS_RPR_TPPA
+
+2) List and view orders
+   python ml/prototype/lab_stub_cli.py list_orders
+   python ml/prototype/lab_stub_cli.py get_order --order-id ord_XXXXXXXXXXXX
+
+3) Simulate results
+   python ml/prototype/lab_stub_cli.py simulate_result --order-id ord_XXXXXXXXXXXX
+   python ml/prototype/lab_stub_cli.py list_results
+   python ml/prototype/lab_stub_cli.py get_result --result-id res_XXXXXXXXXXXX
+
 # Size Seeker — Wellness & Measurement App
+
+Mobile V1 docs
+- Architecture: docs/mobile/ARCHITECTURE.md
+- iOS Scaffold: docs/mobile/iOS_SCAFFOLD.md
+- Android Scaffold: docs/mobile/ANDROID_SCAFFOLD.md
+- Camera Overlay Spec: docs/mobile/CAMERA_OVERLAY_SPEC.md
+- Data & Model Packaging: docs/mobile/DATA_MODEL_PACKAGING.md
+
+Android app scaffold
+1) Open `/workspace/android` in Android Studio
+2) Build and run on device/emulator (permissions: CAMERA)
+3) You should see CameraX preview with a simple overlay and a changing "Score" value
+
+Android model inference
+1) Place a TFLite model at `android/app/src/main/assets/segmentation.tflite`
+2) Build & run; wire `SegmentationInterpreter` where needed to obtain masks
+3) Next steps: integrate marker detection, geometry metrics, and quality gating
+
+Plans
+- Android native geometry: docs/mobile/ANDROID_NATIVE_GEOMETRY_PLAN.md
+- Training execution: docs/mobile/TRAINING_EXEC_PLAN.md
+- Android inference: docs/mobile/ANDROID_INFERENCE_PLAN.md
+
+Model training (segmentation)
+1) Create venv and install training deps
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r ml/training/requirements.txt
+
+2) Prepare dataset directories
+   images/: training images (jpg/png)
+   masks/: corresponding binary masks (same filenames)
+
+3) Train
+   python ml/training/train.py --images-dir images --masks-dir masks --epochs 20 --out-dir runs/seg
+
+4) Export ONNX
+   python ml/training/export.py onnx-export --checkpoint runs/seg/model.ckpt --out-onnx segmentation.onnx
 
 Size Seeker is a Vite + React + TypeScript app with an Express API focused on safe, wellness‑oriented tracking. It includes guided sessions, a camera‑assisted measurement tool (OpenCV.js), safety guidance, tips, a gallery, and a safety‑scoped chat.
 
