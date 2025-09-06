@@ -2322,9 +2322,9 @@ export default function Measure() {
                 </div>
               )}
               {showHud && (
-                <div className="absolute left-3 bottom-3 right-3 pointer-events-none select-none">
+                <div className="absolute left-3 bottom-3 right-3 pointer-events-none select-none" aria-live="polite" aria-atomic="true">
                   <div className="bg-black/50 rounded-md p-2 text-xs text-white flex items-center gap-3">
-                    <span className="whitespace-nowrap">{autoStatus}</span>
+                    <span className={`whitespace-nowrap ${autoStatus.includes('detect') ? 'text-sky-300' : autoStatus === 'locked' ? 'text-emerald-300' : autoStatus === 'captured' ? 'text-amber-300' : autoStatus.includes('weak') ? 'text-rose-300' : 'text-slate-300'}`}>{autoStatus}</span>
                     <div className="flex-1">
                       <Progress value={Math.max(0, Math.min(100, Math.round(confidence * 100)))} />
                     </div>
@@ -2340,7 +2340,15 @@ export default function Measure() {
                 </div>
               )}
             </div>
-            {streamError && <p className="text-sm text-destructive mt-2">{streamError}</p>}
+            {streamError && (
+              <div className="mt-2">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    {streamError}. Please allow camera permissions or switch to Upload mode.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
           </CardContent>
         </Card>
 
