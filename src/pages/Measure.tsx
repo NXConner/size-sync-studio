@@ -22,6 +22,7 @@ import {
   measureVideoFps,
 } from "@/utils/camera";
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment } from "@/utils/audio";
+import { opencvWorker } from "@/lib/opencvWorkerClient";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -164,7 +165,7 @@ export default function Measure() {
     return { x, y };
   };
 
-  // Update the temporal edge map for snapping and stabilization
+  // Update the temporal edge map for snapping and stabilization (cv Mat version)
   const updateEdgeOverlayFromMat = (
     cv: any,
     edges: any,
@@ -223,6 +224,65 @@ export default function Measure() {
       buf[i + 1] = maxR; // G
       buf[i + 2] = maxR; // B
       buf[i + 3] = maxR; // A
+    }
+    lastEdgeImageRef.current = combined;
+  };
+
+  // Update the temporal edge map from raw ImageData (worker result)
+  const updateEdgeOverlayFromImageData = (
+    edgeImage: ImageData,
+    processedW: number,
+    processedH: number,
+    offsetX: number,
+    offsetY: number,
+    drawW: number,
+    drawH: number,
+  ) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const outW = container.clientWidth;
+    const outH = container.clientHeight;
+    if (outW <= 0 || outH <= 0) return;
+
+    const edgesCanvas = document.createElement("canvas");
+    edgesCanvas.width = processedW;
+    edgesCanvas.height = processedH;
+    const ectx = edgesCanvas.getContext("2d");
+    if (!ectx) return;
+    ectx.putImageData(edgeImage, 0, 0);
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    const octx = outCanvas.getContext("2d");
+    if (!octx) return;
+    octx.clearRect(0, 0, outW, outH);
+    octx.fillStyle = "#000";
+    octx.fillRect(0, 0, outW, outH);
+    octx.drawImage(edgesCanvas, 0, 0, processedW, processedH, offsetX, offsetY, drawW, drawH);
+    const img = octx.getImageData(0, 0, outW, outH);
+
+    if (!edgeBufferSizeRef.current || edgeBufferSizeRef.current.w !== outW || edgeBufferSizeRef.current.h !== outH) {
+      edgeBufferRef.current = [];
+      edgeBufferSizeRef.current = { w: outW, h: outH };
+    }
+    edgeBufferRef.current.push(new Uint8ClampedArray(img.data));
+    if (edgeBufferRef.current.length > 4) edgeBufferRef.current.shift();
+
+    const combined = octx.createImageData(outW, outH);
+    const buf = combined.data;
+    const bufs = edgeBufferRef.current;
+    const n = bufs.length;
+    for (let i = 0; i < buf.length; i += 4) {
+      let maxR = 0;
+      for (let k = 0; k < n; k++) {
+        const r = bufs[k][i];
+        if (r > maxR) maxR = r;
+      }
+      buf[i] = maxR;
+      buf[i + 1] = maxR;
+      buf[i + 2] = maxR;
+      buf[i + 3] = maxR;
     }
     lastEdgeImageRef.current = combined;
   };
@@ -676,6 +736,8 @@ export default function Measure() {
 
   // Start overlay loop once
   useEffect(() => {
+    // Warm worker (non-blocking)
+    try { void opencvWorker.load(); } catch {}
     drawOverlayLoop();
     return () => {
       if (rafRef.current !== null) {
@@ -1524,28 +1586,41 @@ export default function Measure() {
         confidence += Math.min(1, solidity) * 0.30;
 
         setConfidence(confidence);
-        // Update temporal edge map for snapping/stabilization
+        // Update temporal edge map for snapping/stabilization via worker (fallback to main thread on failure)
         try {
-          const edgesForOverlay = new cv.Mat();
-          const grayTmp = new cv.Mat();
-          cv.cvtColor(src, grayTmp, cv.COLOR_RGBA2GRAY);
-          const blurredTmp = new cv.Mat();
-          cv.GaussianBlur(grayTmp, blurredTmp, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-          cv.Canny(blurredTmp, edgesForOverlay, 50, 150);
-          updateEdgeOverlayFromMat(
-            cv,
-            edgesForOverlay,
-            w,
-            h,
-            offsetX,
-            offsetY,
-            drawW,
-            drawH,
-          );
-          edgesForOverlay.delete();
-          grayTmp.delete();
-          blurredTmp.delete();
-        } catch {}
+          const ctx2 = procCanvas.getContext("2d");
+          if (ctx2) {
+            const frame = ctx2.getImageData(0, 0, w, h);
+            const result = await opencvWorker.edges({ width: w, height: h, imageData: frame.data });
+            const typed = (result && (result as any).imageData && (result as any).imageData.BYTES_PER_ELEMENT)
+              ? (result as any).imageData as Uint8ClampedArray
+              : new Uint8ClampedArray((result as any).imageData);
+            const edgeImage = new ImageData(typed, (result as any).width || w, (result as any).height || h);
+            updateEdgeOverlayFromImageData(edgeImage, w, h, offsetX, offsetY, drawW, drawH);
+          }
+        } catch {
+          try {
+            const edgesForOverlay = new cv.Mat();
+            const grayTmp = new cv.Mat();
+            cv.cvtColor(src, grayTmp, cv.COLOR_RGBA2GRAY);
+            const blurredTmp = new cv.Mat();
+            cv.GaussianBlur(grayTmp, blurredTmp, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            cv.Canny(blurredTmp, edgesForOverlay, 50, 150);
+            updateEdgeOverlayFromMat(
+              cv,
+              edgesForOverlay,
+              w,
+              h,
+              offsetX,
+              offsetY,
+              drawW,
+              drawH,
+            );
+            edgesForOverlay.delete();
+            grayTmp.delete();
+            blurredTmp.delete();
+          } catch {}
+        }
         if (confidence >= minConfidence) {
           const alpha = 0.35;
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);

@@ -40,6 +40,17 @@ export class OpenCVWorkerClient {
   async ping(): Promise<{ pong: boolean }> {
     return this.call('ping');
   }
+
+  async edges(input: { width: number; height: number; imageData: Uint8ClampedArray }): Promise<{ width: number; height: number; imageData: Uint8ClampedArray }> {
+    if (!this.worker) throw new Error('Worker unavailable');
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const message = { id, type: 'edges', payload: { width: input.width, height: input.height, imageData: input.imageData.buffer } } as any;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      // Transfer the buffer for zero-copy
+      (this.worker as Worker).postMessage(message, [input.imageData.buffer]);
+    });
+  }
 }
 
 export const opencvWorker = new OpenCVWorkerClient();
