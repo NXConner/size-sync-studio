@@ -64,5 +64,12 @@ export default defineConfig(({ mode }) => ({
     setupFiles: './vitest.setup.ts',
     css: true,
     globals: true,
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'tests/e2e/**',
+      'e2e/**',
+    ],
   },
 }));

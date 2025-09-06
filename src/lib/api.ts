@@ -2,12 +2,12 @@ import { z } from "zod";
 export { z } from "zod";
 import { withApiBase } from "./config";
 
-export async function postJson<T>(
+export async function postJson<S extends z.ZodTypeAny>(
   url: string,
   body: unknown,
-  schema: z.ZodSchema<T>,
+  schema: S,
   options?: { signal?: AbortSignal },
-): Promise<T> {
+): Promise<z.output<S>> {
   const fullUrl = withApiBase(url);
   const res = await fetch(fullUrl, {
     method: "POST",
@@ -20,11 +20,11 @@ export async function postJson<T>(
   return schema.parse(json);
 }
 
-export async function getJson<T>(
+export async function getJson<S extends z.ZodTypeAny>(
   url: string,
-  schema: z.ZodSchema<T>,
+  schema: S,
   options?: { signal?: AbortSignal },
-): Promise<T> {
+): Promise<z.output<S>> {
   const fullUrl = withApiBase(url);
   const res = await fetch(fullUrl, { method: "GET", signal: options?.signal });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);

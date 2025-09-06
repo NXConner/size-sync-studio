@@ -1382,7 +1382,6 @@ export default function Measure() {
                 mctx.putImageData(img, 0, 0);
                 const url = maskCanvas.toDataURL("image/png");
                 setMaskUrl(url);
-                // reserved for future scaling of mask preview
                 setMaskGeom({ offsetX, offsetY, drawW, drawH });
               }
             } catch {}

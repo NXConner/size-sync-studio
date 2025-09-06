@@ -22,7 +22,6 @@ export async function loadOpenCV(): Promise<any> {
   }
   if (opencvLoadPromise) return opencvLoadPromise;
 
-  // const isProd = Boolean((import.meta as any).env && (import.meta as any).env.PROD);
   // Sources: in prod, only local; in dev, allow CDN fallbacks
   const candidateSrcs: string[] = [
     "/opencv/opencv.js",
