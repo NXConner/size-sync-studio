@@ -1,3 +1,40 @@
+Privacy-first Men's Health App (Prototype)
+
+Overview
+- This repository contains an initial ML prototype for the Peyronie's screening module and scaffolding for future components. The prototype runs on a desktop to validate the calibration, segmentation, and geometry metrics before porting to mobile on-device inference.
+
+Modules
+- ml/prototype: Python prototype for calibration (ArUco), segmentation (classical placeholder), and curvature/length metrics with a CLI tool.
+
+Quick start (Linux/macOS)
+1) Create and activate a virtual environment
+   python3 -m venv .venv
+   source .venv/bin/activate
+
+2) Install dependencies
+   pip install -r ml/prototype/requirements.txt
+
+3) Run analysis on an image
+   python ml/prototype/analyze_capture.py --image path/to/your_image.jpg --marker-mm 20 --out overlays.png --json metrics.json
+
+   Arguments:
+   - --image: Path to the input image containing both the subject and the printed calibration card (full card visible).
+   - --marker-mm: Real-world side length in millimeters for the reference square on the calibration card (default 20 mm).
+   - --out: Path to save the overlay image with detected centerline and annotations.
+   - --json: Path to save computed metrics in JSON format.
+
+4) Notes
+- Print the calibration card at 100% scale (no fit-to-page). Place the card flat, matte side up, and fully visible in the frame.
+- Use bright, even lighting and hold the camera parallel to the surface.
+- This prototype uses classical segmentation as a placeholder. A neural model will replace it in later iterations.
+
+Troubleshooting
+- If ArUco is not detected: Ensure you printed at 100%, the card occupies ~15%+ of the frame, and there is minimal glare.
+- If segmentation fails: Improve lighting and contrast. Adjust the frame so the subject is well separated from the background.
+
+License
+- For internal prototyping only. Do not distribute.
+
 # Size Seeker — Wellness & Measurement App
 
 Size Seeker is a Vite + React + TypeScript app with an Express API focused on safe, wellness‑oriented tracking. It includes guided sessions, a camera‑assisted measurement tool (OpenCV.js), safety guidance, tips, a gallery, and a safety‑scoped chat.
