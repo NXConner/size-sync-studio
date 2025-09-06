@@ -6,7 +6,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
 import { PwaUpdate } from "./components/PwaUpdate";
@@ -36,17 +36,35 @@ const queryClient = new QueryClient({
 
 const persister = typeof window !== 'undefined' ? createSyncStoragePersister({ storage: window.localStorage }) : null as any;
 
+function TitleUpdater() {
+  const location = useLocation();
+  const map: Record<string, string> = {
+    '/': 'Size Seeker – Dashboard',
+    '/sessions': 'Size Seeker – Sessions',
+    '/safety': 'Size Seeker – Safety',
+    '/tips': 'Size Seeker – Tips',
+    '/gallery': 'Size Seeker – Gallery',
+    '/measure': 'Size Seeker – Measure',
+    '/chat': 'Size Seeker – Chat',
+  };
+  const base = 'Size Seeker';
+  const title = map[location.pathname] || base;
+  if (typeof document !== 'undefined') document.title = title;
+  return null;
+}
+
 const App = () => (
   <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter basename={APP_BASENAME}>
+        <TitleUpdater />
         <div className="min-h-screen bg-background">
           <Navbar />
           {/* PWA update notifier */}
           <PwaUpdate />
-          <main role="main">
+          <main role="main" id="main-content">
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
             <Routes>
               <Route path="/" element={<Index />} />
