@@ -113,6 +113,21 @@ Android app scaffold
 2) Build and run on device/emulator (permissions: CAMERA)
 3) You should see CameraX preview with a simple overlay and a changing "Score" value
 
+Model training (segmentation)
+1) Create venv and install training deps
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r ml/training/requirements.txt
+
+2) Prepare dataset directories
+   images/: training images (jpg/png)
+   masks/: corresponding binary masks (same filenames)
+
+3) Train
+   python ml/training/train.py --images-dir images --masks-dir masks --epochs 20 --out-dir runs/seg
+
+4) Export ONNX
+   python ml/training/export.py onnx-export --checkpoint runs/seg/model.ckpt --out-onnx segmentation.onnx
+
 Size Seeker is a Vite + React + TypeScript app with an Express API focused on safe, wellness‑oriented tracking. It includes guided sessions, a camera‑assisted measurement tool (OpenCV.js), safety guidance, tips, a gallery, and a safety‑scoped chat.
 
 ## Table of Contents

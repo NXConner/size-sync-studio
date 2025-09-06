@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var scoreText: TextView
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
+    private lateinit var captureController: CaptureController
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
         previewView = findViewById(R.id.previewView)
         overlayView = findViewById(R.id.overlayView)
         scoreText = findViewById(R.id.scoreText)
+        captureController = CaptureController(this)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -60,6 +62,8 @@ class MainActivity : ComponentActivity() {
                     scoreText.text = "Score: $score"
                     overlayView.updateScore(score)
                 }
+                // Auto-capture decision and burst save
+                captureController.onFrame(imageProxy, score)
                 imageProxy.close()
             }
 
