@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
+import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Copy as CopyIcon, HelpCircle } from "lucide-react";
 import { Measurement } from "@/types";
 import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { CalibrationCard } from "@/components/measure/CalibrationCard";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadOpenCV } from "@/utils/opencv";
 import {
@@ -2334,6 +2335,25 @@ export default function Measure() {
                 <Button onClick={capture} className="gap-2">
                   <CameraIcon className="w-4 h-4" /> Capture
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" className="gap-2" onClick={async () => {
+                      const len = `${lengthDisplay} ${unit}`;
+                      const gir = `${girthDisplay} ${unit}`;
+                      const scale = `${pixelsPerInch.toFixed(1)} px/in`;
+                      const text = `Length: ${len}\nGirth: ${gir}\nScale: ${scale}`;
+                      try {
+                        await navigator.clipboard.writeText(text);
+                        toast({ title: "Copied", description: "Readouts copied to clipboard" });
+                      } catch {
+                        toast({ title: "Copy failed", description: "Clipboard not available", variant: "destructive" });
+                      }
+                    }}>
+                      <CopyIcon className="w-4 h-4" /> Copy values
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Copy length, girth, and scale</TooltipContent>
+                </Tooltip>
               </div>
             </CardContent>
           </Card>
