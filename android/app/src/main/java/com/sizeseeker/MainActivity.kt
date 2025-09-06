@@ -19,6 +19,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var overlayView: OverlayView
     private lateinit var scoreText: TextView
+    private var segInterpreter: SegmentationInterpreter? = null
+    private var segPipeline: SegmentationPipeline? = null
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private lateinit var captureController: CaptureController
@@ -35,6 +37,12 @@ class MainActivity : ComponentActivity() {
         overlayView = findViewById(R.id.overlayView)
         scoreText = findViewById(R.id.scoreText)
         captureController = CaptureController(this)
+        try {
+            segInterpreter = SegmentationInterpreter(this)
+            segPipeline = SegmentationPipeline(segInterpreter!!)
+        } catch (_: Throwable) {
+            // Model optional in early scaffold
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -62,6 +70,22 @@ class MainActivity : ComponentActivity() {
                     scoreText.text = "Score: $score"
                     overlayView.updateScore(score)
                 }
+                // Optional segmentation + geometry on current frame
+                try {
+                    val bmp = ImageUtil.yuv420ToBitmap(imageProxy)
+                    segPipeline?.let { pipe ->
+                        val mask = pipe.run(bmp)
+                        // Very simple threshold to avoid tiny/noisy masks
+                        if (mask.meanProb > 0.3f) {
+                            val skel = Geometry.skeletonize(mask)
+                            val path = Geometry.extractCenterline(skel, mask.width, mask.height)
+                            val metrics = Geometry.computeMetrics(path)
+                            // In a full impl, scale px→mm with marker px/mm
+                            // Update overlay (could draw centerline)
+                        }
+                    }
+                } catch (_: Throwable) {}
+
                 // Auto-capture decision and burst save
                 captureController.onFrame(imageProxy, score)
                 imageProxy.close()
