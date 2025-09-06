@@ -8,6 +8,7 @@ Modules
   - analyze_capture.py: Single-image analysis CLI
   - live_capture.py: Live camera overlays with auto-capture and on-the-fly analysis
   - triage_cli.py & triage_rules.py: STD triage rule engine CLI
+  - report_pdf.py: Generate clinician-style PDF from analysis outputs
 
 Quick start (Linux/macOS)
 1) Create and activate a virtual environment
@@ -67,6 +68,29 @@ STD triage rule engine (CLI)
 
 3) Output
    triage_result.json contains recommended panels, urgency flags, and guidance.
+
+PDF report generation
+1) Install dependencies if not already installed
+   pip install -r ml/prototype/requirements.txt
+
+2) Generate a report from prior analysis outputs
+   python ml/prototype/report_pdf.py generate --metrics-json /abs/path/metrics.json --overlay-image /abs/path/overlays.png --out-pdf curvature_report.pdf
+
+3) Optional PDQ summary
+   Provide --pdq-summary pdq.json to include questionnaire summaries in the report.
+
+Lab sandbox stub (local only)
+1) Create an order
+   python ml/prototype/lab_stub_cli.py create_order --user-id usr_1 --panel-codes CG_NAAT HIV_AGAB_4TH_GEN SYPHILIS_RPR_TPPA
+
+2) List and view orders
+   python ml/prototype/lab_stub_cli.py list_orders
+   python ml/prototype/lab_stub_cli.py get_order --order-id ord_XXXXXXXXXXXX
+
+3) Simulate results
+   python ml/prototype/lab_stub_cli.py simulate_result --order-id ord_XXXXXXXXXXXX
+   python ml/prototype/lab_stub_cli.py list_results
+   python ml/prototype/lab_stub_cli.py get_result --result-id res_XXXXXXXXXXXX
 
 # Size Seeker — Wellness & Measurement App
 
