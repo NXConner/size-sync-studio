@@ -1,14 +1,22 @@
-FROM node:22-alpine AS build
+FROM node:22.11.0-alpine3.20 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.27.3-alpine3.20 AS runtime
+USER root
 WORKDIR /usr/share/nginx/html
 COPY --from=build /app/dist ./
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Set strict permissions and drop world-writable bits
+RUN find . -type f -exec chmod 0644 {} \; && \
+    find . -type d -exec chmod 0755 {} \; && \
+    adduser -D -H -u 10101 web && \
+    chown -R web:web /usr/share/nginx/html && \
+    chown -R web:web /var/cache/nginx /var/run /etc/nginx
+USER 10101:10101
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 
