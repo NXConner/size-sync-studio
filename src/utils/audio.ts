@@ -206,6 +206,14 @@ export async function speak(text: string, opts?: { rate?: number; pitch?: number
   synth.speak(utter);
 }
 
+export function stopSpeaking(): void {
+  try {
+    if (typeof window !== "undefined" && ("speechSynthesis" in window)) {
+      window.speechSynthesis.cancel();
+    }
+  } catch {}
+}
+
 // Soft hum-like cue using TTS. Using a long "ummmm" approximates a hum.
 export async function playHumDetect(): Promise<void> {
   await speak("ummmm", { rate: 0.8, pitch: 1.1, volume: 0.9 });

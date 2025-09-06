@@ -21,7 +21,7 @@ import {
   applyFrameRate as applyFrameRateTrack,
   measureVideoFps,
 } from "@/utils/camera";
-import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext } from "@/utils/audio";
+import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext, stopSpeaking } from "@/utils/audio";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
@@ -2392,6 +2392,12 @@ export default function Measure() {
                   <Button variant="outline" size="sm" onClick={() => { void playCompliment(); }} disabled={!voiceEnabled}>
                     Test compliment
                   </Button>
+                  <Button variant="destructive" size="sm" onClick={() => stopSpeaking()} disabled={!voiceEnabled}>
+                    Stop voice
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Placeholders: {"{length_in}"}, {"{length_cm}"}, {"{girth_in}"}, {"{girth_cm}"}, {"{confidence}"}
                 </div>
               </div>
               <div className="flex items-center justify-between">
