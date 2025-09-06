@@ -2379,6 +2379,30 @@ export default function Measure() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Custom lines (one per line)</label>
+                <div className="flex items-center gap-2">
+                  <Select onValueChange={(v) => {
+                    if (v === "concise") {
+                      setCustomVoiceText([
+                        "Length {length_in} in, girth {girth_in} in.",
+                        "Confidence {confidence}.",
+                      ].join("\n"));
+                    } else if (v === "metric") {
+                      setCustomVoiceText([
+                        "Length {length_cm} cm, girth {girth_cm} cm.",
+                        "Confidence {confidence}.",
+                      ].join("\n"));
+                    } else if (v === "clear") {
+                      setCustomVoiceText("");
+                    }
+                  }}>
+                    <SelectTrigger className="w-[220px]"><SelectValue placeholder="Load preset" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concise">Concise (inches)</SelectItem>
+                      <SelectItem value="metric">Metric (cm)</SelectItem>
+                      <SelectItem value="clear">Clear</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Textarea
                   value={customVoiceText}
                   onChange={(e) => setCustomVoiceText(e.target.value)}
@@ -2391,6 +2415,9 @@ export default function Measure() {
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => { void playCompliment(); }} disabled={!voiceEnabled}>
                     Test compliment
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { const lenIn = parseFloat(lengthDisplayRef.current || "0") || 0; const girIn = parseFloat(girthDisplayRef.current || "0") || 0; void playComplimentWithContext({ length_in: lenIn, length_cm: inToCm(lenIn), girth_in: girIn, girth_cm: inToCm(girIn), confidence: confidenceRef.current || 0 }); }} disabled={!voiceEnabled}>
+                    Test with values
                   </Button>
                   <Button variant="destructive" size="sm" onClick={() => stopSpeaking()} disabled={!voiceEnabled}>
                     Stop voice
