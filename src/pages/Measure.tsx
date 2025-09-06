@@ -322,6 +322,58 @@ export default function Measure() {
     } catch {}
   }, [deviceId, facingMode, resolution.w, resolution.h, targetFps, zoomLevel, torchOn]);
 
+  // Load measurement UI preferences once
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("measure.prefs");
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (p && typeof p === "object") {
+        if (typeof p.showGrid === "boolean") setShowGrid(p.showGrid);
+        if (typeof p.gridSize === "number") setGridSize(p.gridSize);
+        if (typeof p.showHud === "boolean") setShowHud(p.showHud);
+        if (typeof p.autoDetect === "boolean") setAutoDetect(p.autoDetect);
+        if (typeof p.autoCapture === "boolean") setAutoCapture(p.autoCapture);
+        if (typeof p.minConfidence === "number") setMinConfidence(p.minConfidence);
+        if (typeof p.detectionIntervalMs === "number") setDetectionIntervalMs(p.detectionIntervalMs);
+        if (typeof p.stabilitySeconds === "number") setStabilitySeconds(p.stabilitySeconds);
+        if (typeof p.stabilityLenTolInches === "number") setStabilityLenTolInches(p.stabilityLenTolInches);
+        if (typeof p.stabilityGirthTolInches === "number") setStabilityGirthTolInches(p.stabilityGirthTolInches);
+        if (typeof p.autoCaptureCooldownSec === "number") setAutoCaptureCooldownSec(p.autoCaptureCooldownSec);
+        if (typeof p.showMask === "boolean") setShowMask(p.showMask);
+        if (typeof p.maskOpacity === "number") setMaskOpacity(p.maskOpacity);
+        if (typeof p.showPrevOverlay === "boolean") setShowPrevOverlay(p.showPrevOverlay);
+        if (typeof p.overlayOpacity === "number") setOverlayOpacity(p.overlayOpacity);
+        if (typeof p.unit === "string" && (p.unit === "in" || p.unit === "cm")) setUnit(p.unit);
+      }
+    } catch {}
+  }, []);
+
+  // Persist measurement UI preferences
+  useEffect(() => {
+    try {
+      const prefs = {
+        showGrid,
+        gridSize,
+        showHud,
+        autoDetect,
+        autoCapture,
+        minConfidence,
+        detectionIntervalMs,
+        stabilitySeconds,
+        stabilityLenTolInches,
+        stabilityGirthTolInches,
+        autoCaptureCooldownSec,
+        showMask,
+        maskOpacity,
+        showPrevOverlay,
+        overlayOpacity,
+        unit,
+      };
+      localStorage.setItem("measure.prefs", JSON.stringify(prefs));
+    } catch {}
+  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, showPrevOverlay, overlayOpacity, unit]);
+
   // Manage camera stream based on mode and selected options
   useEffect(() => {
     let cancelled = false;
