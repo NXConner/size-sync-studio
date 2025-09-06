@@ -10,6 +10,10 @@ __pycache__/
 ml/prototype/data/
 ml/prototype/lab_stub_data/
 captures/
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
 
 # Logs
 logs
