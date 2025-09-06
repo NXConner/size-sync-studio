@@ -106,6 +106,70 @@ export const savePhoto = async (id: string, blob: Blob): Promise<void> => {
   });
 };
 
+// Export/Import utilities
+export type ExportBundle = {
+  measurements: Measurement[];
+  sessions: Session[];
+  goals: Goal[];
+  photos: Array<{ id: string; blob: Blob }>;
+  exportedAt: string;
+  version: number;
+};
+
+export async function exportAll(): Promise<Blob> {
+  const measurements = getMeasurements();
+  const sessions = getSessions();
+  const goals = getGoals();
+  const photos: Array<{ id: string; blob: Blob }> = [];
+  for (const m of measurements) {
+    if (m.photoUrl) {
+      try {
+        const b = await getPhoto(m.id);
+        if (b) photos.push({ id: m.id, blob: b });
+      } catch {}
+    }
+  }
+  const bundle: ExportBundle = {
+    measurements,
+    sessions,
+    goals,
+    photos,
+    exportedAt: new Date().toISOString(),
+    version: 1,
+  };
+  // Serialize photos as base64 for portability
+  const photoEntries: any[] = [];
+  for (const p of photos) {
+    const b64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsDataURL(p.blob);
+    });
+    photoEntries.push({ id: p.id, dataUrl: b64 });
+  }
+  const json = JSON.stringify({ ...bundle, photos: photoEntries });
+  return new Blob([json], { type: 'application/json' });
+}
+
+export async function importAll(file: File): Promise<void> {
+  const text = await file.text();
+  const data = JSON.parse(text || '{}');
+  const measurements: Measurement[] = Array.isArray(data.measurements) ? data.measurements : [];
+  const sessions: Session[] = Array.isArray(data.sessions) ? data.sessions : [];
+  const goals: Goal[] = Array.isArray(data.goals) ? data.goals : [];
+  localStorage.setItem(STORAGE_KEYS.MEASUREMENTS, JSON.stringify(measurements));
+  localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+  localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+  const photos: Array<{ id: string; dataUrl: string }> = Array.isArray(data.photos) ? data.photos : [];
+  for (const p of photos) {
+    try {
+      const res = await fetch(p.dataUrl);
+      const blob = await res.blob();
+      await savePhoto(p.id, blob);
+    } catch {}
+  }
+}
+
 export const getPhoto = async (id: string): Promise<Blob | null> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("SizeSeekerPhotos", 1);
