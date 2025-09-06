@@ -920,6 +920,21 @@ export default function Measure() {
     const onKey = (e: KeyboardEvent) => {
       const overlay = overlayRef.current;
       if (!overlay) return;
+      if (e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        void detectFromLive();
+        return;
+      }
+      if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        void capture();
+        return;
+      }
+      if (e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        toggleFreeze();
+        return;
+      }
       if (e.key.toLowerCase() === "s") {
         setSnapEnabled((v) => !v);
         return;
