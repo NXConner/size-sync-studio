@@ -21,7 +21,7 @@ import {
   applyFrameRate as applyFrameRateTrack,
   measureVideoFps,
 } from "@/utils/camera";
-import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs } from "@/utils/audio";
+import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext } from "@/utils/audio";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
@@ -103,6 +103,8 @@ export default function Measure() {
   const [autoplayEnabled, setAutoplayEnabledState] = useState<boolean>(getAutoplayEnabled());
   const [autoplayIntervalMs, setAutoplayIntervalMsState] = useState<number>(getAutoplayIntervalMs());
   const autoplayTimerRef = useRef<number | null>(null);
+  const [speakOnCapture, setSpeakOnCaptureState] = useState<boolean>(getSpeakOnCapture());
+  const [speakOnLock, setSpeakOnLockState] = useState<boolean>(getSpeakOnLock());
   // Camera controls
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>("");
@@ -482,6 +484,8 @@ export default function Measure() {
   useEffect(() => { setVoiceVolume(voiceVolume); }, [voiceVolume]);
   useEffect(() => { setAutoplayEnabled(autoplayEnabled); }, [autoplayEnabled]);
   useEffect(() => { setAutoplayIntervalMs(autoplayIntervalMs); }, [autoplayIntervalMs]);
+  useEffect(() => { setSpeakOnCapture(speakOnCapture); }, [speakOnCapture]);
+  useEffect(() => { setSpeakOnLock(speakOnLock); }, [speakOnLock]);
 
   // Autoplay timer
   useEffect(() => {
@@ -1883,13 +1887,41 @@ export default function Measure() {
           "Significant girth increase. Consider longer rest intervals and monitor for edema.";
       if (dL > 0.25)
         recommendation = "Great length gain. Maintain current protocol; avoid overtraining.";
-      if (voiceEnabled) { try { await playCompliment(); } catch {} }
+      if (voiceEnabled) {
+        try {
+          if (speakOnCapture) {
+            await playComplimentWithContext({
+              length_in: measurement.length,
+              length_cm: inToCm(measurement.length),
+              girth_in: measurement.girth,
+              girth_cm: inToCm(measurement.girth),
+              confidence,
+            });
+          } else {
+            await playCompliment();
+          }
+        } catch {}
+      }
       toast({
         title: "Captured & Saved",
         description: `Δ Length ${trend(dL)}, Δ Girth ${trend(dG)}. ${recommendation}`,
       });
     } else {
-      if (voiceEnabled) { try { await playCompliment(); } catch {} }
+      if (voiceEnabled) {
+        try {
+          if (speakOnCapture) {
+            await playComplimentWithContext({
+              length_in: measurement.length,
+              length_cm: inToCm(measurement.length),
+              girth_in: measurement.girth,
+              girth_cm: inToCm(measurement.girth),
+              confidence,
+            });
+          } else {
+            await playCompliment();
+          }
+        } catch {}
+      }
       toast({ title: "Captured & Saved", description: "First measurement stored." });
     }
   };
@@ -1945,7 +1977,26 @@ export default function Measure() {
             const lenRange = Math.max(...lenVals) - Math.min(...lenVals);
             const girRange = Math.max(...girVals) - Math.min(...girVals);
             const stable = lenRange <= stabilityLenTolInches && girRange <= stabilityGirthTolInches && (confidenceRef.current || 0) >= minConfidence;
-            setAutoStatus(stable ? "locked" : "stabilizing");
+            const prevStatus = autoStatus;
+            const nextStatus = stable ? "locked" : "stabilizing";
+            if (nextStatus !== prevStatus) {
+              setAutoStatus(nextStatus);
+              if (stable && voiceEnabled && speakOnLock) {
+                try {
+                  const lenIn = parseFloat(lengthDisplayRef.current || "0") || 0;
+                  const girIn = parseFloat(girthDisplayRef.current || "0") || 0;
+                  await playComplimentWithContext({
+                    length_in: lenIn,
+                    length_cm: inToCm(lenIn),
+                    girth_in: girIn,
+                    girth_cm: inToCm(girIn),
+                    confidence: confidenceRef.current || 0,
+                  });
+                } catch {}
+              }
+            } else {
+              setAutoStatus(nextStatus);
+            }
             const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
             if (stable && autoCapture && cooldownOk) {
               try { await capture(); } catch {}
@@ -2342,6 +2393,14 @@ export default function Measure() {
                     Test compliment
                   </Button>
                 </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Speak on capture</span>
+                <Switch checked={speakOnCapture} onCheckedChange={setSpeakOnCaptureState} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Speak when detection locks</span>
+                <Switch checked={speakOnLock} onCheckedChange={setSpeakOnLockState} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Auto-play compliments</span>

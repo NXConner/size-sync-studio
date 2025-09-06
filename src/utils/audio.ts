@@ -7,6 +7,8 @@ const VOICE_PITCH_KEY = "size-seeker-voice-pitch"; // number
 const VOICE_VOLUME_KEY = "size-seeker-voice-volume"; // number
 const VOICE_AUTOPLAY_ENABLED_KEY = "size-seeker-voice-autoplay-enabled";
 const VOICE_AUTOPLAY_INTERVAL_KEY = "size-seeker-voice-autoplay-interval"; // ms
+const VOICE_ON_CAPTURE_KEY = "size-seeker-voice-on-capture";
+const VOICE_ON_LOCK_KEY = "size-seeker-voice-on-lock";
 
 export function getVoiceEnabled(): boolean {
   if (typeof window === "undefined") return false;
@@ -162,6 +164,26 @@ export function setAutoplayIntervalMs(ms: number): void {
   window.localStorage.setItem(VOICE_AUTOPLAY_INTERVAL_KEY, String(v));
 }
 
+export function getSpeakOnCapture(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(VOICE_ON_CAPTURE_KEY) === "true";
+}
+
+export function setSpeakOnCapture(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(VOICE_ON_CAPTURE_KEY, String(enabled));
+}
+
+export function getSpeakOnLock(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(VOICE_ON_LOCK_KEY) === "true";
+}
+
+export function setSpeakOnLock(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(VOICE_ON_LOCK_KEY, String(enabled));
+}
+
 export async function speak(text: string, opts?: { rate?: number; pitch?: number; volume?: number; voiceName?: string }) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const synth = window.speechSynthesis;
@@ -211,5 +233,52 @@ export async function playCompliment(): Promise<void> {
 export async function playCustomLine(text: string): Promise<void> {
   if (!text || !text.trim()) return;
   await speak(text.trim(), { rate: 1.0, pitch: 1.05, volume: 1.0 });
+}
+
+export type VoiceContext = {
+  length_in?: number;
+  length_cm?: number;
+  girth_in?: number;
+  girth_cm?: number;
+  confidence?: number;
+};
+
+export function renderTemplate(template: string, ctx: VoiceContext): string {
+  const map: Record<string, string | number | undefined> = {
+    length_in: ctx.length_in,
+    length_cm: ctx.length_cm,
+    girth_in: ctx.girth_in,
+    girth_cm: ctx.girth_cm,
+    confidence: ctx.confidence,
+  };
+  return String(template || "").replace(/\{(length_in|length_cm|girth_in|girth_cm|confidence)\}/g, (_, key) => {
+    const val = map[key];
+    if (typeof val === "number") {
+      if (key === "confidence") return (Math.max(0, Math.min(1, val)) * 100).toFixed(0) + "%";
+      const decimals = key.endsWith("cm") ? 2 : 2;
+      return val.toFixed(decimals);
+    }
+    return "";
+  });
+}
+
+export async function playComplimentWithContext(ctx: VoiceContext): Promise<void> {
+  const useCustom = getUseCustomVoiceLines();
+  const custom = getCustomVoiceLines();
+  let text: string | null = null;
+  if (useCustom && custom.length > 0) {
+    text = custom[Math.floor(Math.random() * custom.length)];
+  } else {
+    const choices = [
+      "You're doing great",
+      "Nice focus and consistency",
+      "Solid progress—keep it up",
+      "Strong form and steady hands",
+      "Proud of your dedication",
+    ];
+    text = choices[Math.floor(Math.random() * choices.length)];
+  }
+  const rendered = renderTemplate(text || "", ctx);
+  await speak(rendered, { rate: 1.0, pitch: 1.05, volume: 1.0 });
 }
 
