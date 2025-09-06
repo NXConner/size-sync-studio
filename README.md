@@ -5,6 +5,8 @@ Overview
 
 Modules
 - ml/prototype: Python prototype for calibration (ArUco), segmentation (classical placeholder), and curvature/length metrics with a CLI tool.
+  - analyze_capture.py: Single-image analysis CLI
+  - live_capture.py: Live camera overlays with auto-capture and on-the-fly analysis
 
 Quick start (Linux/macOS)
 1) Create and activate a virtual environment
@@ -34,6 +36,18 @@ Troubleshooting
 
 License
 - For internal prototyping only. Do not distribute.
+
+Live capture (desktop webcam)
+1) Launch live capture with overlays and auto-capture
+   python ml/prototype/live_capture.py live --marker-mm 20 --threshold 85 --consecutive 10 --camera-index 0 --burst-frames 6 --out-dir captures
+
+2) Controls
+- The window shows a “good score” and guidance (Lighting/Stability/Marker/Distance/Framing).
+- When the score stays above the threshold for the required consecutive frames, a burst is captured and analyzed.
+- Press 'q' to quit.
+
+Outputs
+- Overlay PNG and metrics JSON are saved under the specified output directory.
 
 # Size Seeker — Wellness & Measurement App
 
