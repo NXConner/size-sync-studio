@@ -12,6 +12,8 @@ import { CalibrationCard } from "@/components/measure/CalibrationCard";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { loadOpenCV } from "@/utils/opencv";
 import {
   startCamera,
@@ -2067,6 +2069,26 @@ export default function Measure() {
                   <TabsTrigger value="upload">Upload</TabsTrigger>
                 </TabsList>
               </Tabs>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="ml-1" title="Help (shortcuts)">
+                    <HelpCircle className="w-5 h-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Shortcuts & Tips</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2 text-sm">
+                    <div><Badge variant="outline">D</Badge> Auto-detect</div>
+                    <div><Badge variant="outline">C</Badge> Capture</div>
+                    <div><Badge variant="outline">F</Badge> Freeze / Unfreeze</div>
+                    <div><Badge variant="outline">S</Badge> Toggle Snap-to-edge</div>
+                    <div>Arrows: Nudge selected handle; Shift = faster</div>
+                    <div>Click two points to calibrate or measure manually.</div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <div className="flex gap-2">
               {mode === "live" && (
@@ -2397,6 +2419,17 @@ export default function Measure() {
                   <Slider value={[voiceVolume]} min={0} max={1} step={0.01} onValueChange={(arr) => setVoiceVolumeState(arr[0])} />
                 </div>
               </div>
+              <div className="flex justify-end pt-1">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setVoiceNameState("");
+                  setVoiceRateState(1.0);
+                  setVoicePitchState(1.0);
+                  setVoiceVolumeState(1.0);
+                  setUseCustomVoice(false);
+                  setCustomVoiceText("");
+                  setAutoplayEnabledState(false);
+                }}>Reset voice defaults</Button>
+              </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Custom lines (one per line)</label>
                 <div className="flex items-center gap-2">
@@ -2443,8 +2476,15 @@ export default function Measure() {
                     Stop voice
                   </Button>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Placeholders: {"{length_in}"}, {"{length_cm}"}, {"{girth_in}"}, {"{girth_cm}"}, {"{confidence}"}
+                <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                  <span>Placeholders:</span>
+                  {(["{length_in}", "{length_cm}", "{girth_in}", "{girth_cm}", "{confidence}"] as const).map((ph) => (
+                    <Badge key={ph} variant="secondary" className="cursor-pointer" onClick={() => {
+                      const ta = document.activeElement as HTMLTextAreaElement | null;
+                      const token = ph;
+                      setCustomVoiceText((prev) => prev ? (prev.endsWith("\n") ? prev + token : prev + " " + token) : token);
+                    }}>{ph}</Badge>
+                  ))}
                 </div>
               </div>
               <div className="flex items-center justify-between">
