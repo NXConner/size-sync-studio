@@ -21,7 +21,8 @@ import {
   applyFrameRate as applyFrameRateTrack,
   measureVideoFps,
 } from "@/utils/camera";
-import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine } from "@/utils/audio";
+import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs } from "@/utils/audio";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
 
@@ -94,6 +95,14 @@ export default function Measure() {
   // Voice customization
   const [useCustomVoice, setUseCustomVoice] = useState<boolean>(getUseCustomVoiceLines());
   const [customVoiceText, setCustomVoiceText] = useState<string>(getCustomVoiceLines().join("\n"));
+  const [voiceList, setVoiceList] = useState<SpeechSynthesisVoice[]>([]);
+  const [voiceName, setVoiceNameState] = useState<string | null>(getVoiceName());
+  const [voiceRate, setVoiceRateState] = useState<number>(getVoiceRate());
+  const [voicePitch, setVoicePitchState] = useState<number>(getVoicePitch());
+  const [voiceVolume, setVoiceVolumeState] = useState<number>(getVoiceVolume());
+  const [autoplayEnabled, setAutoplayEnabledState] = useState<boolean>(getAutoplayEnabled());
+  const [autoplayIntervalMs, setAutoplayIntervalMsState] = useState<number>(getAutoplayIntervalMs());
+  const autoplayTimerRef = useRef<number | null>(null);
   // Camera controls
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>("");
@@ -449,6 +458,52 @@ export default function Measure() {
       .filter((s) => s.length > 0);
     setCustomVoiceLines(lines);
   }, [customVoiceText]);
+
+  // Voice list init and persistence for TTS settings
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const list = await getVoicesAsync();
+        if (!cancelled) setVoiceList(list);
+      } catch {}
+    };
+    load();
+    const handler = () => { void load(); };
+    try { window.speechSynthesis.addEventListener("voiceschanged", handler as any); } catch {}
+    return () => {
+      cancelled = true;
+      try { window.speechSynthesis.removeEventListener("voiceschanged", handler as any); } catch {}
+    };
+  }, []);
+  useEffect(() => { setVoiceName(voiceName || ""); }, [voiceName]);
+  useEffect(() => { setVoiceRate(voiceRate); }, [voiceRate]);
+  useEffect(() => { setVoicePitch(voicePitch); }, [voicePitch]);
+  useEffect(() => { setVoiceVolume(voiceVolume); }, [voiceVolume]);
+  useEffect(() => { setAutoplayEnabled(autoplayEnabled); }, [autoplayEnabled]);
+  useEffect(() => { setAutoplayIntervalMs(autoplayIntervalMs); }, [autoplayIntervalMs]);
+
+  // Autoplay timer
+  useEffect(() => {
+    if (!voiceEnabled || !autoplayEnabled) {
+      if (autoplayTimerRef.current) cancelInterval();
+      return;
+    }
+    scheduleInterval();
+    return () => cancelInterval();
+    function scheduleInterval() {
+      cancelInterval();
+      autoplayTimerRef.current = window.setInterval(() => {
+        void playCompliment();
+      }, Math.max(1000, autoplayIntervalMs));
+    }
+    function cancelInterval() {
+      if (autoplayTimerRef.current != null) {
+        clearInterval(autoplayTimerRef.current);
+        autoplayTimerRef.current = null;
+      }
+    }
+  }, [voiceEnabled, autoplayEnabled, autoplayIntervalMs]);
 
   // Manage camera stream based on mode and selected options
   useEffect(() => {
@@ -2245,6 +2300,32 @@ export default function Measure() {
                 <span className="text-sm">Use custom lines</span>
                 <Switch checked={useCustomVoice} onCheckedChange={setUseCustomVoice} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Voice</label>
+                  <Select value={voiceName ?? ""} onValueChange={(v) => setVoiceNameState(v || null)}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="System default" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">System default</SelectItem>
+                      {voiceList.map((v) => (
+                        <SelectItem key={v.name} value={v.name}>{v.name} ({v.lang})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Rate: {voiceRate.toFixed(2)}</label>
+                  <Slider value={[voiceRate]} min={0.5} max={2.0} step={0.01} onValueChange={(arr) => setVoiceRateState(arr[0])} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Pitch: {voicePitch.toFixed(2)}</label>
+                  <Slider value={[voicePitch]} min={0} max={2} step={0.01} onValueChange={(arr) => setVoicePitchState(arr[0])} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Volume: {Math.round(voiceVolume * 100)}%</label>
+                  <Slider value={[voiceVolume]} min={0} max={1} step={0.01} onValueChange={(arr) => setVoiceVolumeState(arr[0])} />
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Custom lines (one per line)</label>
                 <Textarea
@@ -2261,6 +2342,14 @@ export default function Measure() {
                     Test compliment
                   </Button>
                 </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Auto-play compliments</span>
+                <Switch checked={autoplayEnabled} onCheckedChange={setAutoplayEnabledState} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Auto-play interval: {Math.round(autoplayIntervalMs / 1000)}s</label>
+                <Slider value={[autoplayIntervalMs]} min={1000} max={60000} step={500} onValueChange={(arr) => setAutoplayIntervalMsState(arr[0])} />
               </div>
             </CardContent>
           </Card>
