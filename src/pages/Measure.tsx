@@ -282,9 +282,45 @@ export default function Measure() {
     };
   }, []);
 
+  // Load saved camera preferences once
   useEffect(() => {
-    if (devices.length && !deviceId) setDeviceId(devices[0].deviceId);
+    try {
+      const raw = localStorage.getItem("camera.prefs");
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (p && typeof p === "object") {
+        if (p.facing === "user" || p.facing === "environment") setFacingMode(p.facing);
+        if (typeof p.deviceId === "string") setDeviceId(p.deviceId);
+        if (p.resolution && typeof p.resolution.w === "number" && typeof p.resolution.h === "number") setResolution({ w: p.resolution.w, h: p.resolution.h });
+        if (typeof p.fps === "number") setTargetFps(p.fps);
+        if (p.zoom != null && !Number.isNaN(Number(p.zoom))) setZoomLevel(Number(p.zoom));
+        if (typeof p.torch === "boolean") setTorchOn(p.torch);
+      }
+    } catch {}
+  }, []);
+
+  // If the saved device is no longer present, clear it to allow facing-mode selection to choose back camera by default
+  useEffect(() => {
+    if (!devices.length) return;
+    if (deviceId && !devices.some((d) => d.deviceId === deviceId)) {
+      setDeviceId("");
+    }
   }, [devices, deviceId]);
+
+  // Persist camera preferences
+  useEffect(() => {
+    try {
+      const prefs = {
+        deviceId,
+        facing: facingMode,
+        resolution,
+        fps: targetFps,
+        zoom: zoomLevel,
+        torch: torchOn,
+      };
+      localStorage.setItem("camera.prefs", JSON.stringify(prefs));
+    } catch {}
+  }, [deviceId, facingMode, resolution.w, resolution.h, targetFps, zoomLevel, torchOn]);
 
   // Manage camera stream based on mode and selected options
   useEffect(() => {
