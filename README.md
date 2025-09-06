@@ -113,6 +113,16 @@ Android app scaffold
 2) Build and run on device/emulator (permissions: CAMERA)
 3) You should see CameraX preview with a simple overlay and a changing "Score" value
 
+Android model inference
+1) Place a TFLite model at `android/app/src/main/assets/segmentation.tflite`
+2) Build & run; wire `SegmentationInterpreter` where needed to obtain masks
+3) Next steps: integrate marker detection, geometry metrics, and quality gating
+
+Plans
+- Android native geometry: docs/mobile/ANDROID_NATIVE_GEOMETRY_PLAN.md
+- Training execution: docs/mobile/TRAINING_EXEC_PLAN.md
+- Android inference: docs/mobile/ANDROID_INFERENCE_PLAN.md
+
 Model training (segmentation)
 1) Create venv and install training deps
    python3 -m venv .venv && source .venv/bin/activate
