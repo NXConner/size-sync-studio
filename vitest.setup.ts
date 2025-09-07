@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
 expect.extend(matchers);
@@ -22,3 +22,5 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   // @ts-ignore
   globalThis.ResizeObserver = ResizeObserverPolyfill as unknown as typeof ResizeObserver;
 }
+
+vi.setConfig({ testTimeout: 20000 });

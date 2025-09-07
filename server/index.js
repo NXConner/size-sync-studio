@@ -13,6 +13,7 @@ import { z } from "zod";
 import path from "node:path";
 
 const app = express();
+app.disable("x-powered-by");
 const router = express.Router();
 if (config.SENTRY_DSN) {
   Sentry.init({ dsn: config.SENTRY_DSN, tracesSampleRate: 0.1 });
@@ -76,6 +77,10 @@ const cache = {
 };
 app.use(express.json({ limit: "1mb" }));
 app.use(`${config.API_PREFIX}/docs`, swaggerUi.serve, swaggerUi.setup(openapiSpec));
+// Serve raw OpenAPI JSON for tooling/clients
+app.get(`${config.API_PREFIX}/openapi.json`, (_req, res) => {
+  res.json(openapiSpec);
+});
 
 const refusalMessage =
   "I can’t provide instructions for sexual techniques, enlargement, or pressure/time routines. " +
@@ -338,12 +343,14 @@ if (config.SENTRY_DSN) {
 
 app.use(config.API_PREFIX, router);
 
-// Serve Secret View Haven static app under /mediax
-const mediaxDir = "/workspace/secret-view-haven/dist";
-app.use("/mediax", express.static(mediaxDir));
-app.get("/mediax/*", (_req, res) => {
-  res.sendFile(path.join(mediaxDir, "index.html"));
-});
+// Serve Secret View Haven static app under /mediax (portable path)
+try {
+  const mediaxDir = path.resolve(process.cwd(), "secret-view-haven/dist");
+  app.use("/mediax", express.static(mediaxDir));
+  app.get("/mediax/*", (_req, res) => {
+    res.sendFile(path.join(mediaxDir, "index.html"));
+  });
+} catch {}
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });

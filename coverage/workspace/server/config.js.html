@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">69.56% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>16/23</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">69.56% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>16/23</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -91,59 +91,59 @@
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a>
-<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import "dotenv/config";</span></span></span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import "dotenv/config";
 import { z } from "zod";
 &nbsp;
-<span class="cstat-no" title="statement not covered" >const EnvSchema = z.object({</span>
-<span class="cstat-no" title="statement not covered" >  NODE_ENV: z.string().default("development"),</span>
-<span class="cstat-no" title="statement not covered" >  PORT: z.coerce.number().int().positive().default(3001),</span>
-<span class="cstat-no" title="statement not covered" >  API_PREFIX: z.string().default("/api"),</span>
-<span class="cstat-no" title="statement not covered" >  WEB_ORIGIN: z.string().optional(),</span>
-<span class="cstat-no" title="statement not covered" >  SENTRY_DSN: z.string().optional(),</span>
-<span class="cstat-no" title="statement not covered" >  REDDIT_CLIENT_ID: z.string().optional(),</span>
-<span class="cstat-no" title="statement not covered" >  REDDIT_CLIENT_SECRET: z.string().optional(),</span>
-<span class="cstat-no" title="statement not covered" >  REDDIT_USERNAME: z.string().optional(),</span>
-<span class="cstat-no" title="statement not covered" >  REDDIT_PASSWORD: z.string().optional(),</span>
-<span class="cstat-no" title="statement not covered" >});</span>
+const EnvSchema = z.object({
+  NODE_ENV: z.string().default("development"),
+  PORT: z.coerce.number().int().positive().default(3001),
+  API_PREFIX: z.string().default("/api"),
+  WEB_ORIGIN: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
+  REDDIT_CLIENT_ID: z.string().optional(),
+  REDDIT_CLIENT_SECRET: z.string().optional(),
+  REDDIT_USERNAME: z.string().optional(),
+  REDDIT_PASSWORD: z.string().optional(),
+});
 &nbsp;
-<span class="cstat-no" title="statement not covered" >const parsed = EnvSchema.safeParse(process.env);</span>
-<span class="cstat-no" title="statement not covered" >if (!parsed.success) {</span>
+const parsed = EnvSchema.safeParse(process.env);
+if (!parsed.success) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
 <span class="cstat-no" title="statement not covered" >  // eslint-disable-next-line no-console</span>
 <span class="cstat-no" title="statement not covered" >  console.error("Invalid environment configuration:", parsed.error.format());</span>
 <span class="cstat-no" title="statement not covered" >  process.exit(1);</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export const config = parsed.data;</span>
+export const config = parsed.data;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export function hasRedditCredentials() {</span>
+export <span class="fstat-no" title="function not covered" >function hasRedditCredentials() {</span>
 <span class="cstat-no" title="statement not covered" >  const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD } = config;</span>
 <span class="cstat-no" title="statement not covered" >  return Boolean(REDDIT_CLIENT_ID &amp;&amp; REDDIT_CLIENT_SECRET &amp;&amp; REDDIT_USERNAME &amp;&amp; REDDIT_PASSWORD);</span>
 <span class="cstat-no" title="statement not covered" >}</span>
@@ -154,7 +154,7 @@ import { z } from "zod";
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T13:13:38.315Z
+                at 2025-09-07T02:52:46.936Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

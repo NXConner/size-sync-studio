@@ -10,6 +10,8 @@ const MediaViewer = lazy(() => import('@mediax/components/MediaViewer').then(m =
 const WallpaperControls = lazy(() => import('@mediax/components/WallpaperControls'));
 import { db, type MediaRecord } from '@mediax/lib/db'
 import PinLock from '@mediax/components/PinLock'
+import { usePinLock } from '@mediax/hooks/usePinLock'
+import { encryptBlob } from '@mediax/lib/crypto'
 import { hapticImpact } from '@mediax/lib/native'
 
 export interface MediaItem {
@@ -22,6 +24,9 @@ export interface MediaItem {
   tags: string[];
   uploadDate: Date;
   size: number;
+  encIvHex?: string;
+  encData?: Uint8Array;
+  encMimeType?: string;
 }
 
 const Index = () => {
@@ -35,7 +40,7 @@ const Index = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [wallpaper, setWallpaper] = useState<WallpaperConfig | null>(null);
   const [showWallpaperControls, setShowWallpaperControls] = useState(false);
-  // PIN removed; media is always visible
+  const { key, hasPin } = usePinLock()
 
   // Initial load: hydrate from IndexedDB; if empty, seed with mock data once
   useEffect(() => {
@@ -138,18 +143,20 @@ const Index = () => {
         const createUrl = () => URL.createObjectURL(file)
         url = createUrl()
         thumbnail = createUrl()
-        await db.media.put({
-          id,
-          type,
-          url,
-          thumbnail,
-          title: file.name,
-          collection: 'recent',
-          tags: ['uploaded'],
-          uploadDate: now,
-          size: file.size,
-        })
-        records.push({ id, type, url, thumbnail, title: file.name, collection: 'recent', tags: ['uploaded'], uploadDate: now, size: file.size })
+        let encIvHex: string | undefined
+        let encData: Uint8Array | undefined
+        let encMimeType: string | undefined
+        if (hasPin && key) {
+          const enc = await encryptBlob(file, key)
+          encIvHex = enc.ivHex
+          encData = enc.data
+          encMimeType = enc.mimeType
+          // Replace public URL with an opaque object URL for privacy during session
+          url = ''
+          thumbnail = ''
+        }
+        await db.media.put({ id, type, url, thumbnail, title: file.name, collection: 'recent', tags: ['uploaded'], uploadDate: now, size: file.size, encIvHex, encData, encMimeType })
+        records.push({ id, type, url, thumbnail, title: file.name, collection: 'recent', tags: ['uploaded'], uploadDate: now, size: file.size, encIvHex, encData, encMimeType })
         setUploadProgress(Math.round(((index + 1) / total) * 100))
       }
       // Simulate per-file progress for UX
