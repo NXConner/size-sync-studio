@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react'
 import { X, ChevronRight, ChevronLeft, Download, Image as ImageIcon } from 'lucide-react'
 import { buildSrcSet } from '@mediax/lib/image';
 import type { MediaItem } from '@mediax/pages/Index';
+import { usePinLock } from '@mediax/hooks/usePinLock'
+import { decryptToBlob } from '@mediax/lib/crypto'
 import { Button } from '@mediax/components/ui/button'
 import { Input } from '@mediax/components/ui/input'
 
@@ -14,6 +16,28 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
   onSetWallpaper: () => void;
   onUpdateMeta: (args: { id: string; title: string; collection: string; tags: string[] }) => Promise<void>;
 }) {
+  const { key } = usePinLock()
+  const [resolvedUrl, setResolvedUrl] = useState<string>(media.url)
+  useEffect(() => {
+    let revoked: string | null = null
+    const run = async () => {
+      if (media.encIvHex && media.encData && media.encMimeType && key) {
+        try {
+          const blob = await decryptToBlob(media.encIvHex, media.encData, key, media.encMimeType)
+          const url = URL.createObjectURL(blob)
+          revoked = url
+          setResolvedUrl(url)
+        } catch {
+          setResolvedUrl('')
+        }
+      } else {
+        setResolvedUrl(media.url)
+      }
+    }
+    run()
+    return () => { if (revoked) { URL.revokeObjectURL(revoked) } }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media.id, key])
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       switch (e.key) {
@@ -111,7 +135,7 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
             <source type="image/avif" srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400], 'avif')} />
             <source type="image/webp" srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400], 'webp')} />
             <img
-              src={media.url}
+              src={resolvedUrl || media.url}
               srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400])}
               alt={media.title}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -120,7 +144,7 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
           </picture>
         ) : (
           <video
-            src={media.url}
+            src={resolvedUrl || media.url}
             controls
             autoPlay
             preload="metadata"
