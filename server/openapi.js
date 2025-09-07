@@ -30,6 +30,12 @@ export const openapiSpec = {
         responses: { 200: { description: "Chat response" } },
       },
     },
+    "/chat/stream": {
+      get: {
+        summary: "Streamed chat (SSE)",
+        responses: { 200: { description: "text/event-stream" } },
+      },
+    },
     "/image/schedule": {
       get: {
         summary: "SVG wellness plan",
@@ -40,6 +46,28 @@ export const openapiSpec = {
       get: {
         summary: "Top posts (titles only)",
         responses: { 200: { description: "JSON list" } },
+      },
+    },
+    "/feedback": {
+      post: {
+        summary: "Submit feedback",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  message: { type: "string" },
+                  reply: { type: "string" },
+                  rating: { type: "string", enum: ["up", "down"] },
+                  reasons: { type: "array", items: { type: "string" }, maxItems: 5 },
+                },
+              },
+            },
+          },
+        },
+        responses: { 200: { description: "OK" } },
       },
     },
   },

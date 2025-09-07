@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
+import { segWorker } from "@/lib/segWorkerClient";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -80,6 +81,7 @@ export default function Measure() {
   const [maskUrl, setMaskUrl] = useState<string>("");
   const [maskGeom, setMaskGeom] = useState<{ offsetX: number; offsetY: number; drawW: number; drawH: number } | null>(null);
   const [maskOpacity, setMaskOpacity] = useState<number>(35);
+  const [useMlSegmentation, setUseMlSegmentation] = useState<boolean>(false);
   const autoDetectRafRef = useRef<number | null>(null);
   const lastDetectTsRef = useRef<number>(0);
   const lastAutoCaptureTsRef = useRef<number>(0);
@@ -90,6 +92,8 @@ export default function Measure() {
   const [nudgeStep, setNudgeStep] = useState<number>(1);
   const [isAutoCalibrating, setIsAutoCalibrating] = useState<boolean>(false);
   const [confidence, setConfidence] = useState<number>(0);
+  const [qualityScore, setQualityScore] = useState<number>(0);
+  const [curvatureDeg, setCurvatureDeg] = useState<number>(0);
   const confidenceRef = useRef<number>(0);
   const [minConfidence, setMinConfidence] = useState<number>(0.6);
   const [showHud, setShowHud] = useState<boolean>(true);
@@ -424,6 +428,7 @@ export default function Measure() {
         if (typeof p.autoCaptureCooldownSec === "number") setAutoCaptureCooldownSec(p.autoCaptureCooldownSec);
         if (typeof p.showMask === "boolean") setShowMask(p.showMask);
         if (typeof p.maskOpacity === "number") setMaskOpacity(p.maskOpacity);
+        if (typeof p.useMlSegmentation === "boolean") setUseMlSegmentation(p.useMlSegmentation);
         if (typeof p.showPrevOverlay === "boolean") setShowPrevOverlay(p.showPrevOverlay);
         if (typeof p.overlayOpacity === "number") setOverlayOpacity(p.overlayOpacity);
         if (typeof p.unit === "string" && (p.unit === "in" || p.unit === "cm")) setUnit(p.unit);
@@ -448,13 +453,14 @@ export default function Measure() {
         autoCaptureCooldownSec,
         showMask,
         maskOpacity,
+        useMlSegmentation,
         showPrevOverlay,
         overlayOpacity,
         unit,
       };
       localStorage.setItem("measure.prefs", JSON.stringify(prefs));
     } catch {}
-  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, showPrevOverlay, overlayOpacity, unit]);
+  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, useMlSegmentation, showPrevOverlay, overlayOpacity, unit]);
 
   // Persist voice customization
   useEffect(() => {
@@ -1356,6 +1362,14 @@ export default function Measure() {
             const chosen = chooseBaseAndTip(p1, p2);
             const conf = det.confidence || 0;
             setConfidence(conf);
+            try {
+              if ((det as any).quality && typeof (det as any).quality.score === 'number') {
+                setQualityScore((det as any).quality.score);
+              }
+              if (typeof (det as any).curvatureDeg === 'number') {
+                setCurvatureDeg((det as any).curvatureDeg);
+              }
+            } catch {}
             if (conf >= minConfidence) {
               const alpha = 1.0;
               const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -1470,6 +1484,8 @@ export default function Measure() {
         confidence += Math.min(1, areaFraction / 0.2) * 0.25;
         confidence += Math.min(1, solidity) * 0.30;
         setConfidence(confidence);
+        setQualityScore(0);
+        setCurvatureDeg(0);
         if (confidence >= minConfidence) {
           const alpha = 1.0; // single image: snap
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -1603,17 +1619,33 @@ export default function Measure() {
         }
       } catch {}
 
-      // Skin masking
+      // Skin masking (classical) or ML segmentation
       const mask1 = new cv.Mat();
       const mask2 = new cv.Mat();
       const mask = new cv.Mat();
-      const low1 = new cv.Mat(h, w, cv.CV_8UC3, [0, 133, 77]);
-      const high1 = new cv.Mat(h, w, cv.CV_8UC3, [255, 173, 127]);
-      cv.inRange(ycrcb, low1, high1, mask1);
-      const low2 = new cv.Mat(h, w, cv.CV_8UC3, [0, Math.round(0.23 * 255), 50]);
-      const high2 = new cv.Mat(h, w, cv.CV_8UC3, [50, Math.round(0.68 * 255), 255]);
-      cv.inRange(hsv, low2, high2, mask2);
-      cv.bitwise_or(mask1, mask2, mask);
+      let usedMl = false;
+      if (useMlSegmentation) {
+        try {
+          const frame = pctx.getImageData(0, 0, w, h);
+          const seg = await segWorker.segment({ width: w, height: h, imageData: frame.data });
+          if (seg && seg.mask && seg.mask.length === w * h) {
+            const maskMat = new cv.Mat(h, w, cv.CV_8UC1);
+            maskMat.data.set(seg.mask);
+            maskMat.copyTo(mask);
+            maskMat.delete();
+            usedMl = true;
+          }
+        } catch {}
+      }
+      if (!usedMl) {
+        const low1 = new cv.Mat(h, w, cv.CV_8UC3, [0, 133, 77]);
+        const high1 = new cv.Mat(h, w, cv.CV_8UC3, [255, 173, 127]);
+        cv.inRange(ycrcb, low1, high1, mask1);
+        const low2 = new cv.Mat(h, w, cv.CV_8UC3, [0, Math.round(0.23 * 255), 50]);
+        const high2 = new cv.Mat(h, w, cv.CV_8UC3, [50, Math.round(0.68 * 255), 255]);
+        cv.inRange(hsv, low2, high2, mask2);
+        cv.bitwise_or(mask1, mask2, mask);
+      }
 
       // Morphology
       const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7));
@@ -2321,12 +2353,24 @@ export default function Measure() {
                 </div>
               )}
               {showHud && (
-                <div className="absolute left-3 bottom-3 right-3 pointer-events-none select-none" aria-live="polite" aria-atomic="true">
+                <div
+                  className="absolute left-3 right-3 pointer-events-none select-none"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  style={{ bottom: `calc(${mode === "live" ? 88 : (mode === "upload" && uploadedUrl ? 64 : 12)}px + env(safe-area-inset-bottom))` }}
+                >
                   <div className="bg-black/50 rounded-md p-2 text-xs text-white flex items-center gap-3">
                     <span className={`whitespace-nowrap ${autoStatus.includes('detect') ? 'text-sky-300' : autoStatus === 'locked' ? 'text-emerald-300' : autoStatus === 'captured' ? 'text-amber-300' : autoStatus.includes('weak') ? 'text-rose-300' : 'text-slate-300'}`}>{autoStatus}</span>
                     <div className="flex-1">
                       <Progress value={Math.max(0, Math.min(100, Math.round(confidence * 100)))} />
                     </div>
+                    <div className="hidden md:flex items-center gap-2">
+                      <span className="opacity-80">Quality</span>
+                      <Progress value={Math.max(0, Math.min(100, Math.round(qualityScore * 100)))} />
+                    </div>
+                    {curvatureDeg > 0 && (
+                      <span className="ml-2 opacity-90">Curv ≈ {curvatureDeg.toFixed(1)}°</span>
+                    )}
                     <span className="whitespace-nowrap">{Math.max(0, Math.min(1, confidence)).toFixed(2)}</span>
                     <span className="opacity-70 whitespace-nowrap">min {minConfidence.toFixed(2)}</span>
                     {mode === "live" && (
@@ -2442,6 +2486,21 @@ export default function Measure() {
                   </TooltipTrigger>
                   <TooltipContent>Copy length, girth, and scale</TooltipContent>
                 </Tooltip>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Experimental</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Use ML segmentation (ONNXRuntime) [experimental]</span>
+                <Switch checked={useMlSegmentation} onCheckedChange={setUseMlSegmentation} />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                When enabled, segmentation runs in a web worker. If no model is available, it falls back to classical masking.
               </div>
             </CardContent>
           </Card>

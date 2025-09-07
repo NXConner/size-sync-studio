@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.89% </span>
+                <span class="strong">87.21% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>102/111</span>
+                <span class='fraction'>116/133</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80% </span>
+                <span class="strong">57.89% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>8/10</span>
+                <span class='fraction'>11/19</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">33.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/8</span>
+                <span class='fraction'>3/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.89% </span>
+                <span class="strong">87.21% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>102/111</span>
+                <span class='fraction'>116/133</span>
             </div>
         
             
@@ -237,7 +237,33 @@
 <a name='L172'></a><a href='#L172'>172</a>
 <a name='L173'></a><a href='#L173'>173</a>
 <a name='L174'></a><a href='#L174'>174</a>
-<a name='L175'></a><a href='#L175'>175</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -252,6 +278,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -416,6 +464,8 @@ import React, { useEffect, useState } from 'react'
 import { X, ChevronRight, ChevronLeft, Download, Image as ImageIcon } from 'lucide-react'
 import { buildSrcSet } from '@mediax/lib/image';
 import type { MediaItem } from '@mediax/pages/Index';
+import { usePinLock } from '@mediax/hooks/usePinLock'
+import { decryptToBlob } from '@mediax/lib/crypto'
 import { Button } from '@mediax/components/ui/button'
 import { Input } from '@mediax/components/ui/input'
 &nbsp;
@@ -427,6 +477,28 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
   onSetWallpaper: () =&gt; void;
   onUpdateMeta: (args: { id: string; title: string; collection: string; tags: string[] }) =&gt; Promise&lt;void&gt;;
 }) {
+  const { key } = usePinLock()
+  const [resolvedUrl, setResolvedUrl] = useState&lt;string&gt;(media.url)
+  useEffect(() =&gt; {
+    let revoked: string | null = null
+    const run = async () =&gt; {
+      if (media.encIvHex<span class="branch-0 cbranch-no" title="branch not covered" > &amp;&amp; media.encData<span class="branch-0 cbranch-no" title="branch not covered" > </span>&amp;&amp; media.encMimeType<span class="branch-0 cbranch-no" title="branch not covered" > </span>&amp;&amp; key) <span class="branch-0 cbranch-no" title="branch not covered" >{</span></span>
+<span class="cstat-no" title="statement not covered" >        try {</span>
+<span class="cstat-no" title="statement not covered" >          const blob = await decryptToBlob(media.encIvHex, media.encData, key, media.encMimeType)</span>
+<span class="cstat-no" title="statement not covered" >          const url = URL.createObjectURL(blob)</span>
+<span class="cstat-no" title="statement not covered" >          revoked = url</span>
+<span class="cstat-no" title="statement not covered" >          setResolvedUrl(url)</span>
+<span class="cstat-no" title="statement not covered" >        } catch {</span>
+<span class="cstat-no" title="statement not covered" >          setResolvedUrl('')</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+      } else {
+        setResolvedUrl(media.url)
+      }
+    }
+    run()
+    return () =&gt; { if (revoked) <span class="branch-0 cbranch-no" title="branch not covered" >{ URL.revokeObjectURL(revoked) } }</span>
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media.id, key])
   useEffect(() =&gt; {
     const handleKeyPress = (e: KeyboardEvent) =&gt; {
       switch (e.key) {
@@ -524,7 +596,7 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
             &lt;source type="image/avif" srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400], 'avif')} /&gt;
             &lt;source type="image/webp" srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400], 'webp')} /&gt;
             &lt;img
-              src={media.url}
+              src={<span class="branch-0 cbranch-no" title="branch not covered" >resolvedUrl || media.url}</span>
               srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400])}
               alt={media.title}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -533,7 +605,7 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
           &lt;/picture&gt;
         ) : (
           &lt;video
-            src={media.url}
+            src={resolvedUrl || media.url}
             controls
             autoPlay
             preload="metadata"
@@ -592,7 +664,7 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-06T13:13:38.315Z
+                at 2025-09-07T07:40:21.255Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

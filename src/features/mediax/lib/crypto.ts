@@ -5,7 +5,19 @@ export async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-// deriveKeyFromPin removed; PIN functionality deprecated
+export async function deriveKeyFromPin(pin: string, saltHex?: string): Promise<{ key: CryptoKey; saltHex: string }> {
+  const enc = new TextEncoder()
+  const material = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey'])
+  const salt = saltHex ? hexToBytes(saltHex) : crypto.getRandomValues(new Uint8Array(16))
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 150_000, hash: 'SHA-256' },
+    material,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+  return { key, saltHex: bytesToHex(salt) }
+}
 
 export async function encryptBlob(blob: Blob, key: CryptoKey): Promise<{ ivHex: string; data: Uint8Array; mimeType: string }> {
   const iv = crypto.getRandomValues(new Uint8Array(12))
