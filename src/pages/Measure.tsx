@@ -2357,7 +2357,7 @@ export default function Measure() {
                   className="absolute left-3 right-3 pointer-events-none select-none"
                   aria-live="polite"
                   aria-atomic="true"
-                  style={{ bottom: mode === "live" ? 88 : (mode === "upload" && uploadedUrl ? 64 : 12) }}
+                  style={{ bottom: `calc(${mode === "live" ? 88 : (mode === "upload" && uploadedUrl ? 64 : 12)}px + env(safe-area-inset-bottom))` }}
                 >
                   <div className="bg-black/50 rounded-md p-2 text-xs text-white flex items-center gap-3">
                     <span className={`whitespace-nowrap ${autoStatus.includes('detect') ? 'text-sky-300' : autoStatus === 'locked' ? 'text-emerald-300' : autoStatus === 'captured' ? 'text-amber-300' : autoStatus.includes('weak') ? 'text-rose-300' : 'text-slate-300'}`}>{autoStatus}</span>
