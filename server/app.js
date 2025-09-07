@@ -11,6 +11,7 @@ import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
 import { z } from "zod";
 import path from "node:path";
+import client from "prom-client";
 
 export function createApp() {
   const app = express();
@@ -89,6 +90,18 @@ export function createApp() {
   app.use(`${config.API_PREFIX}/docs`, swaggerUi.serve, swaggerUi.setup(openapiSpec));
   app.get(`${config.API_PREFIX}/openapi.json`, (_req, res) => {
     res.json(openapiSpec);
+  });
+
+  // Metrics (Prometheus)
+  const register = new client.Registry();
+  client.collectDefaultMetrics({ register, prefix: "sizeseeker_" });
+  app.get(`${config.API_PREFIX}/metrics`, async (_req, res) => {
+    try {
+      res.set("Content-Type", register.contentType);
+      res.send(await register.metrics());
+    } catch (e) {
+      res.status(500).send("metrics error");
+    }
   });
 
   // In-memory caches

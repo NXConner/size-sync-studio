@@ -20,6 +20,20 @@ jobs:
       - run: npm run typecheck
       - run: npm test -- --coverage
       - run: npm run build
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci --audit=false --fund=false
+      - run: npx playwright install --with-deps
+      - run: npm run dev &
+      - run: npm run server &
+      - run: npx wait-on http://localhost:8080 http://localhost:3001/api/health
+      - run: npx playwright test -g "Measure smoke"
 name: CI
 
 on:
