@@ -84,6 +84,9 @@ self.onmessage = async (event) => {
       const src = cv.imread(off);
       const rgba = new cv.Mat();
       cv.cvtColor(src, rgba, cv.COLOR_RGBA2RGB);
+      // Gray for brightness/blur metrics
+      const gray = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
       const hsv = new cv.Mat();
       const ycrcb = new cv.Mat();
       cv.cvtColor(rgba, hsv, cv.COLOR_RGB2HSV);
@@ -127,8 +130,10 @@ self.onmessage = async (event) => {
       let axisUx = 1, axisUy = 0;
       let end1 = null, end2 = null;
       let bestCnt = null;
+      let bestRect = null;
       if (bestIdx >= 0) {
         const cnt = contours2.get(bestIdx);
+        bestRect = cv.boundingRect(cnt);
         const moments = cv.moments(cnt, false);
         const cx = moments.m00 !== 0 ? moments.m10 / moments.m00 : width / 2;
         const cy = moments.m00 !== 0 ? moments.m01 / moments.m00 : height / 2;
@@ -219,6 +224,79 @@ self.onmessage = async (event) => {
       confidence += Math.min(1, areaFraction / 0.2) * 0.25;
       confidence += Math.min(1, solidity) * 0.30;
 
+      // Quality metrics
+      let brightness = 0;
+      try {
+        const mean = cv.mean(gray);
+        brightness = mean[0] || 0; // 0-255
+      } catch {}
+      let blurVar = 0;
+      try {
+        const lap = new cv.Mat();
+        cv.Laplacian(gray, lap, cv.CV_64F);
+        // Compute variance
+        const mean = new cv.Mat();
+        const std = new cv.Mat();
+        cv.meanStdDev(lap, mean, std);
+        const sigma = std.doubleAt(0, 0);
+        blurVar = sigma * sigma;
+        lap.delete(); mean.delete(); std.delete();
+      } catch {}
+      let edgeProximity = 0;
+      try {
+        const border = Math.max(4, Math.round(Math.min(width, height) * 0.02));
+        const totalMask = Math.max(1, bestArea);
+        let near = 0;
+        for (let y = 0; y < height; y += 2) {
+          const row = mask.ucharPtr(y);
+          for (let x = 0; x < width; x += 2) {
+            if (row[x] > 0) {
+              if (x < border || y < border || x > width - border || y > height - border) near += 1;
+            }
+          }
+        }
+        edgeProximity = Math.min(1, (near * 4) / Math.max(1, totalMask)); // *4 for stride
+      } catch {}
+      const sizeFraction = areaFraction;
+      const brightnessScore = Math.max(0, 1 - Math.abs(brightness - 140) / 140); // favor mid brightness
+      const blurScore = Math.min(1, blurVar / 200); // tune threshold
+      const sizeScore = Math.min(1, sizeFraction / 0.35); // favor up to ~35% fill
+      const edgeScore = Math.max(0, 1 - edgeProximity);
+      const qualityScore = 0.30 * brightnessScore + 0.30 * blurScore + 0.25 * sizeScore + 0.15 * edgeScore;
+
+      // Curvature estimate (non-diagnostic)
+      let curvatureDeg = 0;
+      let curvatureSagPx = 0;
+      let curvatureApex = null;
+      if (end1 && end2 && bestRect) {
+        try {
+          const cx = (end1.x + end2.x) / 2, cy = (end1.y + end2.y) / 2;
+          const lengthPx = Math.hypot(end2.x - end1.x, end2.y - end1.y) || 1;
+          const perpUx = -axisUy, perpUy = axisUx;
+          const rectX = bestRect.x, rectY = bestRect.y, rectW = bestRect.width, rectH = bestRect.height;
+          let maxDef = 0; let maxPt = { x: cx, y: cy };
+          for (let y = rectY; y < rectY + rectH; y += 2) {
+            const row = mask.ucharPtr(y);
+            for (let x = rectX; x < rectX + rectW; x += 2) {
+              if (row[x] > 0) {
+                // signed distance from line through end1-end2
+                const s = (x - end1.x) * axisUx + (y - end1.y) * axisUy;
+                const tpx = end1.x + s * axisUx;
+                const tpy = end1.y + s * axisUy;
+                const dx = x - tpx, dy = y - tpy;
+                const def = Math.abs(dx * perpUx + dy * perpUy);
+                if (def > maxDef) { maxDef = def; maxPt = { x, y }; }
+              }
+            }
+          }
+          curvatureSagPx = maxDef;
+          // approximate angle using sagitta/chord
+          const theta = 2 * Math.atan2(2 * maxDef, lengthPx);
+          curvatureDeg = Math.max(0, Math.min(90, theta * (180 / Math.PI)));
+          curvatureApex = maxPt;
+        } catch {}
+      }
+
       // Pack mask image for optional overlay
       const maskCanvas = new OffscreenCanvas(width, height);
       cv.imshow(maskCanvas, mask);
@@ -226,11 +304,14 @@ self.onmessage = async (event) => {
       const maskImage = mctx.getImageData(0, 0, width, height);
 
       // Cleanup
-      src.delete(); rgba.delete(); hsv.delete(); ycrcb.delete();
+      src.delete(); rgba.delete(); gray.delete(); hsv.delete(); ycrcb.delete();
       mask1.delete(); mask2.delete(); mask.delete(); kernel.delete();
       contours2.delete(); hierarchy2.delete(); if (bestCnt) bestCnt.delete();
 
-      const result = { end1, end2, axisUx, axisUy, widths, bestArea, width, height, confidence, maskImage: maskImage.data };
+      const result = { end1, end2, axisUx, axisUy, widths, bestArea, width, height, confidence,
+        quality: { brightness, blurVar, sizeFraction, edgeProximity, score: qualityScore },
+        curvatureDeg, curvatureSagPx, curvatureApex,
+        maskImage: maskImage.data };
       return self.postMessage({ id, ok: true, data: result }, [maskImage.data.buffer]);
     }
     // Unknown message type for now

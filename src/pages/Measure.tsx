@@ -90,6 +90,8 @@ export default function Measure() {
   const [nudgeStep, setNudgeStep] = useState<number>(1);
   const [isAutoCalibrating, setIsAutoCalibrating] = useState<boolean>(false);
   const [confidence, setConfidence] = useState<number>(0);
+  const [qualityScore, setQualityScore] = useState<number>(0);
+  const [curvatureDeg, setCurvatureDeg] = useState<number>(0);
   const confidenceRef = useRef<number>(0);
   const [minConfidence, setMinConfidence] = useState<number>(0.6);
   const [showHud, setShowHud] = useState<boolean>(true);
@@ -1356,6 +1358,14 @@ export default function Measure() {
             const chosen = chooseBaseAndTip(p1, p2);
             const conf = det.confidence || 0;
             setConfidence(conf);
+            try {
+              if ((det as any).quality && typeof (det as any).quality.score === 'number') {
+                setQualityScore((det as any).quality.score);
+              }
+              if (typeof (det as any).curvatureDeg === 'number') {
+                setCurvatureDeg((det as any).curvatureDeg);
+              }
+            } catch {}
             if (conf >= minConfidence) {
               const alpha = 1.0;
               const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -1470,6 +1480,8 @@ export default function Measure() {
         confidence += Math.min(1, areaFraction / 0.2) * 0.25;
         confidence += Math.min(1, solidity) * 0.30;
         setConfidence(confidence);
+        setQualityScore(0);
+        setCurvatureDeg(0);
         if (confidence >= minConfidence) {
           const alpha = 1.0; // single image: snap
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -2327,6 +2339,13 @@ export default function Measure() {
                     <div className="flex-1">
                       <Progress value={Math.max(0, Math.min(100, Math.round(confidence * 100)))} />
                     </div>
+                    <div className="hidden md:flex items-center gap-2">
+                      <span className="opacity-80">Quality</span>
+                      <Progress value={Math.max(0, Math.min(100, Math.round(qualityScore * 100)))} />
+                    </div>
+                    {curvatureDeg > 0 && (
+                      <span className="ml-2 opacity-90">Curv ≈ {curvatureDeg.toFixed(1)}°</span>
+                    )}
                     <span className="whitespace-nowrap">{Math.max(0, Math.min(1, confidence)).toFixed(2)}</span>
                     <span className="opacity-70 whitespace-nowrap">min {minConfidence.toFixed(2)}</span>
                     {mode === "live" && (
