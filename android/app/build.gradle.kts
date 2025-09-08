@@ -38,6 +38,16 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    androidResources {
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:*.gz"
+    }
+
+    packaging {
+        resources {
+            excludes += setOf("**/*.gz")
+        }
+    }
 }
 
 dependencies {
