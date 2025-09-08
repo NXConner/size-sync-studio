@@ -8,6 +8,7 @@
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "vite build && node scripts/generate-sw.mjs",
+    "build:android": "node scripts/build-android-cap.mjs",
     "build:dev": "vite build --mode development",
     "analyze": "vite build --mode analyze",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
