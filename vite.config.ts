@@ -6,6 +6,8 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
 import viteCompression from 'vite-plugin-compression'
 
+const isMobile = Boolean(process.env.CAPACITOR_PLATFORM) || process.env.VITE_MOBILE === '1'
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: process.env.VITE_APP_BASENAME || './',
@@ -26,9 +28,11 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     ...(mode === "development" ? [componentTagger()] : []),
-    // Precompress assets; nginx will serve brotli/gzip when available
-    viteCompression({ algorithm: 'brotliCompress' }),
-    viteCompression({ algorithm: 'gzip' }),
+    // Precompress assets only for web builds; skip on mobile to avoid Android duplicates
+    ...(!isMobile ? [
+      viteCompression({ algorithm: 'brotliCompress' }),
+      viteCompression({ algorithm: 'gzip' }),
+    ] : []),
     ...(process.env.VITE_SENTRY_DSN ? [sentryVitePlugin({
       org: process.env.SENTRY_ORG || '',
       project: process.env.SENTRY_PROJECT || '',
