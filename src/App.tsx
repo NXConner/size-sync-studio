@@ -77,7 +77,7 @@ const App = () => (
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/measure" element={<Measure />} />
               <Route path="/chat" element={<Chat />} />
-              <Route path="/screening" element={<HealthScreening />} />
+              <Route path="/analytics" element={<Analytics />} />
               <Route path="/run-session" element={<SessionRunner />} />
               <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
               <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />
