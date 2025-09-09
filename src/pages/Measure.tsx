@@ -97,6 +97,15 @@ export default function Measure() {
   const confidenceRef = useRef<number>(0);
   const [minConfidence, setMinConfidence] = useState<number>(0.6);
   const [showHud, setShowHud] = useState<boolean>(true);
+  const [stabilityProgress, setStabilityProgress] = useState<number>(0);
+  const stabilityProgressRef = useRef<number>(0);
+  const stableStartTsRef = useRef<number | null>(null);
+  const [qualityDetail, setQualityDetail] = useState<{
+    brightness: number;
+    blurVar: number;
+    sizeFraction: number;
+    edgeProximity: number;
+  } | null>(null);
   const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
   const [snapRadiusPx, setSnapRadiusPx] = useState<number>(18);
   const [retakeSuggested, setRetakeSuggested] = useState<boolean>(false);
@@ -344,6 +353,9 @@ export default function Measure() {
   useEffect(() => {
     confidenceRef.current = confidence;
   }, [confidence]);
+  useEffect(() => {
+    stabilityProgressRef.current = stabilityProgress;
+  }, [stabilityProgress]);
 
   // Load previous photos once
   useEffect(() => {
@@ -681,9 +693,12 @@ export default function Measure() {
       const cStart = calibStartRef.current;
       const cEnd = calibEndRef.current;
       if (cStart && cEnd) {
+        // Animated dashed calibration line
+        const t = performance.now() / 1000;
         ctx.strokeStyle = "#22d3ee";
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 6]);
+        ctx.lineDashOffset = -((t * 120) % 12);
         ctx.beginPath();
         ctx.moveTo(cStart.x, cStart.y);
         ctx.lineTo(cEnd.x, cEnd.y);
@@ -702,6 +717,11 @@ export default function Measure() {
           (cStart.x + cEnd.x) / 2 + 8,
           (cStart.y + cEnd.y) / 2,
         );
+
+        // Calibration hint text
+        ctx.fillStyle = "rgba(34,211,238,0.9)";
+        ctx.font = "13px sans-serif";
+        ctx.fillText("Calibrating: click/drag two points of known distance", 12, 24);
       }
 
       // Base to tip length line + markers + tape ruler
@@ -731,8 +751,19 @@ export default function Measure() {
           setLengthDisplay(nextLen);
         }
 
-        // Base/Tip markers
+        // Base/Tip markers with pulsing halos
         const drawMarker = (x: number, y: number, label: string) => {
+          const t = performance.now() / 1000;
+          const pulse = (Math.sin(t * 2 * Math.PI) + 1) / 2; // 0..1
+          const radius = 10 + pulse * 6;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(16,185,129,${0.25 + 0.35 * pulse})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+
           ctx.fillStyle = "#10b981";
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 2;
@@ -820,6 +851,39 @@ export default function Measure() {
           ctx.font = "14px sans-serif";
           ctx.fillText(`${nextGirth} ${unitRef.current}`, endX + 8, endY);
         }
+      }
+
+      // Live scanning sweep when auto-detect is enabled
+      if (autoDetect && mode === "live") {
+        const t = performance.now() / 1000;
+        const bandW = Math.max(24, Math.floor(overlay.width * 0.12));
+        const xCenter = ((t * 160) % (overlay.width + bandW)) - bandW / 2;
+        const grad = ctx.createLinearGradient(xCenter - bandW / 2, 0, xCenter + bandW / 2, 0);
+        grad.addColorStop(0, "rgba(59,130,246,0.0)");
+        grad.addColorStop(0.5, "rgba(59,130,246,0.15)");
+        grad.addColorStop(1, "rgba(59,130,246,0.0)");
+        ctx.fillStyle = grad as any;
+        ctx.fillRect(0, 0, overlay.width, overlay.height);
+      }
+
+      // Stability progress ring near tip or top-left
+      if (autoDetect && mode === "live") {
+        const progress = Math.max(0, Math.min(1, stabilityProgressRef.current || 0));
+        const cx = tipPointRef.current?.x ?? 28;
+        const cy = tipPointRef.current?.y ?? 28;
+        const r = 16;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(148,163,184,0.5)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+        ctx.strokeStyle = progress >= 1 ? "#f59e0b" : "#22d3ee";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
       }
 
       rafRef.current = requestAnimationFrame(render);
@@ -1365,6 +1429,15 @@ export default function Measure() {
             try {
               if ((det as any).quality && typeof (det as any).quality.score === 'number') {
                 setQualityScore((det as any).quality.score);
+                const q = (det as any).quality;
+                if (q && typeof q === 'object') {
+                  setQualityDetail({
+                    brightness: Number(q.brightness) || 0,
+                    blurVar: Number(q.blurVar) || 0,
+                    sizeFraction: Number(q.sizeFraction) || 0,
+                    edgeProximity: Number(q.edgeProximity) || 0,
+                  });
+                }
               }
               if (typeof (det as any).curvatureDeg === 'number') {
                 setCurvatureDeg((det as any).curvatureDeg);
@@ -2055,6 +2128,16 @@ export default function Measure() {
               setAutoStatus(nextStatus);
             }
             const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
+            // Update stability progress timing
+            if (stable) {
+              if (stableStartTsRef.current == null) stableStartTsRef.current = now;
+              const elapsed = (now - (stableStartTsRef.current || now)) / (stabilitySeconds * 1000);
+              const prog = Math.max(0, Math.min(1, elapsed));
+              setStabilityProgress(prog);
+            } else {
+              stableStartTsRef.current = null;
+              setStabilityProgress(0);
+            }
             if (stable && autoCapture && cooldownOk) {
               try { await capture(); } catch {}
               lastAutoCaptureTsRef.current = now;
@@ -2378,6 +2461,22 @@ export default function Measure() {
                     )}
                     {retakeSuggested && (
                       <span className="text-amber-300 whitespace-nowrap">Retake suggested</span>
+                    )}
+                    {/* Quality hints */}
+                    {qualityDetail && (
+                      <span className="hidden md:block opacity-90 whitespace-nowrap">
+                        {(() => {
+                          const hints: string[] = [];
+                          const q = qualityDetail;
+                          if (q.brightness < 70) hints.push('Brighten scene');
+                          if (q.brightness > 210) hints.push('Reduce exposure');
+                          if (q.blurVar < 60) hints.push('Hold steadier');
+                          if (q.sizeFraction < 0.08) hints.push('Move closer');
+                          if (q.sizeFraction > 0.45) hints.push('Move back');
+                          if (q.edgeProximity > 0.2) hints.push('Center subject');
+                          return hints.slice(0, 2).join(' · ');
+                        })()}
+                      </span>
                     )}
                   </div>
                 </div>
