@@ -18,7 +18,8 @@ import {
   FileText,
   Stethoscope,
   Heart,
-  Users
+  Users,
+  Camera
 } from "lucide-react";
 import { peyronieQuestions, stdQuestions } from "@/data/screeningQuestions";
 import { ScreeningQuestion, ScreeningResponse, ScreeningResult } from "@/types/screening";
@@ -29,9 +30,12 @@ import {
   getRecommendations 
 } from "@/utils/screeningCalculator";
 import { useToast } from "@/hooks/use-toast";
+import { HealthPhotoCapture } from "@/components/health/HealthPhotoCapture";
+import { HealthPhotoAnalysisResult } from "@/lib/healthPhotoAnalysis";
 
 export default function HealthScreening() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'peyronie' | 'std' | 'results'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'peyronie' | 'std' | 'photo' | 'results'>('overview');
+  const [photoCategory, setPhotoCategory] = useState<'peyronie' | 'std'>('peyronie');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<ScreeningResponse[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -106,6 +110,18 @@ export default function HealthScreening() {
     setActiveTab(type);
     setCurrentQuestionIndex(0);
     setResponses([]);
+  };
+
+  const startPhotoAnalysis = (category: 'peyronie' | 'std') => {
+    setPhotoCategory(category);
+    setActiveTab('photo');
+  };
+
+  const handlePhotoAnalysisComplete = (result: HealthPhotoAnalysisResult) => {
+    toast({
+      title: "Photo Analysis Complete",
+      description: `Analysis completed with ${Math.round(result.confidence * 100)}% confidence.`
+    });
   };
 
   const renderQuestion = (question: ScreeningQuestion) => {
@@ -239,10 +255,11 @@ export default function HealthScreening() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="peyronie">Peyronie's</TabsTrigger>
           <TabsTrigger value="std">STD Screening</TabsTrigger>
+          <TabsTrigger value="photo">Photo Analysis</TabsTrigger>
           <TabsTrigger value="results">Results</TabsTrigger>
         </TabsList>
 
@@ -264,12 +281,22 @@ export default function HealthScreening() {
                   <Badge variant="outline">{peyronieQuestions.length} Questions</Badge>
                   <span className="text-sm text-muted-foreground">~5 minutes</span>
                 </div>
-                <Button 
-                  onClick={() => startScreening('peyronie')} 
-                  className="w-full"
-                >
-                  Start Peyronie's Screening
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={() => startScreening('peyronie')} 
+                    className="w-full"
+                  >
+                    Start Peyronie's Screening
+                  </Button>
+                  <Button 
+                    onClick={() => startPhotoAnalysis('peyronie')} 
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Photo Analysis
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -289,12 +316,22 @@ export default function HealthScreening() {
                   <Badge variant="outline">{stdQuestions.length} Questions</Badge>
                   <span className="text-sm text-muted-foreground">~7 minutes</span>
                 </div>
-                <Button 
-                  onClick={() => startScreening('std')} 
-                  className="w-full"
-                >
-                  Start STD Screening
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={() => startScreening('std')} 
+                    className="w-full"
+                  >
+                    Start STD Screening
+                  </Button>
+                  <Button 
+                    onClick={() => startPhotoAnalysis('std')} 
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Photo Analysis
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -342,6 +379,41 @@ export default function HealthScreening() {
 
         <TabsContent value="std" className="mt-6">
           {renderQuestion(stdQuestions[currentQuestionIndex])}
+        </TabsContent>
+
+        <TabsContent value="photo" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                AI Photo Analysis
+              </CardTitle>
+              <p className="text-muted-foreground">
+                Upload or capture photos for AI-powered health analysis. Choose the category below.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button
+                  variant={photoCategory === 'peyronie' ? 'default' : 'outline'}
+                  onClick={() => setPhotoCategory('peyronie')}
+                >
+                  Peyronie's Analysis
+                </Button>
+                <Button
+                  variant={photoCategory === 'std' ? 'default' : 'outline'}
+                  onClick={() => setPhotoCategory('std')}
+                >
+                  STD/STI Analysis
+                </Button>
+              </div>
+              
+              <HealthPhotoCapture
+                category={photoCategory}
+                onAnalysisComplete={handlePhotoAnalysisComplete}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="results" className="space-y-6 mt-6">
