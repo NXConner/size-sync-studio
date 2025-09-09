@@ -8,7 +8,9 @@ import { Measurement } from "@/types";
 import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { CalibrationCard } from "@/components/measure/CalibrationCard";
+import { EnhancedCalibrationCard } from "@/components/measure/EnhancedCalibrationCard";
+import { InstructionPanel } from "@/components/measure/InstructionPanel";
+import { VisualFeedbackOverlay } from "@/components/measure/VisualFeedbackOverlay";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2433,6 +2435,22 @@ export default function Measure() {
                 onMouseMove={handleOverlayMouseMove}
                 onMouseUp={handleOverlayMouseUp}
               />
+              <VisualFeedbackOverlay
+                isDetecting={isDetecting}
+                confidence={confidence}
+                qualityScore={qualityScore}
+                isCalibrating={isCalibrating}
+                autoStatus={autoStatus}
+                showScanSweep={showScanSweep}
+                showStabilityRing={showStabilityRing}
+                showPulsingHalos={showPulsingHalos}
+                basePoint={basePoint}
+                tipPoint={tipPoint}
+                calibStart={calibStart}
+                calibEnd={calibEnd}
+                canvasWidth={containerRef.current?.clientWidth || 0}
+                canvasHeight={containerRef.current?.clientHeight || 0}
+              />
               {mode === "upload" && uploadedUrl && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
                   <Button size="sm" onClick={detectFromImage} disabled={isDetecting}>
@@ -2546,11 +2564,19 @@ export default function Measure() {
         </Card>
 
         <div className="space-y-4">
-          <CalibrationCard
+          <InstructionPanel />
+          
+          <EnhancedCalibrationCard
             calibrationInches={calibrationInches}
             onChangeCalibrationInches={(val) => setCalibrationInches(val)}
             onStartCalibrating={() => setIsCalibrating(true)}
+            onAutoCalibrate={mode === "upload" ? autoCalibrateFromImage : autoCalibrateFromLive}
             pixelsPerInch={pixelsPerInch}
+            isCalibrating={isCalibrating}
+            isAutoCalibrating={isAutoCalibrating}
+            calibrationProgress={isCalibrating ? 50 : 0}
+            calibrationStatus={isCalibrating ? "Click first point" : ""}
+            hasCalibrationLine={!!(calibStart && calibEnd)}
           />
 
           <Card>
