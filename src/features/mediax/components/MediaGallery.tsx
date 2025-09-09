@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { buildSrcSet, responsiveSizes } from '@mediax/lib/image';
+import { Lock } from 'lucide-react'
+import { usePinLock } from '@mediax/hooks/usePinLock'
 import type { MediaItem } from '@mediax/pages/Index';
 import { Play, Image } from 'lucide-react';
 
@@ -12,6 +14,7 @@ interface MediaGalleryProps {
 // using shared responsive helpers
 
 export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMediaSelect }: MediaGalleryProps) {
+  const { key } = usePinLock()
   let stealth = false
   try { stealth = typeof localStorage !== 'undefined' && localStorage.getItem('mediax:stealth') === '1' } catch { stealth = false }
   if (mediaItems.length === 0) {
@@ -33,33 +36,42 @@ export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMed
           onClick={() => onMediaSelect(item)}
           onMouseEnter={() => { void import('@mediax/components/MediaViewer'); }}
         >
-          {/* Media Thumbnail */}
-          <picture>
-            <source
-              type="image/avif"
-              srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'avif')}
-              sizes={responsiveSizes}
-            />
-            <source
-              type="image/webp"
-              srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'webp')}
-              sizes={responsiveSizes}
-            />
-            <img
-              src={item.thumbnail}
-              srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200])}
-              sizes={responsiveSizes}
-              alt={item.title}
-              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 [transition-filter] ${stealth ? 'blur-sm' : ''}`}
-              loading="lazy"
-              decoding="async"
-              // React warns on non-standard prop casing; use lowercase attribute
-              // @ts-expect-error React DOM attribute casing workaround
-              fetchpriority="low"
-              style={stealth ? undefined : { filter: 'blur(12px)' }}
-              onLoad={(e) => { if (!stealth) { (e.currentTarget as HTMLImageElement).style.filter = 'blur(0px)'; } }}
-            />
-          </picture>
+          {/* Media Thumbnail or Locked State */}
+          {item.encIvHex && item.encData && item.encMimeType && !key ? (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900/60">
+              <div className="flex flex-col items-center gap-2 text-gray-300">
+                <Lock className="w-6 h-6" />
+                <span className="text-xs">Locked</span>
+              </div>
+            </div>
+          ) : (
+            <picture>
+              <source
+                type="image/avif"
+                srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'avif')}
+                sizes={responsiveSizes}
+              />
+              <source
+                type="image/webp"
+                srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'webp')}
+                sizes={responsiveSizes}
+              />
+              <img
+                src={item.thumbnail}
+                srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200])}
+                sizes={responsiveSizes}
+                alt={item.title}
+                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 [transition-filter] ${stealth ? 'blur-sm' : ''}`}
+                loading="lazy"
+                decoding="async"
+                // React warns on non-standard prop casing; use lowercase attribute
+                // @ts-expect-error React DOM attribute casing workaround
+                fetchpriority="low"
+                style={stealth ? undefined : { filter: 'blur(12px)' }}
+                onLoad={(e) => { if (!stealth) { (e.currentTarget as HTMLImageElement).style.filter = 'blur(0px)'; } }}
+              />
+            </picture>
+          )}
           
           {/* Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
