@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">92.98% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>51/51</span>
+                <span class='fraction'>53/57</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">57.14% </span>
+                <span class="strong">36.36% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/7</span>
+                <span class='fraction'>4/11</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">92.98% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>51/51</span>
+                <span class='fraction'>53/57</span>
             </div>
         
             
@@ -149,7 +149,21 @@
 <a name='L84'></a><a href='#L84'>84</a>
 <a name='L85'></a><a href='#L85'>85</a>
 <a name='L86'></a><a href='#L86'>86</a>
-<a name='L87'></a><a href='#L87'>87</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -166,6 +180,7 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -186,6 +201,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -209,6 +232,7 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -238,6 +262,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
 import React from 'react';
 import { buildSrcSet, responsiveSizes } from '@mediax/lib/image';
+import { Lock } from 'lucide-react'
+import { usePinLock } from '@mediax/hooks/usePinLock'
 import type { MediaItem } from '@mediax/pages/Index';
 import { Play, Image } from 'lucide-react';
 &nbsp;
@@ -249,6 +275,7 @@ interface MediaGalleryProps {
 // using shared responsive helpers
 &nbsp;
 export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMediaSelect }: MediaGalleryProps) {
+  const { key } = usePinLock()
   let stealth = false
   try { stealth = typeof localStorage !== 'undefined' &amp;&amp; localStorage.getItem('mediax:stealth') === '1' } <span class="branch-0 cbranch-no" title="branch not covered" >catch { stealth = false }</span>
   if (mediaItems.length === 0) {
@@ -270,33 +297,42 @@ export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMed
           onClick={() =&gt; onMediaSelect(item)}
           onMouseEnter={<span class="fstat-no" title="function not covered" >() =&gt; { void import('@mediax/components/MediaViewer'); }}</span>
         &gt;
-          {/* Media Thumbnail */}
-          &lt;picture&gt;
-            &lt;source
-              type="image/avif"
-              srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'avif')}
-              sizes={responsiveSizes}
-            /&gt;
-            &lt;source
-              type="image/webp"
-              srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'webp')}
-              sizes={responsiveSizes}
-            /&gt;
-            &lt;img
-              src={item.thumbnail}
-              srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200])}
-              sizes={responsiveSizes}
-              alt={item.title}
-              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 [transition-filter] ${<span class="branch-0 cbranch-no" title="branch not covered" >stealth ? 'blur-sm' : '</span>'}`}
-              loading="lazy"
-              decoding="async"
-              // React warns on non-standard prop casing; use lowercase attribute
-              // @ts-expect-error React DOM attribute casing workaround
-              fetchpriority="low"
-              style={<span class="branch-0 cbranch-no" title="branch not covered" >stealth ? undefined : {</span> filter: 'blur(12px)' }}
-              onLoad={<span class="fstat-no" title="function not covered" >(e) =&gt; { if (!stealth) { (e.currentTarget as HTMLImageElement).style.filter = 'blur(0px)'; } }}</span>
-            /&gt;
-          &lt;/picture&gt;
+          {/* Media Thumbnail or Locked State */}
+          {item.encIvHex<span class="branch-0 cbranch-no" title="branch not covered" > &amp;&amp; item.encData<span class="branch-0 cbranch-no" title="branch not covered" > </span>&amp;&amp; item.encMimeType<span class="branch-0 cbranch-no" title="branch not covered" > </span>&amp;&amp; !<span class="branch-0 cbranch-no" title="branch not covered" >key ? (</span></span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="w-full h-full flex items-center justify-center bg-gray-900/60"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;div className="flex flex-col items-center gap-2 text-gray-300"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;Lock className="w-6 h-6" /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;span className="text-xs"&gt;Locked&lt;/span&gt;</span>
+              &lt;/div&gt;
+            &lt;/div&gt;
+          ) : (
+            &lt;picture&gt;
+              &lt;source
+                type="image/avif"
+                srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'avif')}
+                sizes={responsiveSizes}
+              /&gt;
+              &lt;source
+                type="image/webp"
+                srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200], 'webp')}
+                sizes={responsiveSizes}
+              /&gt;
+              &lt;img
+                src={item.thumbnail}
+                srcSet={buildSrcSet(item.thumbnail, [200, 400, 800, 1200])}
+                sizes={responsiveSizes}
+                alt={item.title}
+                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 [transition-filter] ${<span class="branch-0 cbranch-no" title="branch not covered" >stealth ? 'blur-sm' : '</span>'}`}
+                loading="lazy"
+                decoding="async"
+                // React warns on non-standard prop casing; use lowercase attribute
+                // @ts-expect-error React DOM attribute casing workaround
+                fetchpriority="low"
+                style={<span class="branch-0 cbranch-no" title="branch not covered" >stealth ? undefined : {</span> filter: 'blur(12px)' }}
+                onLoad={<span class="fstat-no" title="function not covered" >(e) =&gt; { if (!stealth) { (e.currentTarget as HTMLImageElement).style.filter = 'blur(0px)'; } }}</span>
+              /&gt;
+            &lt;/picture&gt;
+          )}
           
           {/* Overlay */}
           &lt;div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" /&gt;
@@ -328,7 +364,7 @@ export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMed
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T07:40:21.255Z
+                at 2025-09-09T06:49:59.440Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

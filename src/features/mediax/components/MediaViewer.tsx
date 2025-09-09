@@ -18,6 +18,7 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
 }) {
   const { key } = usePinLock()
   const [resolvedUrl, setResolvedUrl] = useState<string>(media.url)
+  const [locked, setLocked] = useState<boolean>(false)
   useEffect(() => {
     let revoked: string | null = null
     const run = async () => {
@@ -27,11 +28,19 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
           const url = URL.createObjectURL(blob)
           revoked = url
           setResolvedUrl(url)
+          setLocked(false)
         } catch {
           setResolvedUrl('')
+          setLocked(true)
         }
       } else {
-        setResolvedUrl(media.url)
+        if (media.encIvHex && media.encData && media.encMimeType && !key) {
+          setLocked(true)
+          setResolvedUrl('')
+        } else {
+          setLocked(false)
+          setResolvedUrl(media.url)
+        }
       }
     }
     run()
@@ -130,7 +139,12 @@ export function MediaViewer({ media, onClose, onNext, onPrevious, onSetWallpaper
 
       {/* Media Content */}
       <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
-        {media.type === 'image' ? (
+        {locked ? (
+          <div className="flex flex-col items-center justify-center text-gray-300">
+            <div className="text-lg">This item is locked</div>
+            <div className="text-sm text-gray-400 mt-1">Unlock the vault to view</div>
+          </div>
+        ) : media.type === 'image' ? (
           <picture>
             <source type="image/avif" srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400], 'avif')} />
             <source type="image/webp" srcSet={buildSrcSet(media.url, [800, 1200, 1600, 2400], 'webp')} />

@@ -11,9 +11,10 @@ describe('Navbar', () => {
   it('renders brand and key nav links', () => {
     renderWithRouter(<Navbar />);
     expect(screen.getByText(/Size Seeker/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Dashboard/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Sessions/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Measure/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Gallery/i })).toBeInTheDocument();
+    // Multiple dashboard links exist (desktop + compact). Ensure at least one is present.
+    expect(screen.getAllByRole('link', { name: /Dashboard/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /Sessions/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /Measure/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /Gallery/i }).length).toBeGreaterThan(0);
   });
 });
