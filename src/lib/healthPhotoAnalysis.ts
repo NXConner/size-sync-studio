@@ -274,15 +274,6 @@ class HealthPhotoAnalyzer {
       confidence: Math.min(0.70, shapeAnalysis.confidence)
     };
   }
-    
-    return {
-      detected: curvatureMetrics.angle > 10,
-      angle: curvatureMetrics.angle,
-      direction: curvatureMetrics.direction,
-      severity: curvatureMetrics.angle < 15 ? 'mild' : curvatureMetrics.angle < 30 ? 'moderate' : 'severe',
-      confidence: Math.min(0.85, curvatureMetrics.confidence)
-    };
-  }
 
   private async detectPlaques(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, _segmentationData: any) {
     // Analyze texture and density variations to detect plaques
@@ -297,17 +288,6 @@ class HealthPhotoAnalyzer {
     };
   }
 
-  private async assessDeformity(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const shapeAnalysis = this.analyzeShape(imageData);
-    
-    return {
-      detected: shapeAnalysis.deformityScore > 0.4,
-      type: shapeAnalysis.deformityType,
-      severity: shapeAnalysis.deformityScore < 0.3 ? 'mild' : shapeAnalysis.deformityScore < 0.6 ? 'moderate' : 'severe',
-      confidence: Math.min(0.70, shapeAnalysis.confidence)
-    };
-  }
 
   private async analyzeSymmetry(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);

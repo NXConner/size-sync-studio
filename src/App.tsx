@@ -17,8 +17,8 @@ const Safety = lazy(() => import("./pages/Safety"));
 const Tips = lazy(() => import("./pages/Tips"));
 const Measure = lazy(() => import("./pages/Measure"));
 const SessionRunner = lazy(() => import("./pages/SessionRunner"));
+const Settings = lazy(() => import("./pages/Settings"));
 const Gallery = lazy(() => import("./pages/Gallery"));
-const Chat = lazy(() => import("./pages/Chat"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
@@ -47,8 +47,8 @@ function TitleUpdater() {
     '/tips': 'Size Seeker – Tips',
     '/gallery': 'Size Seeker – Gallery',
     '/measure': 'Size Seeker – Measure',
-    '/chat': 'Size Seeker – Chat',
     '/screening': 'Size Seeker – Health Screening',
+    '/settings': 'Size Seeker – Settings',
   };
   const base = 'Size Seeker';
   const title = map[location.pathname] || base;
@@ -77,7 +77,7 @@ const App = () => (
               <Route path="/tips" element={<Tips />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/measure" element={<Measure />} />
-              <Route path="/chat" element={<Chat />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/screening" element={<HealthScreening />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/run-session" element={<SessionRunner />} />
