@@ -172,7 +172,7 @@ class AdvancedMLPipeline {
   }
 
   private async analyzeEnvironmentalFactors(imageData: ImageData) {
-    const { width, height, data } = imageData;
+    const { data } = imageData;
     
     // Lighting analysis
     const lighting = this.analyzeLighting(data);

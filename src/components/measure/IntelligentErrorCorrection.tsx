@@ -152,7 +152,7 @@ export function IntelligentErrorCorrection({
       }
     }
     if (measurementHistory.length >= 3) {
-        outlierAnalysis = detectMeasurementOutliers();
+        const outlierAnalysis = detectMeasurementOutliers();
         if (outlierAnalysis.isOutlier) {
         suggestions.push({
           id: 'outlier-detection',
@@ -162,7 +162,7 @@ export function IntelligentErrorCorrection({
           description: outlierAnalysis.description,
           confidence: outlierAnalysis.confidence,
           autoFixAvailable: false,
-          onApply: () => suggestOutlierAction(outlierAnalysis)
+          onApply: () => suggestOutlierAction()
         });
       }
     }
