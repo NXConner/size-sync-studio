@@ -57,10 +57,4 @@ export interface Goal {
   isActive: boolean;
 }
 
-export interface SafetyAlert {
-  id: string;
-  type: "warning" | "danger" | "info";
-  message: string;
-  timestamp: string;
-  acknowledged: boolean;
-}
+export * from './screening';

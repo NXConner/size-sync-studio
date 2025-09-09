@@ -10,6 +10,7 @@ const navigation = [
   { name: "Tips", href: "/tips", icon: Lightbulb },
   { name: "Measure", href: "/measure", icon: Ruler },
   { name: "Gallery", href: "/gallery", icon: Camera },
+  { name: "Screening", href: "/screening", icon: HeartPulse },
   { name: "mediaX", href: "/mediax", icon: HeartPulse },
   { name: "Explore", href: "/mediax/explore", icon: HeartPulse },
 ];

@@ -19,6 +19,7 @@ const SessionRunner = lazy(() => import("./pages/SessionRunner"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Chat = lazy(() => import("./pages/Chat"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const HealthScreening = lazy(() => import("./pages/HealthScreening"));
 const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
 const WellnessSettings = lazy(() => import("./features/mediax/pages/Settings"));
 const MediaXExplore = lazy(() => import("./features/mediax/pages/Explore"));
@@ -46,6 +47,7 @@ function TitleUpdater() {
     '/gallery': 'Size Seeker – Gallery',
     '/measure': 'Size Seeker – Measure',
     '/chat': 'Size Seeker – Chat',
+    '/screening': 'Size Seeker – Health Screening',
   };
   const base = 'Size Seeker';
   const title = map[location.pathname] || base;
@@ -75,6 +77,7 @@ const App = () => (
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/measure" element={<Measure />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/screening" element={<HealthScreening />} />
               <Route path="/run-session" element={<SessionRunner />} />
               <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
               <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />
