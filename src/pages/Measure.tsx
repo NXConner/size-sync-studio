@@ -1392,7 +1392,7 @@ export default function Measure() {
               const mctx = maskCanvas.getContext('2d');
               if (mctx) {
                 const arr = det.maskImage instanceof Uint8ClampedArray ? det.maskImage : new Uint8ClampedArray(det.maskImage);
-                const img = new ImageData(arr, w, h);
+                const img = new ImageData(new Uint8ClampedArray(arr), w, h);
                 mctx.putImageData(img, 0, 0);
                 const url = maskCanvas.toDataURL("image/png");
                 setMaskUrl(url);

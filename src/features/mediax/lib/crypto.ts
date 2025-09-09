@@ -8,9 +8,21 @@ export async function sha256Hex(input: string): Promise<string> {
 export async function deriveKeyFromPin(pin: string, saltHex?: string): Promise<{ key: CryptoKey; saltHex: string }> {
   const enc = new TextEncoder()
   const material = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey'])
-  const salt = saltHex ? hexToBytes(saltHex) : crypto.getRandomValues(new Uint8Array(16))
+  
+  let salt: Uint8Array
+  if (saltHex) {
+    salt = hexToBytes(saltHex)
+  } else {
+    salt = crypto.getRandomValues(new Uint8Array(16))
+  }
+  
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 150_000, hash: 'SHA-256' },
+    { 
+      name: 'PBKDF2', 
+      salt: salt as any, 
+      iterations: 150_000, 
+      hash: 'SHA-256' 
+    },
     material,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -28,7 +40,7 @@ export async function encryptBlob(blob: Blob, key: CryptoKey): Promise<{ ivHex: 
 
 export async function decryptToBlob(ivHex: string, data: Uint8Array, key: CryptoKey, mimeType: string): Promise<Blob> {
   const iv = hexToBytes(ivHex)
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as any }, key, data as any)
   return new Blob([plain], { type: mimeType })
 }
 
@@ -44,4 +56,3 @@ export function hexToBytes(hex: string): Uint8Array {
   }
   return arr
 }
-
