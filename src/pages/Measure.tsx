@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Ruler, Camera as CameraIcon, RefreshCw, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Copy as CopyIcon, HelpCircle } from "lucide-react";
+import { Ruler, Camera as CameraIcon, Image as ImageIcon, Download, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Copy as CopyIcon, HelpCircle } from "lucide-react";
 import { Measurement } from "@/types";
 import { saveMeasurement, savePhoto, getMeasurements, getPhoto } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +27,7 @@ import {
 } from "@/utils/camera";
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext, stopSpeaking } from "@/utils/audio";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MeasureQuickSettings } from "@/components/measure/MeasureQuickSettings";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
@@ -63,8 +63,8 @@ export default function Measure() {
   const [overlayOpacity, setOverlayOpacity] = useState<number>(30); // percent
   const [showPrevOverlay, setShowPrevOverlay] = useState<boolean>(false);
   const [mode, setMode] = useState<"live" | "upload">("live");
-  const [uploadedUrl, setUploadedUrl] = useState<string>("");
-  const [uploadedBlob, setUploadedBlob] = useState<Blob | null>(null);
+  const [uploadedUrl] = useState<string>("");
+  const [uploadedBlob] = useState<Blob | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
   const [showGrid, setShowGrid] = useState<boolean>(false);
@@ -2025,11 +2025,6 @@ export default function Measure() {
     }
   };
 
-  const clearPoints = () => {
-    setBasePoint(null);
-    setTipPoint(null);
-  };
-
   const capture = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -2270,8 +2265,8 @@ export default function Measure() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <CardTitle className="flex items-center gap-2 flex-shrink-0">
                   <Ruler className="w-5 h-5" /> Measure
                 </CardTitle>
@@ -2281,9 +2276,41 @@ export default function Measure() {
                     <TabsTrigger value="upload">Upload</TabsTrigger>
                   </TabsList>
                 </Tabs>
+              </div>
+              <div className="flex items-center gap-2">
+                <MeasureQuickSettings
+                  unit={unit}
+                  setUnit={setUnit}
+                  mode={mode}
+                  devices={devices}
+                  deviceId={deviceId}
+                  setDeviceId={setDeviceId}
+                  resolution={resolution}
+                  setResolution={setResolution}
+                  targetFps={targetFps}
+                  setTargetFps={setTargetFps}
+                  facingMode={facingMode}
+                  setFacingMode={setFacingMode}
+                  showGrid={showGrid}
+                  setShowGrid={setShowGrid}
+                  showScanSweep={showScanSweep}
+                  setShowScanSweep={setShowScanSweep}
+                  showPulsingHalos={showPulsingHalos}
+                  setShowPulsingHalos={setShowPulsingHalos}
+                  showStabilityRing={showStabilityRing}
+                  setShowStabilityRing={setShowStabilityRing}
+                  showHud={showHud}
+                  setShowHud={setShowHud}
+                  voiceEnabled={voiceEnabled}
+                  setVoiceEnabled={setVoiceEnabledState}
+                  autoDetect={autoDetect}
+                  setAutoDetect={setAutoDetect}
+                  autoCapture={autoCapture}
+                  setAutoCapture={setAutoCapture}
+                />
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="ml-1 flex-shrink-0" title="Help (shortcuts)">
+                    <Button variant="ghost" size="icon" className="flex-shrink-0" title="Help (shortcuts)">
                       <HelpCircle className="w-5 h-5" />
                     </Button>
                   </DialogTrigger>
@@ -2301,93 +2328,6 @@ export default function Measure() {
                     </div>
                   </DialogContent>
                 </Dialog>
-              </div>
-              <div className="flex flex-wrap gap-2 min-w-0">
-                <div className="flex gap-2 flex-wrap">
-                  {mode === "live" && (
-                    <>
-                      <select
-                        value={deviceId}
-                        onChange={(e) => setDeviceId(e.target.value)}
-                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[120px] max-w-[140px] flex-shrink-0"
-                        title="Camera device"
-                      >
-                        {devices.length === 0 && <option value="">No cameras</option>}
-                        {devices.map((d) => (
-                          <option key={d.deviceId} value={d.deviceId}>
-                            {d.label || `Camera ${d.deviceId.slice(0, 4)}`}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={`${resolution.w}x${resolution.h}`}
-                        onChange={(e) => {
-                          const [w, h] = e.target.value.split("x").map((n) => parseInt(n, 10));
-                          setResolution({ w, h });
-                        }}
-                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[80px] max-w-[100px] flex-shrink-0"
-                        title="Resolution"
-                      >
-                        {[
-                          [640, 480],
-                          [1280, 720],
-                          [1920, 1080],
-                        ].map(([w, h]) => (
-                          <option key={`${w}x${h}`} value={`${w}x${h}`}>{w}x{h}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={String(targetFps)}
-                        onChange={(e) => setTargetFps(parseInt(e.target.value, 10))}
-                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[70px] max-w-[80px] flex-shrink-0"
-                        title="Target FPS"
-                      >
-                        {[15, 24, 30, 60].map((f) => (
-                          <option key={f} value={f}>{f} fps</option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)} className="flex-shrink-0">
-                        Calibrate
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Click two points of a known distance</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={clearPoints} className="flex-shrink-0">
-                        <RefreshCw className="w-4 h-4 mr-1" /> Reset
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Clear measurement points</TooltipContent>
-                  </Tooltip>
-                  <select
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value as "in" | "cm")}
-                    className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[60px] flex-shrink-0"
-                  >
-                    <option value="in">in</option>
-                    <option value="cm">cm</option>
-                  </select>
-                  {mode === "upload" && (
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
-                        const url = URL.createObjectURL(file);
-                        setUploadedUrl(url);
-                        setUploadedBlob(file);
-                      }}
-                      className="w-48 flex-shrink-0"
-                    />
-                  )}
-                </div>
               </div>
             </div>
           </CardHeader>
