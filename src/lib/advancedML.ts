@@ -83,15 +83,13 @@ class AdvancedMLPipeline {
 
     // Predictive measurements based on history
     const predictedMeasurements = this.predictMeasurements(
-      stabilizedResults,
-      this.measurementHistory
+      stabilizedResults
     );
 
     // Intelligent error correction
     const corrections = this.generateErrorCorrections(
       stabilizedResults,
-      environmentalFactors,
-      this.measurementHistory
+      environmentalFactors
     );
 
     return {
@@ -183,7 +181,7 @@ class AdvancedMLPipeline {
     const stability = this.analyzeStability();
     
     // Perspective analysis
-    const perspective = this.analyzePerspective(imageData);
+    const perspective = this.analyzePerspective();
     
     // Background noise analysis
     const backgroundNoise = this.analyzeBackgroundNoise(data);
@@ -270,7 +268,7 @@ class AdvancedMLPipeline {
     return difference / (data1.length / 16);
   }
 
-  private analyzePerspective(imageData: ImageData): number {
+  private analyzePerspective() {
     // Simple perspective analysis based on edge detection
     // A perpendicular view should have more horizontal edges than diagonal
     
@@ -306,7 +304,7 @@ class AdvancedMLPipeline {
   }
 
   private async assessImageQuality(imageData: ImageData) {
-    const { width, height, data } = imageData;
+    const { data } = imageData;
     
     // Sharpness assessment using Laplacian variance
     const sharpness = await this.calculateSharpness(imageData);
@@ -467,8 +465,8 @@ class AdvancedMLPipeline {
     return suggestions;
   }
 
-  private predictMeasurements(detection: any, history: any[]) {
-    if (!detection.end1 || !detection.end2 || history.length === 0) {
+  private predictMeasurements(detection: any) {
+    if (!detection.end1 || !detection.end2 || this.measurementHistory.length === 0) {
       return {
         length: 0,
         girth: 0,
@@ -477,7 +475,7 @@ class AdvancedMLPipeline {
     }
     
     // Simple prediction based on recent history
-    const recentMeasurements = history.slice(-5);
+    const recentMeasurements = this.measurementHistory.slice(-5);
     const avgLength = recentMeasurements.reduce((sum, m) => sum + m.length, 0) / recentMeasurements.length;
     const avgGirth = recentMeasurements.reduce((sum, m) => sum + m.girth, 0) / recentMeasurements.length;
     

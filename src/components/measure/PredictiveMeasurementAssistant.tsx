@@ -10,11 +10,9 @@ import {
   Target,
   Lightbulb,
   Zap,
-  CheckCircle,
   AlertTriangle,
   ArrowRight,
-  Calendar,
-  Timer
+  Calendar
 } from "lucide-react";
 import { MLAnalysisResult } from "@/lib/advancedML";
 
@@ -27,7 +25,6 @@ interface PredictiveMeasurementAssistantProps {
     confidence: number;
   }>;
   onAcceptSuggestion: (type: 'basePoint' | 'tipPoint', point: { x: number; y: number }) => void;
-  onApplyCorrection: (type: string, value: any) => void;
 }
 
 interface PredictionInsight {
@@ -43,8 +40,7 @@ interface PredictionInsight {
 export function PredictiveMeasurementAssistant({
   analysisResult,
   measurementHistory,
-  onAcceptSuggestion,
-  onApplyCorrection
+  onAcceptSuggestion
 }: PredictiveMeasurementAssistantProps) {
   const [insights, setInsights] = useState<PredictionInsight[]>([]);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);

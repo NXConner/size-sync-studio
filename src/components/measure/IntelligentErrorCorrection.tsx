@@ -137,8 +137,23 @@ export function IntelligentErrorCorrection({
 
     // Outlier detection based on measurement history
     if (measurementHistory.length >= 3) {
-      const outlierAnalysis = detectMeasurementOutliers();
-      if (outlierAnalysis.isOutlier) {
+      const outlierResult = detectMeasurementOutliers();
+      if (outlierResult.isOutlier) {
+        suggestions.push({
+          id: 'outlier-detection',  
+          type: 'outlier',
+          severity: outlierResult.severity,
+          title: 'Measurement Outlier Detected',
+          description: outlierResult.description,
+          confidence: outlierResult.confidence,
+          autoFixAvailable: false,
+          onApply: () => suggestOutlierAction()
+        });
+      }
+    }
+    if (measurementHistory.length >= 3) {
+        outlierAnalysis = detectMeasurementOutliers();
+        if (outlierAnalysis.isOutlier) {
         suggestions.push({
           id: 'outlier-detection',
           type: 'outlier',
@@ -268,7 +283,7 @@ export function IntelligentErrorCorrection({
     });
   };
 
-  const suggestOutlierAction = (outlierAnalysis: any) => {
+  const suggestOutlierAction = () => {
     onApplyCorrection('suggestion', {
       type: 'outlier',
       message: 'Review measurement or take additional measurement for verification'
