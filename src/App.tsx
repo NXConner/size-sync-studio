@@ -19,7 +19,7 @@ const SessionRunner = lazy(() => import("./pages/SessionRunner"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Chat = lazy(() => import("./pages/Chat"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const HealthScreening = lazy(() => import("./pages/HealthScreening"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
 const WellnessSettings = lazy(() => import("./features/mediax/pages/Settings"));
 const MediaXExplore = lazy(() => import("./features/mediax/pages/Explore"));

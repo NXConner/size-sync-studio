@@ -220,7 +220,7 @@ class WebGPUMLEngine {
     
     if (!ctx) throw new Error('Could not get canvas context');
 
-    const imgData = new ImageData(imageData.imageData, imageData.width, imageData.height);
+    const imgData = new ImageData(new Uint8ClampedArray(imageData.imageData), imageData.width, imageData.height);
     ctx.putImageData(imgData, 0, 0);
     
     // Simple edge detection (Sobel-like)

@@ -141,7 +141,6 @@ export const MeasureCamera = forwardRef<MeasureCameraRef, MeasureCameraProps>(({
 
         // Get capabilities after stream is established
         if (trackRef.current) {
-          const caps = result.capabilities;
           // Update parent component with capabilities if needed
         }
 
