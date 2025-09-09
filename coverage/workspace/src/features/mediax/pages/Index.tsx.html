@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">60.86% </span>
+                <span class="strong">50.59% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>154/253</span>
+                <span class='fraction'>128/253</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">60.86% </span>
+                <span class="strong">50.59% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>154/253</span>
+                <span class='fraction'>128/253</span>
             </div>
         
             
@@ -432,32 +432,32 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -752,33 +752,33 @@ const Index = () =&gt; {
   // Initial load: hydrate from IndexedDB; if empty, seed with mock data once
   useEffect(() =&gt; {
     const load = async () =&gt; {
-      const records = await db.media.toArray()
-      if (records.length === 0) {
-        const seed: MediaRecord[] = [
-          {
-            id: 'seed-1',
-            type: 'image',
-            url: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&amp;fit=crop&amp;w=1200&amp;q=80',
-            thumbnail: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&amp;fit=crop&amp;w=400&amp;q=80',
-            title: 'Personal Photo 1',
-            collection: 'favorites',
-            tags: ['personal', 'private'],
-            uploadDate: Date.now(),
-            size: 2048000,
-          },
-          {
-            id: 'seed-2',
-            type: 'image',
-            url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&amp;fit=crop&amp;w=1200&amp;q=80',
-            thumbnail: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&amp;fit=crop&amp;w=400&amp;q=80',
-            title: 'Personal Photo 2',
-            collection: 'recent',
-            tags: ['personal', 'work'],
-            uploadDate: Date.now(),
-            size: 1536000,
-          },
-        ]
-        await db.media.bulkPut(<span class="branch-0 cbranch-no" title="branch not covered" >seed)</span>
+      const records = await db.media.toArray<span class="branch-0 cbranch-no" title="branch not covered" >()</span>
+<span class="cstat-no" title="statement not covered" >      if (records.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >        const seed: MediaRecord[] = [</span>
+<span class="cstat-no" title="statement not covered" >          {</span>
+<span class="cstat-no" title="statement not covered" >            id: 'seed-1',</span>
+<span class="cstat-no" title="statement not covered" >            type: 'image',</span>
+<span class="cstat-no" title="statement not covered" >            url: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&amp;fit=crop&amp;w=1200&amp;q=80',</span>
+<span class="cstat-no" title="statement not covered" >            thumbnail: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&amp;fit=crop&amp;w=400&amp;q=80',</span>
+<span class="cstat-no" title="statement not covered" >            title: 'Personal Photo 1',</span>
+<span class="cstat-no" title="statement not covered" >            collection: 'favorites',</span>
+<span class="cstat-no" title="statement not covered" >            tags: ['personal', 'private'],</span>
+<span class="cstat-no" title="statement not covered" >            uploadDate: Date.now(),</span>
+<span class="cstat-no" title="statement not covered" >            size: 2048000,</span>
+<span class="cstat-no" title="statement not covered" >          },</span>
+<span class="cstat-no" title="statement not covered" >          {</span>
+<span class="cstat-no" title="statement not covered" >            id: 'seed-2',</span>
+<span class="cstat-no" title="statement not covered" >            type: 'image',</span>
+<span class="cstat-no" title="statement not covered" >            url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&amp;fit=crop&amp;w=1200&amp;q=80',</span>
+<span class="cstat-no" title="statement not covered" >            thumbnail: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&amp;fit=crop&amp;w=400&amp;q=80',</span>
+<span class="cstat-no" title="statement not covered" >            title: 'Personal Photo 2',</span>
+<span class="cstat-no" title="statement not covered" >            collection: 'recent',</span>
+<span class="cstat-no" title="statement not covered" >            tags: ['personal', 'work'],</span>
+<span class="cstat-no" title="statement not covered" >            uploadDate: Date.now(),</span>
+<span class="cstat-no" title="statement not covered" >            size: 1536000,</span>
+<span class="cstat-no" title="statement not covered" >          },</span>
+<span class="cstat-no" title="statement not covered" >        ]</span>
+<span class="cstat-no" title="statement not covered" >        await db.media.bulkPut(seed)</span>
 <span class="cstat-no" title="statement not covered" >        const loaded = seed.map(r =&gt; ({ ...r, uploadDate: new Date(r.uploadDate) })) as unknown as MediaItem[]</span>
 <span class="cstat-no" title="statement not covered" >        setMediaItems(loaded)</span>
 <span class="cstat-no" title="statement not covered" >      } else {</span>
@@ -1033,7 +1033,7 @@ export default Index;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-09T06:49:59.440Z
+                at 2025-09-09T07:23:20.393Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>
