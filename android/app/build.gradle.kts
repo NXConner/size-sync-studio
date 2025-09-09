@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.sizeseeker"
-    compileSdk = 34
+    namespace = "app.lovable.16d96009e5184ad6887bccbb25d2315a"
+    compileSdk = rootProject.ext.compileSdkVersion as Int
 
     defaultConfig {
-        applicationId = "com.sizeseeker"
-        minSdk = 26
-        targetSdk = 34
+        applicationId = "app.lovable.16d96009e5184ad6887bccbb25d2315a"
+        minSdk = rootProject.ext.minSdkVersion as Int
+        targetSdk = rootProject.ext.targetSdkVersion as Int
         versionCode = 1
         versionName = "1.0"
 
@@ -32,11 +32,11 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 
     androidResources {
@@ -51,27 +51,25 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    implementation("androidx.appcompat:appcompat:${rootProject.ext.get("androidxAppCompatVersion")}")
+    implementation("androidx.coordinatorlayout:coordinatorlayout:${rootProject.ext.get("androidxCoordinatorLayoutVersion")}")
+    implementation("androidx.core:core-splashscreen:${rootProject.ext.get("coreSplashScreenVersion")}")
+    implementation(project(":capacitor-android"))
+    
+    testImplementation("junit:junit:${rootProject.ext.get("junitVersion")}")
+    androidTestImplementation("androidx.test.ext:junit:${rootProject.ext.get("androidxJunitVersion")}")
+    androidTestImplementation("androidx.test.espresso:espresso-core:${rootProject.ext.get("androidxEspressoCoreVersion")}")
+}
 
-    // CameraX
-    val cameraxVersion = "1.3.4"
-    implementation("androidx.camera:camera-core:$cameraxVersion")
-    implementation("androidx.camera:camera-camera2:$cameraxVersion")
-    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
-    implementation("androidx.camera:camera-view:$cameraxVersion")
+apply(from = "capacitor.build.gradle")
 
-    // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
-
-    // Testing
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-
-    // TFLite
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
+try {
+    val servicesJSON = file("google-services.json")
+    if (servicesJSON.exists() && servicesJSON.readText().isNotEmpty()) {
+        apply(plugin = "com.google.gms.google-services")
+    }
+} catch (e: Exception) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
 
