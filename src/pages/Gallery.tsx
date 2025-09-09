@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Camera, Calendar, Ruler, Search, Trash2 } from "lucide-react";
 import { getMeasurements, deleteMeasurement, getPhoto, deletePhoto } from "@/utils/storage";
 import { Measurement } from "@/types";
+import { PermissionChecker } from "@/components/PermissionChecker";
 
 export default function Gallery() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -127,6 +128,11 @@ export default function Gallery() {
             Track your progress visually with timestamped photos and measurements. Your journey
             documented with precision and privacy.
           </p>
+        </div>
+
+        {/* Permission Checker */}
+        <div className="flex justify-center">
+          <PermissionChecker />
         </div>
 
         {/* Filters */}
