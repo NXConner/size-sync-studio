@@ -7,10 +7,7 @@ android {
   }
 }
 
-def cordovaVars = file("../capacitor-cordova-android-plugins/cordova.variables.gradle")
-if (cordovaVars.exists()) {
-  apply from: cordovaVars
-}
+apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-status-bar')
