@@ -2242,122 +2242,126 @@ export default function Measure() {
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="flex items-center gap-2">
-                <Ruler className="w-5 h-5" /> Measure
-              </CardTitle>
-              <Tabs value={mode} onValueChange={(v) => setMode(v as "live" | "upload")}>
-                <TabsList>
-                  <TabsTrigger value="live">Live</TabsTrigger>
-                  <TabsTrigger value="upload">Upload</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="ml-1" title="Help (shortcuts)">
-                    <HelpCircle className="w-5 h-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Shortcuts & Tips</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-2 text-sm">
-                    <div><Badge variant="outline">D</Badge> Auto-detect</div>
-                    <div><Badge variant="outline">C</Badge> Capture</div>
-                    <div><Badge variant="outline">F</Badge> Freeze / Unfreeze</div>
-                    <div><Badge variant="outline">S</Badge> Toggle Snap-to-edge</div>
-                    <div>Arrows: Nudge selected handle; Shift = faster</div>
-                    <div>Click two points to calibrate or measure manually.</div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="flex gap-2">
-              {mode === "live" && (
-                <>
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <CardTitle className="flex items-center gap-2 flex-shrink-0">
+                  <Ruler className="w-5 h-5" /> Measure
+                </CardTitle>
+                <Tabs value={mode} onValueChange={(v) => setMode(v as "live" | "upload")} className="flex-shrink-0">
+                  <TabsList>
+                    <TabsTrigger value="live">Live</TabsTrigger>
+                    <TabsTrigger value="upload">Upload</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="ml-1 flex-shrink-0" title="Help (shortcuts)">
+                      <HelpCircle className="w-5 h-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Shortcuts & Tips</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 text-sm">
+                      <div><Badge variant="outline">D</Badge> Auto-detect</div>
+                      <div><Badge variant="outline">C</Badge> Capture</div>
+                      <div><Badge variant="outline">F</Badge> Freeze / Unfreeze</div>
+                      <div><Badge variant="outline">S</Badge> Toggle Snap-to-edge</div>
+                      <div>Arrows: Nudge selected handle; Shift = faster</div>
+                      <div>Click two points to calibrate or measure manually.</div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="flex gap-2 overflow-x-auto min-w-0 max-w-full pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                <div className="flex gap-2 flex-nowrap min-w-max">
+                  {mode === "live" && (
+                    <>
+                      <select
+                        value={deviceId}
+                        onChange={(e) => setDeviceId(e.target.value)}
+                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[140px] flex-shrink-0"
+                        title="Camera device"
+                      >
+                        {devices.length === 0 && <option value="">No cameras</option>}
+                        {devices.map((d) => (
+                          <option key={d.deviceId} value={d.deviceId}>
+                            {d.label || `Camera ${d.deviceId.slice(0, 4)}`}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={`${resolution.w}x${resolution.h}`}
+                        onChange={(e) => {
+                          const [w, h] = e.target.value.split("x").map((n) => parseInt(n, 10));
+                          setResolution({ w, h });
+                        }}
+                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[100px] flex-shrink-0"
+                        title="Resolution"
+                      >
+                        {[
+                          [640, 480],
+                          [1280, 720],
+                          [1920, 1080],
+                        ].map(([w, h]) => (
+                          <option key={`${w}x${h}`} value={`${w}x${h}`}>{w}x{h}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={String(targetFps)}
+                        onChange={(e) => setTargetFps(parseInt(e.target.value, 10))}
+                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[80px] flex-shrink-0"
+                        title="Target FPS"
+                      >
+                        {[15, 24, 30, 60].map((f) => (
+                          <option key={f} value={f}>{f} fps</option>
+                        ))}
+                      </select>
+                    </>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)} className="flex-shrink-0">
+                        Calibrate
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Click two points of a known distance</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={clearPoints} className="flex-shrink-0">
+                        <RefreshCw className="w-4 h-4 mr-1" /> Reset
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Clear measurement points</TooltipContent>
+                  </Tooltip>
                   <select
-                    value={deviceId}
-                    onChange={(e) => setDeviceId(e.target.value)}
-                    className="bg-card border border-border rounded-md px-2 py-1 text-sm max-w-[200px]"
-                    title="Camera device"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value as "in" | "cm")}
+                    className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[60px] flex-shrink-0"
                   >
-                    {devices.length === 0 && <option value="">No cameras</option>}
-                    {devices.map((d) => (
-                      <option key={d.deviceId} value={d.deviceId}>
-                        {d.label || `Camera ${d.deviceId.slice(0, 4)}`}
-                      </option>
-                    ))}
+                    <option value="in">in</option>
+                    <option value="cm">cm</option>
                   </select>
-                  <select
-                    value={`${resolution.w}x${resolution.h}`}
-                    onChange={(e) => {
-                      const [w, h] = e.target.value.split("x").map((n) => parseInt(n, 10));
-                      setResolution({ w, h });
-                    }}
-                    className="bg-card border border-border rounded-md px-2 py-1 text-sm"
-                    title="Resolution"
-                  >
-                    {[
-                      [640, 480],
-                      [1280, 720],
-                      [1920, 1080],
-                    ].map(([w, h]) => (
-                      <option key={`${w}x${h}`} value={`${w}x${h}`}>{w}x{h}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={String(targetFps)}
-                    onChange={(e) => setTargetFps(parseInt(e.target.value, 10))}
-                    className="bg-card border border-border rounded-md px-2 py-1 text-sm"
-                    title="Target FPS"
-                  >
-                    {[15, 24, 30, 60].map((f) => (
-                      <option key={f} value={f}>{f} fps</option>
-                    ))}
-                  </select>
-                </>
-              )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => setIsCalibrating(true)}>
-                    Calibrate
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Click two points of a known distance</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={clearPoints}>
-                    <RefreshCw className="w-4 h-4 mr-1" /> Reset
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Clear measurement points</TooltipContent>
-              </Tooltip>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value as "in" | "cm")}
-                className="bg-card border border-border rounded-md px-2 py-1 text-sm"
-              >
-                <option value="in">in</option>
-                <option value="cm">cm</option>
-              </select>
-              {mode === "upload" && (
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
-                    const url = URL.createObjectURL(file);
-                    setUploadedUrl(url);
-                    setUploadedBlob(file);
-                  }}
-                  className="w-48"
-                />
-              )}
+                  {mode === "upload" && (
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
+                        const url = URL.createObjectURL(file);
+                        setUploadedUrl(url);
+                        setUploadedBlob(file);
+                      }}
+                      className="w-48 flex-shrink-0"
+                    />
+                  )}
+                </div>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
