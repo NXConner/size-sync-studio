@@ -67,6 +67,13 @@ export default function Measure() {
   const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
   const [showGrid, setShowGrid] = useState<boolean>(false);
   const [gridSize, setGridSize] = useState<number>(24);
+  // Visual aids settings
+  const [showScanSweep, setShowScanSweep] = useState<boolean>(true);
+  const [showPulsingHalos, setShowPulsingHalos] = useState<boolean>(true);
+  const [showStabilityRing, setShowStabilityRing] = useState<boolean>(true);
+  const [sweepIntensity, setSweepIntensity] = useState<number>(15); // 0-30 alpha%
+  const [haloIntensity, setHaloIntensity] = useState<number>(60); // 0-100
+  const [ringSize, setRingSize] = useState<number>(16); // px radius
   const [dragging, setDragging] = useState<null | { type: "base" | "tip" | "calibStart" | "calibEnd" }>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [isFrozen, setIsFrozen] = useState<boolean>(false);
@@ -97,6 +104,22 @@ export default function Measure() {
   const confidenceRef = useRef<number>(0);
   const [minConfidence, setMinConfidence] = useState<number>(0.6);
   const [showHud, setShowHud] = useState<boolean>(true);
+  const [stabilityProgress, setStabilityProgress] = useState<number>(0);
+  const stabilityProgressRef = useRef<number>(0);
+  const stableStartTsRef = useRef<number | null>(null);
+  const [qualityDetail, setQualityDetail] = useState<{
+    brightness: number;
+    blurVar: number;
+    sizeFraction: number;
+    edgeProximity: number;
+  } | null>(null);
+  // Quality threshold controls (persisted via refs to avoid frequent deps)
+  const minBrightnessRef = useRef<number>(70);
+  const maxBrightnessRef = useRef<number>(210);
+  const minBlurVarRef = useRef<number>(60);
+  const minSizeFractionRef = useRef<number>(0.08);
+  const maxSizeFractionRef = useRef<number>(0.45);
+  const maxEdgeProximityRef = useRef<number>(0.2);
   const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
   const [snapRadiusPx, setSnapRadiusPx] = useState<number>(18);
   const [retakeSuggested, setRetakeSuggested] = useState<boolean>(false);
@@ -344,6 +367,9 @@ export default function Measure() {
   useEffect(() => {
     confidenceRef.current = confidence;
   }, [confidence]);
+  useEffect(() => {
+    stabilityProgressRef.current = stabilityProgress;
+  }, [stabilityProgress]);
 
   // Load previous photos once
   useEffect(() => {
@@ -432,6 +458,21 @@ export default function Measure() {
         if (typeof p.showPrevOverlay === "boolean") setShowPrevOverlay(p.showPrevOverlay);
         if (typeof p.overlayOpacity === "number") setOverlayOpacity(p.overlayOpacity);
         if (typeof p.unit === "string" && (p.unit === "in" || p.unit === "cm")) setUnit(p.unit);
+        if (typeof p.showScanSweep === "boolean") setShowScanSweep(p.showScanSweep);
+        if (typeof p.showPulsingHalos === "boolean") setShowPulsingHalos(p.showPulsingHalos);
+        if (typeof p.showStabilityRing === "boolean") setShowStabilityRing(p.showStabilityRing);
+        if (typeof p.sweepIntensity === "number") setSweepIntensity(p.sweepIntensity);
+        if (typeof p.haloIntensity === "number") setHaloIntensity(p.haloIntensity);
+        if (typeof p.ringSize === "number") setRingSize(p.ringSize);
+        if (p.quality && typeof p.quality === 'object') {
+          const q = p.quality;
+          if (typeof q.minBrightness === 'number') minBrightnessRef.current = q.minBrightness;
+          if (typeof q.maxBrightness === 'number') maxBrightnessRef.current = q.maxBrightness;
+          if (typeof q.minBlurVar === 'number') minBlurVarRef.current = q.minBlurVar;
+          if (typeof q.minSizeFraction === 'number') minSizeFractionRef.current = q.minSizeFraction;
+          if (typeof q.maxSizeFraction === 'number') maxSizeFractionRef.current = q.maxSizeFraction;
+          if (typeof q.maxEdgeProximity === 'number') maxEdgeProximityRef.current = q.maxEdgeProximity;
+        }
       }
     } catch {}
   }, []);
@@ -457,10 +498,24 @@ export default function Measure() {
         showPrevOverlay,
         overlayOpacity,
         unit,
+        showScanSweep,
+        showPulsingHalos,
+        showStabilityRing,
+        sweepIntensity,
+        haloIntensity,
+        ringSize,
+        quality: {
+          minBrightness: minBrightnessRef.current,
+          maxBrightness: maxBrightnessRef.current,
+          minBlurVar: minBlurVarRef.current,
+          minSizeFraction: minSizeFractionRef.current,
+          maxSizeFraction: maxSizeFractionRef.current,
+          maxEdgeProximity: maxEdgeProximityRef.current,
+        },
       };
       localStorage.setItem("measure.prefs", JSON.stringify(prefs));
     } catch {}
-  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, useMlSegmentation, showPrevOverlay, overlayOpacity, unit]);
+  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, useMlSegmentation, showPrevOverlay, overlayOpacity, unit, showScanSweep, showPulsingHalos, showStabilityRing, sweepIntensity, haloIntensity, ringSize]);
 
   // Persist voice customization
   useEffect(() => {
@@ -681,9 +736,12 @@ export default function Measure() {
       const cStart = calibStartRef.current;
       const cEnd = calibEndRef.current;
       if (cStart && cEnd) {
+        // Animated dashed calibration line
+        const t = performance.now() / 1000;
         ctx.strokeStyle = "#22d3ee";
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 6]);
+        ctx.lineDashOffset = -((t * 120) % 12);
         ctx.beginPath();
         ctx.moveTo(cStart.x, cStart.y);
         ctx.lineTo(cEnd.x, cEnd.y);
@@ -702,6 +760,11 @@ export default function Measure() {
           (cStart.x + cEnd.x) / 2 + 8,
           (cStart.y + cEnd.y) / 2,
         );
+
+        // Calibration hint text
+        ctx.fillStyle = "rgba(34,211,238,0.9)";
+        ctx.font = "13px sans-serif";
+        ctx.fillText("Calibrating: click/drag two points of known distance", 12, 24);
       }
 
       // Base to tip length line + markers + tape ruler
@@ -731,8 +794,22 @@ export default function Measure() {
           setLengthDisplay(nextLen);
         }
 
-        // Base/Tip markers
+        // Base/Tip markers with pulsing halos
         const drawMarker = (x: number, y: number, label: string) => {
+          const t = performance.now() / 1000;
+          if (showPulsingHalos) {
+            const pulse = (Math.sin(t * 2 * Math.PI) + 1) / 2; // 0..1
+            const radius = 10 + pulse * 6;
+            const alpha = (haloIntensity / 100) * (0.15 + 0.35 * pulse);
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(16,185,129,${Math.max(0, Math.min(1, alpha))})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+          }
+
           ctx.fillStyle = "#10b981";
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 2;
@@ -820,6 +897,40 @@ export default function Measure() {
           ctx.font = "14px sans-serif";
           ctx.fillText(`${nextGirth} ${unitRef.current}`, endX + 8, endY);
         }
+      }
+
+      // Live scanning sweep when auto-detect is enabled
+      if (autoDetect && mode === "live" && showScanSweep) {
+        const t = performance.now() / 1000;
+        const bandW = Math.max(24, Math.floor(overlay.width * 0.12));
+        const xCenter = ((t * 160) % (overlay.width + bandW)) - bandW / 2;
+        const grad = ctx.createLinearGradient(xCenter - bandW / 2, 0, xCenter + bandW / 2, 0);
+        const alpha = Math.max(0, Math.min(0.4, sweepIntensity / 100));
+        grad.addColorStop(0, `rgba(59,130,246,0.0)`);
+        grad.addColorStop(0.5, `rgba(59,130,246,${alpha})`);
+        grad.addColorStop(1, `rgba(59,130,246,0.0)`);
+        ctx.fillStyle = grad as any;
+        ctx.fillRect(0, 0, overlay.width, overlay.height);
+      }
+
+      // Stability progress ring near tip or top-left
+      if (autoDetect && mode === "live" && showStabilityRing) {
+        const progress = Math.max(0, Math.min(1, stabilityProgressRef.current || 0));
+        const cx = tipPointRef.current?.x ?? 28;
+        const cy = tipPointRef.current?.y ?? 28;
+        const r = Math.max(8, Math.min(40, ringSize));
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(148,163,184,0.5)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+        ctx.strokeStyle = progress >= 1 ? "#f59e0b" : "#22d3ee";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
       }
 
       rafRef.current = requestAnimationFrame(render);
@@ -1365,6 +1476,15 @@ export default function Measure() {
             try {
               if ((det as any).quality && typeof (det as any).quality.score === 'number') {
                 setQualityScore((det as any).quality.score);
+                const q = (det as any).quality;
+                if (q && typeof q === 'object') {
+                  setQualityDetail({
+                    brightness: Number(q.brightness) || 0,
+                    blurVar: Number(q.blurVar) || 0,
+                    sizeFraction: Number(q.sizeFraction) || 0,
+                    edgeProximity: Number(q.edgeProximity) || 0,
+                  });
+                }
               }
               if (typeof (det as any).curvatureDeg === 'number') {
                 setCurvatureDeg((det as any).curvatureDeg);
@@ -2055,6 +2175,16 @@ export default function Measure() {
               setAutoStatus(nextStatus);
             }
             const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
+            // Update stability progress timing
+            if (stable) {
+              if (stableStartTsRef.current == null) stableStartTsRef.current = now;
+              const elapsed = (now - (stableStartTsRef.current || now)) / (stabilitySeconds * 1000);
+              const prog = Math.max(0, Math.min(1, elapsed));
+              setStabilityProgress(prog);
+            } else {
+              stableStartTsRef.current = null;
+              setStabilityProgress(0);
+            }
             if (stable && autoCapture && cooldownOk) {
               try { await capture(); } catch {}
               lastAutoCaptureTsRef.current = now;
@@ -2379,6 +2509,22 @@ export default function Measure() {
                     {retakeSuggested && (
                       <span className="text-amber-300 whitespace-nowrap">Retake suggested</span>
                     )}
+                    {/* Quality hints */}
+                    {qualityDetail && (
+                      <span className="hidden md:block opacity-90 whitespace-nowrap">
+                        {(() => {
+                          const hints: string[] = [];
+                          const q = qualityDetail;
+                          if (q.brightness < minBrightnessRef.current) hints.push('Brighten scene');
+                          if (q.brightness > maxBrightnessRef.current) hints.push('Reduce exposure');
+                          if (q.blurVar < minBlurVarRef.current) hints.push('Hold steadier');
+                          if (q.sizeFraction < minSizeFractionRef.current) hints.push('Move closer');
+                          if (q.sizeFraction > maxSizeFractionRef.current) hints.push('Move back');
+                          if (q.edgeProximity > maxEdgeProximityRef.current) hints.push('Center subject');
+                          return hints.slice(0, 2).join(' · ');
+                        })()}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -2458,9 +2604,34 @@ export default function Measure() {
                   <Slider value={[gridSize]} min={8} max={80} step={1} onValueChange={(v) => setGridSize(v[0])} />
                 </div>
               )}
-              {latestPrev && (
-                <div className="text-xs text-muted-foreground">
-                  Prev: L {latestPrev.length.toFixed(2)}", G {latestPrev.girth.toFixed(2)}"
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={showScanSweep} onCheckedChange={setShowScanSweep} />
+                <span className="text-sm">Scan sweep</span>
+              </div>
+              {showScanSweep && (
+                <div className="pt-2">
+                  <label className="text-xs text-muted-foreground">Sweep intensity: {sweepIntensity}%</label>
+                  <Slider value={[sweepIntensity]} min={0} max={40} step={1} onValueChange={(v) => setSweepIntensity(v[0])} />
+                </div>
+              )}
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={showPulsingHalos} onCheckedChange={setShowPulsingHalos} />
+                <span className="text-sm">Pulsing halos</span>
+              </div>
+              {showPulsingHalos && (
+                <div className="pt-2">
+                  <label className="text-xs text-muted-foreground">Halo intensity: {haloIntensity}%</label>
+                  <Slider value={[haloIntensity]} min={0} max={100} step={1} onValueChange={(v) => setHaloIntensity(v[0])} />
+                </div>
+              )}
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={showStabilityRing} onCheckedChange={setShowStabilityRing} />
+                <span className="text-sm">Stability ring</span>
+              </div>
+              {showStabilityRing && (
+                <div className="pt-2">
+                  <label className="text-xs text-muted-foreground">Ring size: {ringSize}px</label>
+                  <Slider value={[ringSize]} min={8} max={40} step={1} onValueChange={(v) => setRingSize(v[0])} />
                 </div>
               )}
               <div className="flex gap-2 pt-2">
@@ -2487,6 +2658,11 @@ export default function Measure() {
                   <TooltipContent>Copy length, girth, and scale</TooltipContent>
                 </Tooltip>
               </div>
+              {latestPrev && (
+                <div className="text-xs text-muted-foreground">
+                  Prev: L {latestPrev.length.toFixed(2)}", G {latestPrev.girth.toFixed(2)}"
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -2495,6 +2671,33 @@ export default function Measure() {
               <CardTitle>Experimental</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="text-sm font-medium">Quality thresholds</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Min brightness: {Math.round(minBrightnessRef.current)}</label>
+                  <Slider value={[minBrightnessRef.current]} min={0} max={255} step={1} onValueChange={(arr) => { minBrightnessRef.current = arr[0]; }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Max brightness: {Math.round(maxBrightnessRef.current)}</label>
+                  <Slider value={[maxBrightnessRef.current]} min={0} max={255} step={1} onValueChange={(arr) => { maxBrightnessRef.current = arr[0]; }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Min blur variance: {Math.round(minBlurVarRef.current)}</label>
+                  <Slider value={[minBlurVarRef.current]} min={0} max={400} step={1} onValueChange={(arr) => { minBlurVarRef.current = arr[0]; }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Min size fraction: {minSizeFractionRef.current.toFixed(2)}</label>
+                  <Slider value={[Math.round(minSizeFractionRef.current * 100)]} min={1} max={60} step={1} onValueChange={(arr) => { minSizeFractionRef.current = arr[0] / 100; }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Max size fraction: {maxSizeFractionRef.current.toFixed(2)}</label>
+                  <Slider value={[Math.round(maxSizeFractionRef.current * 100)]} min={10} max={90} step={1} onValueChange={(arr) => { maxSizeFractionRef.current = arr[0] / 100; }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Max edge proximity: {Math.round(maxEdgeProximityRef.current * 100)}%</label>
+                  <Slider value={[Math.round(maxEdgeProximityRef.current * 100)]} min={0} max={60} step={1} onValueChange={(arr) => { maxEdgeProximityRef.current = arr[0] / 100; }} />
+                </div>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Use ML segmentation (ONNXRuntime) [experimental]</span>
                 <Switch checked={useMlSegmentation} onCheckedChange={setUseMlSegmentation} />
