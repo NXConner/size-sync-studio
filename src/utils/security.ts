@@ -216,7 +216,7 @@ export const CSP = {
   },
   
   // Validate that content matches CSP rules
-  validateContent(content: string, type: 'script' | 'style'): boolean {
+  validateContent(content: string, _type: 'script' | 'style'): boolean {
     const forbiddenPatterns = [
       /javascript:/i,
       /data:/i,

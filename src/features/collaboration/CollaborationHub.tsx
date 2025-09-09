@@ -41,7 +41,7 @@ export const CollaborationHub = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [isVideoCall, setIsVideoCall] = useState(false);
+  const [_isVideoCall] = useState<boolean>(false);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -129,7 +129,7 @@ export const CollaborationHub = () => {
     loadSessionMessages(session.id);
   };
 
-  const loadSessionMessages = (sessionId: string) => {
+  const loadSessionMessages = (_sessionId: string) => {
     // Simulate loading messages
     const mockMessages: Message[] = [
       {
@@ -180,25 +180,10 @@ export const CollaborationHub = () => {
   };
 
   const startVideoCall = () => {
-    setIsVideoCall(true);
     toast({
       title: "Video Call Started",
       description: "Participants will be notified"
     });
-  };
-
-  const shareMeasurement = (measurement: any) => {
-    if (!currentSession) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      userId: currentUser.id,
-      content: `Shared measurement: ${measurement.length}" length, ${measurement.girth}" girth`,
-      timestamp: new Date(),
-      type: 'measurement'
-    };
-
-    setMessages([...messages, message]);
   };
 
   const scrollToBottom = () => {

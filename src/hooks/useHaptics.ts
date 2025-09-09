@@ -115,7 +115,7 @@ export function useHaptics() {
 
 // Hook for measurement-specific haptic patterns
 export function useMeasurementHaptics() {
-  const { measurementFeedback, isCapacitorAvailable } = useHaptics();
+  const { measurementFeedback, impact, isCapacitorAvailable } = useHaptics();
 
   const calibrationHaptic = useCallback(() => {
     measurementFeedback.calibrationPoint();
@@ -145,6 +145,10 @@ export function useMeasurementHaptics() {
     measurementFeedback.successFeedback();
   }, [measurementFeedback]);
 
+  const warningHaptic = useCallback(() => {
+    impact({ style: ImpactStyle.Medium });
+  }, [impact]);
+
   return {
     calibrationHaptic,
     measurementHaptic,
@@ -153,6 +157,7 @@ export function useMeasurementHaptics() {
     autoCaptureHaptic,
     errorHaptic,
     successHaptic,
+    warningHaptic,
     isCapacitorAvailable
   };
 }

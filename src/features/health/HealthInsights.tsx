@@ -49,7 +49,7 @@ interface HealthInsight {
 }
 
 export const HealthInsights = () => {
-  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [_measurements] = useState<Measurement[]>([]);
   const [healthScore, setHealthScore] = useState(0);
   const [metrics, setMetrics] = useState<HealthMetric[]>([]);
   const [goals, setGoals] = useState<HealthGoal[]>([]);
@@ -63,7 +63,7 @@ export const HealthInsights = () => {
   const loadHealthData = async () => {
     try {
       const allMeasurements = getMeasurements();
-      setMeasurements(allMeasurements);
+      // Skip setting measurements as we're not using the state variable
       
       // Generate health analytics
       const analytics = generateHealthAnalytics(allMeasurements);

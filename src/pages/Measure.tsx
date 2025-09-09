@@ -2302,14 +2302,14 @@ export default function Measure() {
                   </DialogContent>
                 </Dialog>
               </div>
-              <div className="flex gap-2 overflow-x-auto min-w-0 max-w-full pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-                <div className="flex gap-2 flex-nowrap min-w-max">
+              <div className="flex flex-wrap gap-2 min-w-0">
+                <div className="flex gap-2 flex-wrap">
                   {mode === "live" && (
                     <>
                       <select
                         value={deviceId}
                         onChange={(e) => setDeviceId(e.target.value)}
-                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[140px] flex-shrink-0"
+                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[120px] max-w-[140px] flex-shrink-0"
                         title="Camera device"
                       >
                         {devices.length === 0 && <option value="">No cameras</option>}
@@ -2325,7 +2325,7 @@ export default function Measure() {
                           const [w, h] = e.target.value.split("x").map((n) => parseInt(n, 10));
                           setResolution({ w, h });
                         }}
-                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[100px] flex-shrink-0"
+                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[80px] max-w-[100px] flex-shrink-0"
                         title="Resolution"
                       >
                         {[
@@ -2339,7 +2339,7 @@ export default function Measure() {
                       <select
                         value={String(targetFps)}
                         onChange={(e) => setTargetFps(parseInt(e.target.value, 10))}
-                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[80px] flex-shrink-0"
+                        className="bg-card border border-border rounded-md px-2 py-1 text-sm min-w-[70px] max-w-[80px] flex-shrink-0"
                         title="Target FPS"
                       >
                         {[15, 24, 30, 60].map((f) => (

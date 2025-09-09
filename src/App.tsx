@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
 import { PwaUpdate } from "./components/PwaUpdate";
+const HealthScreening = lazy(() => import("./pages/HealthScreening"));
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Safety = lazy(() => import("./pages/Safety"));
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/measure" element={<Measure />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/screening" element={<HealthScreening />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/run-session" element={<SessionRunner />} />
               <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
