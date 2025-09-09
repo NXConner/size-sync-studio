@@ -7,10 +7,23 @@ const STORAGE_KEYS = {
   PHOTOS: "size-seeker-photos",
 };
 
+// Helper: safely parse JSON from localStorage
+function safeReadArray<T>(key: string): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [] as T[];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    // Data may be corrupted or from an older version; reset to empty
+    try { localStorage.removeItem(key); } catch {}
+    return [] as T[];
+  }
+}
+
 // Measurements Storage
 export const getMeasurements = (): Measurement[] => {
-  const stored = localStorage.getItem(STORAGE_KEYS.MEASUREMENTS);
-  return stored ? JSON.parse(stored) : [];
+  return safeReadArray<Measurement>(STORAGE_KEYS.MEASUREMENTS);
 };
 
 export const saveMeasurement = (measurement: Measurement): void => {
@@ -33,8 +46,7 @@ export const deleteMeasurement = (id: string): void => {
 
 // Sessions Storage
 export const getSessions = (): Session[] => {
-  const stored = localStorage.getItem(STORAGE_KEYS.SESSIONS);
-  return stored ? JSON.parse(stored) : [];
+  return safeReadArray<Session>(STORAGE_KEYS.SESSIONS);
 };
 
 export const saveSession = (session: Session): void => {
@@ -57,8 +69,7 @@ export const deleteSession = (id: string): void => {
 
 // Goals Storage
 export const getGoals = (): Goal[] => {
-  const stored = localStorage.getItem(STORAGE_KEYS.GOALS);
-  return stored ? JSON.parse(stored) : [];
+  return safeReadArray<Goal>(STORAGE_KEYS.GOALS);
 };
 
 export const saveGoal = (goal: Goal): void => {
