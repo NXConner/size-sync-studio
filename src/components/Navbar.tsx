@@ -81,25 +81,29 @@ export function Navbar() {
           </div>
 
           {/* Mobile menu */}
-          <div className="md:hidden flex space-x-1" aria-label="Primary mobile">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "p-2 rounded-lg transition-all duration-200",
-                    isActive
-                      ? "bg-primary/20 text-primary shadow-primary/20 shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                  )}
-                >
-                  <item.icon className="w-5 h-5" />
-                </Link>
-              );
-            })}
+          <div className="md:hidden -mx-2 px-2" aria-label="Primary mobile">
+            <div className="flex flex-nowrap items-center gap-1 overflow-x-auto no-scrollbar" role="tablist">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    aria-label={item.name}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "min-w-[44px] h-10 flex items-center justify-center p-2 rounded-lg transition-all duration-200",
+                      isActive
+                        ? "bg-primary/20 text-primary shadow-primary/20 shadow-lg"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="sr-only">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
