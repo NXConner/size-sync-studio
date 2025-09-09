@@ -955,6 +955,15 @@ export default function Measure() {
   }, []);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Only handle clicks if we're actively calibrating or have interacted with the canvas
+    if (!isCalibrating && !dragging) {
+      // Allow event to bubble up for normal page interaction
+      return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
     const rect = e.currentTarget.getBoundingClientRect();
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
@@ -989,9 +998,25 @@ export default function Measure() {
   };
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Only handle mouse down for dragging if we're in calibration mode or near a point
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    // Check if we're near any draggable points
+    const nearPoint = (px: number, py: number) => Math.hypot(x - px, y - py) < 24;
+    const nearBase = basePoint && nearPoint(basePoint.x, basePoint.y);
+    const nearTip = tipPoint && nearPoint(tipPoint.x, tipPoint.y);
+    const nearCalibStart = isCalibrating && calibStart && nearPoint(calibStart.x, calibStart.y);
+    const nearCalibEnd = isCalibrating && calibEnd && nearPoint(calibEnd.x, calibEnd.y);
+    
+    if (!nearBase && !nearTip && !nearCalibStart && !nearCalibEnd && !isCalibrating) {
+      // Allow normal page interaction
+      return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
     const hitRadius = 14;
     const hit = (pt: { x: number; y: number } | null) =>
       pt && Math.hypot(pt.x - x, pt.y - y) <= hitRadius;
@@ -2241,7 +2266,7 @@ export default function Measure() {
   })();
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6 min-h-screen overflow-y-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader>
@@ -2429,7 +2454,8 @@ export default function Measure() {
               )}
               <canvas
                 ref={overlayRef}
-                className="absolute left-0 top-0 w-full h-full cursor-crosshair"
+                className="absolute left-0 top-0 w-full h-full pointer-events-auto"
+                style={{ cursor: isCalibrating || dragging ? 'crosshair' : 'default' }}
                 onClick={handleOverlayClick}
                 onMouseDown={handleOverlayMouseDown}
                 onMouseMove={handleOverlayMouseMove}
