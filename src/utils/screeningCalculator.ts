@@ -1,5 +1,6 @@
 import { ScreeningQuestion, ScreeningResponse, ScreeningResult } from '@/types/screening';
 import { screeningRecommendations } from '@/data/screeningQuestions';
+import { HealthPhotoAnalysisResult } from '@/lib/healthPhotoAnalysis';
 
 export function calculateRiskScore(
   questions: ScreeningQuestion[],
@@ -48,6 +49,20 @@ export function calculateRiskScore(
   return maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 0;
 }
 
+export function combineRiskScores(
+  questionnaireScore: number, 
+  photoAnalysisScore: number,
+  photoConfidence: number
+): number {
+  // Weight the scores based on confidence
+  // Higher confidence photo analysis gets more weight
+  const photoWeight = Math.max(0.3, photoConfidence); // Minimum 30% weight
+  const questionnaireWeight = 1 - photoWeight;
+  
+  const combinedScore = (questionnaireScore * questionnaireWeight) + (photoAnalysisScore * photoWeight);
+  return Math.round(Math.min(100, combinedScore));
+}
+
 export function determineRiskLevel(riskScore: number): 'low' | 'moderate' | 'high' | 'critical' {
   if (riskScore < 25) return 'low';
   if (riskScore < 50) return 'moderate';
@@ -66,23 +81,55 @@ export function generateScreeningResult(
   category: 'peyronie' | 'std',
   questions: ScreeningQuestion[],
   responses: ScreeningResponse[],
-  completedBy: string = 'User'
+  completedBy: string = 'User',
+  photoAnalysis?: HealthPhotoAnalysisResult
 ): ScreeningResult {
-  const riskScore = calculateRiskScore(questions, responses);
-  const riskLevel = determineRiskLevel(riskScore);
-  const recommendation = getRecommendations(category, riskLevel);
+  const questionnaireRiskScore = calculateRiskScore(questions, responses);
+  
+  let finalRiskScore = questionnaireRiskScore;
+  let finalRiskLevel = determineRiskLevel(questionnaireRiskScore);
+  let recommendation = getRecommendations(category, finalRiskLevel);
+  
+  // Combine with photo analysis if available
+  if (photoAnalysis && photoAnalysis.confidence > 0.5) {
+    finalRiskScore = combineRiskScores(
+      questionnaireRiskScore, 
+      photoAnalysis.riskScore,
+      photoAnalysis.confidence
+    );
+    finalRiskLevel = determineRiskLevel(finalRiskScore);
+    recommendation = getRecommendations(category, finalRiskLevel);
+  }
 
-  return {
+  const result: ScreeningResult = {
     id: `${category}-${Date.now()}`,
     category,
     date: new Date().toISOString(),
     responses,
-    riskScore,
-    riskLevel,
+    riskScore: finalRiskScore,
+    riskLevel: finalRiskLevel,
     recommendations: recommendation?.actions || [],
     followUpRequired: recommendation?.medicalConsultation || false,
     completedBy,
   };
+
+  // Add photo analysis data if available
+  if (photoAnalysis) {
+    result.photoAnalysis = {
+      analysisId: photoAnalysis.analysisId,
+      photoRiskScore: photoAnalysis.riskScore,
+      findings: photoAnalysis.findings.map(f => ({
+        type: f.type,
+        severity: f.severity,
+        confidence: f.confidence,
+        description: f.description
+      })),
+      combinedRiskScore: finalRiskScore,
+      aiRecommendations: photoAnalysis.recommendations
+    };
+  }
+
+  return result;
 }
 
 export function saveScreeningResult(result: ScreeningResult) {

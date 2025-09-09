@@ -30,6 +30,19 @@ export interface ScreeningResult {
   followUpRequired: boolean;
   completedBy: string;
   notes?: string;
+  // Photo analysis results
+  photoAnalysis?: {
+    analysisId: string;
+    photoRiskScore: number;
+    findings: Array<{
+      type: string;
+      severity: 'none' | 'mild' | 'moderate' | 'severe';
+      confidence: number;
+      description: string;
+    }>;
+    combinedRiskScore: number; // Questionnaire + photo analysis combined
+    aiRecommendations: string[];
+  };
 }
 
 export interface ScreeningRecommendation {

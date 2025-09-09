@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -38,9 +38,10 @@ export default function HealthScreening() {
   const [completedScreenings, setCompletedScreenings] = useState<ScreeningResult[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
+  // Load screening results on mount
+  useState(() => {
     setCompletedScreenings(getScreeningResults());
-  }, []);
+  });
 
   const getCurrentQuestions = (): ScreeningQuestion[] => {
     return activeTab === 'peyronie' ? peyronieQuestions : stdQuestions;
