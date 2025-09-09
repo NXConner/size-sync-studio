@@ -2521,10 +2521,10 @@ export default function Measure() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs text-muted-foreground">Voice</label>
-                  <Select value={voiceName ?? ""} onValueChange={(v) => setVoiceNameState(v || null)}>
+                  <Select value={voiceName ?? "system-default"} onValueChange={(v) => setVoiceNameState(v === "system-default" ? null : v)}>
                     <SelectTrigger className="w-full"><SelectValue placeholder="System default" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">System default</SelectItem>
+                      <SelectItem value="system-default">System default</SelectItem>
                       {voiceList.map((v) => (
                         <SelectItem key={v.name} value={v.name}>{v.name} ({v.lang})</SelectItem>
                       ))}
