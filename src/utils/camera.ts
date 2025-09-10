@@ -81,7 +81,17 @@ export const startCamera = async (opts: CameraStartOptions = {}): Promise<Camera
   // Try deviceId first if provided, else try inferred device for facing, else generic
   let lastError: any = null;
   const tryWith = async (constraints: MediaStreamConstraints) => {
-    return navigator.mediaDevices.getUserMedia(constraints);
+    const c: any = { ...constraints };
+    // Mobile-oriented hints
+    if (c.video && typeof c.video === 'object') {
+      c.video.focusMode = (c.video.focusMode || 'continuous') as any;
+      c.video.advanced = [
+        { focusMode: 'continuous' as any },
+        { whiteBalanceMode: 'continuous' as any },
+        { exposureMode: 'continuous' as any },
+      ];
+    }
+    return navigator.mediaDevices.getUserMedia(c);
   };
 
   const candidates: MediaStreamConstraints[] = [];
@@ -116,7 +126,7 @@ export const startCamera = async (opts: CameraStartOptions = {}): Promise<Camera
 
   // Final fallback: plain video true
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: opts.facingMode || 'environment' } as any }, audio: false });
     const track = stream.getVideoTracks()[0];
     const capsAny = (track.getCapabilities ? track.getCapabilities() : {}) as any;
     const capabilities: CameraCapabilities = {
