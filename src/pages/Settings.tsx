@@ -40,6 +40,8 @@ interface AppPreferences {
     profileVisibility: 'public' | 'private' | 'friends';
     dataSharing: boolean;
     analytics: boolean;
+    incognito: boolean;
+    retentionDays?: number;
   };
   accessibility: {
     fontSize: 'small' | 'medium' | 'large';
@@ -71,7 +73,9 @@ const defaultPreferences: AppPreferences = {
   privacy: {
     profileVisibility: 'private',
     dataSharing: false,
-    analytics: true
+    analytics: true,
+    incognito: false,
+    retentionDays: undefined
   },
   accessibility: {
     fontSize: 'medium',
@@ -539,6 +543,46 @@ export default function Settings() {
                     checked={preferences.privacy.analytics}
                     onCheckedChange={(checked) => handlePreferenceUpdate('privacy', 'analytics', checked)}
                   />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Incognito Mode</Label>
+                    <p className="text-sm text-muted-foreground">Do not store new measurements locally</p>
+                  </div>
+                  <Switch
+                    checked={preferences.privacy.incognito}
+                    onCheckedChange={(checked) => handlePreferenceUpdate('privacy', 'incognito', checked)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                  <div>
+                    <Label htmlFor="retention">Data retention (days)</Label>
+                    <Input id="retention" type="number" min={0} placeholder="e.g. 180" defaultValue={preferences.privacy.retentionDays || ''} onChange={(e) => {
+                      const v = e.target.value ? Math.max(0, parseInt(e.target.value, 10)) : undefined
+                      handlePreferenceUpdate('privacy', 'retentionDays', v)
+                    }} />
+                    <p className="text-xs text-muted-foreground mt-1">Auto-delete older entries on save</p>
+                  </div>
+                  <div>
+                    <Button variant="outline" onClick={() => {
+                      try {
+                        const rd = preferences.privacy.retentionDays
+                        if (!rd || rd <= 0) return toast({ title: 'No retention policy', description: 'Set days before purging.' })
+                        const cutoff = Date.now() - rd * 24 * 60 * 60 * 1000
+                        const measurementsRaw = localStorage.getItem('size-seeker-measurements')
+                        if (measurementsRaw) {
+                          const list = JSON.parse(measurementsRaw)
+                          const filtered = Array.isArray(list) ? list.filter((m: any) => new Date(m.date).getTime() >= cutoff) : []
+                          localStorage.setItem('size-seeker-measurements', JSON.stringify(filtered))
+                        }
+                        toast({ title: 'Data retention applied', description: 'Older entries have been removed.' })
+                      } catch {
+                        toast({ title: 'Error', description: 'Failed to apply retention.', variant: 'destructive' })
+                      }
+                    }}>Purge Now</Button>
+                  </div>
                 </div>
 
                 <Separator />

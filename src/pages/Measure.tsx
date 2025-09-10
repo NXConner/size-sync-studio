@@ -2066,7 +2066,16 @@ export default function Measure() {
       photoUrl: "indexeddb://photo",
     };
 
-    saveMeasurement(measurement);
+    try {
+      const prefsRaw = localStorage.getItem('appPreferences');
+      const prefs = prefsRaw ? JSON.parse(prefsRaw) : null;
+      const incognito = Boolean(prefs?.privacy?.incognito);
+      if (!incognito) {
+        saveMeasurement(measurement);
+      }
+    } catch {
+      saveMeasurement(measurement);
+    }
     if (photoBlob) {
       await savePhoto(measurement.id, photoBlob);
     }

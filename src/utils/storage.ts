@@ -1,4 +1,5 @@
 import { Measurement, Session, Goal } from "@/types";
+import { deriveKeyFromPin, encryptBlob, decryptToBlob } from "@/features/mediax/lib/crypto";
 
 const STORAGE_KEYS = {
   MEASUREMENTS: "size-seeker-measurements",
@@ -117,6 +118,30 @@ export const savePhoto = async (id: string, blob: Blob): Promise<void> => {
   });
 };
 
+// Encrypted photo helpers (optional) using app PIN if set in mediax
+export const saveEncryptedPhoto = async (id: string, blob: Blob, pin: string): Promise<void> => {
+  const { key } = await deriveKeyFromPin(pin)
+  const { ivHex, data, mimeType } = await encryptBlob(blob, key)
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("SizeSeekerPhotos", 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction(["photos"], "readwrite");
+      const store = transaction.objectStore("photos");
+      store.put({ id, encIvHex: ivHex, encData: data, encMimeType: mimeType, timestamp: Date.now() });
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    };
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("photos")) {
+        db.createObjectStore("photos", { keyPath: "id" });
+      }
+    };
+  });
+}
+
 // Export/Import utilities
 export type ExportBundle = {
   measurements: Measurement[];
@@ -194,7 +219,23 @@ export const getPhoto = async (id: string): Promise<Blob | null> => {
       const getRequest = store.get(id);
 
       getRequest.onsuccess = () => {
-        resolve(getRequest.result?.blob || null);
+        const rec = getRequest.result
+        if (!rec) return resolve(null)
+        if (rec.blob) return resolve(rec.blob)
+        // attempt decrypt if encrypted
+        if (rec.encIvHex && rec.encData && rec.encMimeType) {
+          try {
+            const pin = localStorage.getItem('mediax-pin') || ''
+            if (!pin) return resolve(null)
+            deriveKeyFromPin(pin).then(({ key }) =>
+              decryptToBlob(rec.encIvHex, rec.encData, key, rec.encMimeType).then(resolve).catch(() => resolve(null))
+            )
+            return
+          } catch {
+            return resolve(null)
+          }
+        }
+        resolve(null);
       };
 
       getRequest.onerror = () => reject(getRequest.error);
