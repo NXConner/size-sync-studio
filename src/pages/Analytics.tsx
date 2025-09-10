@@ -7,6 +7,7 @@ import { getMeasurements } from "@/utils/storage";
 import { getScreeningResults } from "@/utils/screeningCalculator";
 import type { Measurement } from "@/types";
 import { PhotosTimeline } from "@/components/PhotosTimeline";
+import { Achievements } from "@/components/Achievements";
 
 export default function Analytics() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -40,6 +41,22 @@ export default function Analytics() {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((r) => ({ date: r.date, value: r.riskScore }));
   }, []);
+
+  const anomalyFlags = useMemo(() => {
+    if (measurements.length < 2) return [] as { date: string; note: string }[];
+    const out: { date: string; note: string }[] = [];
+    const sorted = measurements.slice().sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i-1];
+      const cur = sorted[i];
+      const dL = cur.length - prev.length;
+      const dG = cur.girth - prev.girth;
+      if (Math.abs(dL) > 1.0 || Math.abs(dG) > 1.0) {
+        out.push({ date: cur.date, note: `Unusual change: ΔL ${dL.toFixed(2)}, ΔG ${dG.toFixed(2)}` });
+      }
+    }
+    return out;
+  }, [measurements]);
 
   return (
     <div className="container mx-auto px-4 py-6 min-h-screen animate-fade-in">
@@ -148,6 +165,25 @@ export default function Analytics() {
             </CardContent>
           </Card>
         </div>
+
+        <Achievements />
+
+        {anomalyFlags.length > 0 && (
+          <Card className="gradient-card shadow-card">
+            <CardHeader>
+              <CardTitle>Anomalies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                {anomalyFlags.map((a) => (
+                  <li key={a.date}>
+                    {new Date(a.date).toLocaleDateString()}: {a.note}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

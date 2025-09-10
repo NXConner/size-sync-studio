@@ -15,6 +15,7 @@ import { Button as UIButton } from '@/components/ui/button';
 import { createDailyMeasurementReminder, ensureNotificationPermission, getReminders, scheduleAllActive, upsertReminder } from '@/utils/notifications';
 import { exportAllJson, exportMeasurementsCsv, exportPdfSummary } from '@/utils/exporters';
 import { importAll } from '@/utils/storage';
+import { buildIcsEvent, downloadIcs } from '@/utils/calendar';
 
 interface UserProfile {
   id: string;
@@ -664,6 +665,15 @@ export default function Settings() {
                       }
                     }}
                   />
+                </div>
+
+                <div className="pt-2">
+                  <UIButton variant="ghost" onClick={() => {
+                    const start = new Date();
+                    start.setHours(9, 0, 0, 0);
+                    const ics = buildIcsEvent({ title: 'Daily measurement reminder', start, description: 'Record your measurement.' });
+                    downloadIcs('measurement-reminder.ics', ics);
+                  }}>Download calendar (.ics) reminder</UIButton>
                 </div>
               </CardContent>
             </Card>
