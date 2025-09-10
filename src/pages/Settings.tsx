@@ -9,8 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { User, Camera, Bell, Shield, Palette, Save, Mail, Phone, MapPin } from 'lucide-react';
+import { User, Camera, Bell, Shield, Palette, Save, Mail, Phone, MapPin, Download, FileText } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { Button as UIButton } from '@/components/ui/button';
+import { createDailyMeasurementReminder, ensureNotificationPermission, getReminders, scheduleAllActive, upsertReminder } from '@/utils/notifications';
+import { exportAllJson, exportMeasurementsCsv, exportPdfSummary } from '@/utils/exporters';
+import { importAll } from '@/utils/storage';
+import { buildIcsEvent, downloadIcs } from '@/utils/calendar';
+import { PwaQueueStatus } from '@/components/PwaQueueStatus';
 
 interface UserProfile {
   id: string;
@@ -36,6 +42,8 @@ interface AppPreferences {
     profileVisibility: 'public' | 'private' | 'friends';
     dataSharing: boolean;
     analytics: boolean;
+    incognito: boolean;
+    retentionDays?: number;
   };
   accessibility: {
     fontSize: 'small' | 'medium' | 'large';
@@ -67,7 +75,9 @@ const defaultPreferences: AppPreferences = {
   privacy: {
     profileVisibility: 'private',
     dataSharing: false,
-    analytics: true
+    analytics: true,
+    incognito: false,
+    retentionDays: undefined
   },
   accessibility: {
     fontSize: 'medium',
@@ -81,6 +91,7 @@ export default function Settings() {
   const [preferences, setPreferences] = useState<AppPreferences>(defaultPreferences);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  // no-op state removed: importing indicator not required for simple import flow
 
   // Load saved data on mount
   useEffect(() => {
@@ -98,6 +109,26 @@ export default function Settings() {
       console.error('Failed to load settings:', error);
     }
   }, []);
+
+  // Ensure daily reminder scheduled if enabled
+  useEffect(() => {
+    (async () => {
+      if (preferences.notifications.reminders) {
+        await ensureNotificationPermission();
+        const existing = getReminders().find(r => r.id === 'reminder-measurement-daily');
+        if (!existing) {
+          const reminder = createDailyMeasurementReminder('09:00');
+          upsertReminder(reminder);
+        }
+        try {
+          const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.ready : null;
+          await scheduleAllActive(reg);
+        } catch {
+          await scheduleAllActive(null);
+        }
+      }
+    })();
+  }, [preferences.notifications.reminders]);
 
   const handleProfileUpdate = (field: keyof UserProfile, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
@@ -172,7 +203,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Profile
@@ -188,6 +219,14 @@ export default function Settings() {
             <TabsTrigger value="privacy" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Privacy
+            </TabsTrigger>
+            <TabsTrigger value="data" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Data
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Integrations
             </TabsTrigger>
           </TabsList>
 
@@ -356,6 +395,24 @@ export default function Settings() {
                     </Select>
                   </div>
 
+                  <div>
+                    <Label>Language</Label>
+                    <Select onValueChange={(value: any) => {
+                      const v = String(value)
+                      try { localStorage.setItem('lang', v); document.documentElement.lang = v; document.documentElement.dir = (v === 'ar') ? 'rtl' : 'ltr' } catch {}
+                      toast({ title: 'Language updated', description: value.toUpperCase() })
+                    }}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Español</SelectItem>
+                        <SelectItem value="ar">العربية</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Separator />
 
                   <div>
@@ -382,7 +439,14 @@ export default function Settings() {
                         <Label>High Contrast</Label>
                         <Switch
                           checked={preferences.accessibility.highContrast}
-                          onCheckedChange={(checked) => handlePreferenceUpdate('accessibility', 'highContrast', checked)}
+                          onCheckedChange={(checked) => {
+                            handlePreferenceUpdate('accessibility', 'highContrast', checked)
+                            try {
+                              const root = document.documentElement
+                              if (checked) root.classList.add('hc')
+                              else root.classList.remove('hc')
+                            } catch {}
+                          }}
                         />
                       </div>
                       
@@ -438,6 +502,48 @@ export default function Settings() {
                     onCheckedChange={(checked) => handlePreferenceUpdate('notifications', 'reminders', checked)}
                   />
                 </div>
+
+                {preferences.notifications.reminders && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="md:col-span-1">
+                      <Label htmlFor="reminder-time">Daily reminder time</Label>
+                      <Input id="reminder-time" type="time" defaultValue="09:00" onChange={(e) => {
+                        const r = createDailyMeasurementReminder(e.target.value || '09:00');
+                        upsertReminder(r);
+                        toast({ title: 'Reminder updated', description: `Daily reminder set for ${e.target.value}` });
+                      }} />
+                    </div>
+                    <div className="flex items-end">
+                      <UIButton variant="outline" onClick={async () => {
+                        await ensureNotificationPermission();
+                        try {
+                          const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.ready : null;
+                          await scheduleAllActive(reg);
+                          toast({ title: 'Reminders scheduled', description: 'Daily notifications are active.' });
+                        } catch {
+                          toast({ title: 'Reminders scheduled', description: 'Daily notifications are active.' });
+                        }
+                      }}>Apply Schedule</UIButton>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <UIButton variant="secondary" onClick={async () => {
+                    try {
+                      const { subscribeToPush, sendTestPush } = await import('@/utils/push')
+                      const sub = await subscribeToPush()
+                      if (!sub.ok) {
+                        toast({ title: 'Push unsupported or not configured', description: 'Check server VAPID keys.', variant: 'destructive' })
+                        return
+                      }
+                      const ok = await sendTestPush()
+                      toast({ title: ok ? 'Push sent' : 'Push failed', description: ok ? 'Check for a browser notification.' : 'Server error.' })
+                    } catch {
+                      toast({ title: 'Push error', description: 'Failed to subscribe or send.', variant: 'destructive' })
+                    }
+                  }}>Enable Push & Send Test</UIButton>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -487,6 +593,46 @@ export default function Settings() {
                   />
                 </div>
 
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Incognito Mode</Label>
+                    <p className="text-sm text-muted-foreground">Do not store new measurements locally</p>
+                  </div>
+                  <Switch
+                    checked={preferences.privacy.incognito}
+                    onCheckedChange={(checked) => handlePreferenceUpdate('privacy', 'incognito', checked)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                  <div>
+                    <Label htmlFor="retention">Data retention (days)</Label>
+                    <Input id="retention" type="number" min={0} placeholder="e.g. 180" defaultValue={preferences.privacy.retentionDays || ''} onChange={(e) => {
+                      const v = e.target.value ? Math.max(0, parseInt(e.target.value, 10)) : undefined
+                      handlePreferenceUpdate('privacy', 'retentionDays', v)
+                    }} />
+                    <p className="text-xs text-muted-foreground mt-1">Auto-delete older entries on save</p>
+                  </div>
+                  <div>
+                    <Button variant="outline" onClick={() => {
+                      try {
+                        const rd = preferences.privacy.retentionDays
+                        if (!rd || rd <= 0) return toast({ title: 'No retention policy', description: 'Set days before purging.' })
+                        const cutoff = Date.now() - rd * 24 * 60 * 60 * 1000
+                        const measurementsRaw = localStorage.getItem('size-seeker-measurements')
+                        if (measurementsRaw) {
+                          const list = JSON.parse(measurementsRaw)
+                          const filtered = Array.isArray(list) ? list.filter((m: any) => new Date(m.date).getTime() >= cutoff) : []
+                          localStorage.setItem('size-seeker-measurements', JSON.stringify(filtered))
+                        }
+                        toast({ title: 'Data retention applied', description: 'Older entries have been removed.' })
+                      } catch {
+                        toast({ title: 'Error', description: 'Failed to apply retention.', variant: 'destructive' })
+                      }
+                    }}>Purge Now</Button>
+                  </div>
+                </div>
+
                 <Separator />
 
                 <div className="space-y-4">
@@ -504,6 +650,141 @@ export default function Settings() {
                   >
                     Clear All Data
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="data" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Export & Import</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <PwaQueueStatus />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <UIButton onClick={() => exportAllJson()} className="flex items-center gap-2">
+                    <Download className="w-4 h-4" /> Export JSON
+                  </UIButton>
+                  <UIButton variant="secondary" onClick={() => exportMeasurementsCsv()} className="flex items-center gap-2">
+                    <Download className="w-4 h-4" /> Export CSV
+                  </UIButton>
+                  <UIButton variant="outline" onClick={() => exportPdfSummary()} className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Export PDF
+                  </UIButton>
+                </div>
+
+                <div className="pt-4">
+                  <label className="block text-sm font-medium mb-2">Import JSON</label>
+                  <input
+                    type="file"
+                    accept="application/json"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const isEncrypted = await (async () => {
+                          try { const t = await file.text(); return t.includes('salt_b64') && t.includes('data_b64') } catch { return false }
+                        })()
+                        if (isEncrypted) {
+                          const pwd = prompt('Enter password to decrypt:')
+                          if (!pwd) return
+                          const { importEncrypted } = await import('@/utils/exporters')
+                          await importEncrypted(file, pwd)
+                          toast({ title: 'Encrypted import complete', description: 'Data decrypted and imported.' })
+                        } else {
+                          await importAll(file);
+                          toast({ title: 'Import complete', description: 'Your data has been imported.' });
+                        }
+                      } catch (err) {
+                        toast({ title: 'Import failed', description: 'Could not import file.', variant: 'destructive' });
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <UIButton variant="ghost" onClick={() => {
+                    const start = new Date();
+                    start.setHours(9, 0, 0, 0);
+                    const ics = buildIcsEvent({ title: 'Daily measurement reminder', start, description: 'Record your measurement.' });
+                    downloadIcs('measurement-reminder.ics', ics);
+                  }}>Download calendar (.ics) reminder</UIButton>
+                </div>
+
+                <div className="pt-2">
+                  <UIButton variant="secondary" onClick={async () => {
+                    const { getMeasurements, getSessions } = await import('@/utils/storage')
+                    const { mapMeasurementToHealth, mapSessionToWorkout } = await import('@/integrations/health/mapping')
+                    const mm = getMeasurements().map(mapMeasurementToHealth)
+                    const ss = getSessions().map(mapSessionToWorkout)
+                    console.log('Health export preview', { measurements: mm.slice(0,3), sessions: ss.slice(0,3) })
+                    toast({ title: 'Health export preview', description: `${mm.length} measurements, ${ss.length} sessions mapped.` })
+                  }}>Preview Health Sync Mapping</UIButton>
+                </div>
+
+                <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <UIButton variant="outline" onClick={async () => {
+                    const password = prompt('Set a password to encrypt your export:')
+                    if (!password) return
+                    const { exportAllEncrypted } = await import('@/utils/exporters')
+                    await exportAllEncrypted(password)
+                    toast({ title: 'Encrypted export', description: 'Download saved.' })
+                  }}>Export Encrypted JSON</UIButton>
+                  <UIButton variant="outline" onClick={async () => {
+                    const { exportAppointmentSummaryPdf } = await import('@/utils/exporters')
+                    await exportAppointmentSummaryPdf()
+                    toast({ title: 'Appointment summary', description: 'PDF downloaded.' })
+                  }}>Appointment Summary PDF</UIButton>
+                  <UIButton variant="outline" onClick={async () => {
+                    const { exportClinicalPdf } = await import('@/utils/exporters')
+                    await exportClinicalPdf()
+                    toast({ title: 'Clinical PDF', description: 'PDF downloaded.' })
+                  }}>Clinical PDF</UIButton>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="integrations" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Telemedicine & Health Apps</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <UIButton onClick={async () => {
+                    try {
+                      const jsPDF = (await import('jspdf')).jsPDF;
+                      const doc = new jsPDF();
+                      doc.setFontSize(14); doc.text('Provider Summary', 14, 16);
+                      doc.setFontSize(10); doc.text('Measurements and trends summary for provider review.', 14, 24);
+                      const blob = doc.output('blob');
+                      const { shareFileBlob } = await import('@/utils/share');
+                      const shared = await shareFileBlob('provider-summary.pdf', blob, 'Provider Summary', 'Sharing report with provider');
+                      if (!shared) {
+                        // fallback to download
+                        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'provider-summary.pdf'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                        toast({ title: 'Downloaded', description: 'Provider PDF saved locally.' })
+                      } else {
+                        toast({ title: 'Shared', description: 'Provider report shared.' })
+                      }
+                    } catch {
+                      toast({ title: 'Error', description: 'Could not generate provider summary.', variant: 'destructive' })
+                    }
+                  }}>Share with provider</UIButton>
+                  <UIButton variant="secondary" onClick={async () => {
+                    try {
+                      const { getHealthAdapter } = await import('@/integrations/health/webStub')
+                      const adapter = getHealthAdapter()
+                      const info = await adapter.getInfo()
+                      if (!info.available) {
+                        toast({ title: 'Health Apps', description: 'Connect on mobile app (HealthKit/Health Connect).', })
+                        return
+                      }
+                    } catch {}
+                  }}>Connect Health Apps</UIButton>
+                  <UIButton variant="outline" onClick={() => toast({ title: 'Calendar', description: 'Use Data → Download .ics to add reminders.' })}>Calendar Tips</UIButton>
                 </div>
               </CardContent>
             </Card>

@@ -19,11 +19,46 @@ const { count, size, warnings } = await generateSW({
   sourcemap: false,
   skipWaiting: true,
   clientsClaim: true,
+  importScripts: ['push-handler.js'],
   runtimeCaching: [
     {
       urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
       handler: 'NetworkFirst',
       options: { cacheName: 'api-cache', networkTimeoutSeconds: 5 },
+    },
+    // Queue write operations when offline and replay later
+    {
+      urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+      handler: 'NetworkOnly',
+      method: 'POST',
+      options: {
+        backgroundSync: {
+          name: 'api-queue',
+          options: { maxRetentionTime: 24 * 60 },
+        },
+      },
+    },
+    {
+      urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+      handler: 'NetworkOnly',
+      method: 'PUT',
+      options: {
+        backgroundSync: {
+          name: 'api-queue',
+          options: { maxRetentionTime: 24 * 60 },
+        },
+      },
+    },
+    {
+      urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+      handler: 'NetworkOnly',
+      method: 'DELETE',
+      options: {
+        backgroundSync: {
+          name: 'api-queue',
+          options: { maxRetentionTime: 24 * 60 },
+        },
+      },
     },
     {
       urlPattern: ({ request }) => request.destination === 'image',

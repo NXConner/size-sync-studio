@@ -7,6 +7,8 @@ const EnvSchema = z.object({
   API_PREFIX: z.string().default("/api"),
   WEB_ORIGIN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
   REDDIT_CLIENT_ID: z.string().optional(),
   REDDIT_CLIENT_SECRET: z.string().optional(),
   REDDIT_USERNAME: z.string().optional(),

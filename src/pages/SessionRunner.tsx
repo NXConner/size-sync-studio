@@ -8,6 +8,7 @@ import { Session } from "@/types";
 import { Timer, Activity, Pause, Play, LogOut } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { sessionPresets } from "@/data/sessionPresets";
+import { showLocalNotification } from "@/utils/notifications";
 
 export default function SessionRunner() {
   const location = useLocation();
@@ -30,6 +31,7 @@ export default function SessionRunner() {
   const [pressure, setPressure] = useState<number>(-20); // kPa example
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const timerRef = useRef<number | null>(null);
+  const lastAlertRef = useRef<number>(0);
 
   useEffect(() => {
     // start timer
@@ -74,7 +76,7 @@ export default function SessionRunner() {
     setIsOnBreak((v) => !v);
   };
 
-  const logPressure = () => {
+  const logPressure = async () => {
     setSession((prev) => ({
       ...prev,
       pressureLogs: [
@@ -82,6 +84,23 @@ export default function SessionRunner() {
         { timestamp: new Date().toISOString(), pressure },
       ],
     }));
+    // Safety alert: too low pressure (e.g., below -40 kPa) or long continuous tube time (>15min)
+    const now = Date.now();
+    const tooLow = pressure < -40;
+    const longTube = isInTube && (session.tubeIntervals?.length ? (() => {
+      const last = session.tubeIntervals![session.tubeIntervals!.length - 1];
+      if (!last?.start || last.end) return false;
+      return Date.now() - new Date(last.start).getTime() > 15 * 60 * 1000;
+    })() : false);
+    if ((tooLow || longTube) && now - lastAlertRef.current > 60_000) {
+      lastAlertRef.current = now;
+      try {
+        const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.ready : null;
+        await showLocalNotification(reg, tooLow ? 'Safety alert: pressure too low' : 'Safety alert: take a break', {
+          body: tooLow ? 'Increase pressure (less vacuum) to a safer level.' : 'You have been in-tube > 15 min. Consider a rest.'
+        });
+      } catch {}
+    }
   };
 
   const finish = () => {
@@ -90,7 +109,16 @@ export default function SessionRunner() {
       endTime: new Date().toISOString(),
       status: "completed",
     };
-    saveSession(finished);
+    try {
+      const prefsRaw = localStorage.getItem('appPreferences');
+      const prefs = prefsRaw ? JSON.parse(prefsRaw) : null;
+      const incognito = Boolean(prefs?.privacy?.incognito);
+      if (!incognito) {
+        saveSession(finished);
+      }
+    } catch {
+      saveSession(finished);
+    }
   };
 
   const fmt = (ms: number) => {

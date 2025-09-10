@@ -22,7 +22,8 @@
     "e2e:smoke": "playwright test -g \"Measure smoke\"",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap add ios && npx cap sync ios",
-    "cap:ios:open": "npx cap open ios"
+    "cap:ios:open": "npx cap open ios",
+    "cap:assets": "npx @capacitor/assets generate --iconPath ./assets/icon.png --splashPath ./assets/splash.png --android --ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -78,6 +79,7 @@
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.2.0",
     "input-otp": "^1.4.2",
+    "jspdf": "^3.0.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "node-fetch": "^3.3.2",
@@ -93,6 +95,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
+    "web-push": "^3.6.7",
     "zod": "^3.25.76"
   },
   "engines": {

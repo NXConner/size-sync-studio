@@ -2066,10 +2066,36 @@ export default function Measure() {
       photoUrl: "indexeddb://photo",
     };
 
-    saveMeasurement(measurement);
+    try {
+      const prefsRaw = localStorage.getItem('appPreferences');
+      const prefs = prefsRaw ? JSON.parse(prefsRaw) : null;
+      const incognito = Boolean(prefs?.privacy?.incognito);
+      if (!incognito) {
+        saveMeasurement(measurement);
+      }
+    } catch {
+      saveMeasurement(measurement);
+    }
     if (photoBlob) {
       await savePhoto(measurement.id, photoBlob);
     }
+
+    // AI validation and recommendations
+    try {
+      const prev = latestPrev;
+      const deltaLen = prev ? measurement.length - prev.length : 0;
+      const deltaGir = prev ? measurement.girth - prev.girth : 0;
+      const isAnomaly = Math.abs(deltaLen) > 1.0 || Math.abs(deltaGir) > 1.0;
+      if (isAnomaly) {
+        try {
+          const { showLocalNotification } = await import('@/utils/notifications');
+          const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.ready : null;
+          await showLocalNotification(reg, 'Measurement anomaly detected', {
+            body: 'Today\'s change is unusually large. Consider re-measuring to confirm.'
+          });
+        } catch {}
+      }
+    } catch {}
 
     // Compare to latest previous
     const prev = latestPrev;

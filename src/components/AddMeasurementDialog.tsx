@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,8 @@ export const AddMeasurementDialog = ({ onAddMeasurement }: AddMeasurementDialogP
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState("");
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
 
   const selectedType = measurementTypes.find((t) => t.value === type);
@@ -88,6 +90,38 @@ export const AddMeasurementDialog = ({ onAddMeasurement }: AddMeasurementDialogP
     setOpen(false);
   };
 
+  useEffect(() => {
+    const SR: any = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    if (SR) {
+      const rec = new SR();
+      rec.lang = 'en-US';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = (e: any) => {
+        try {
+          const txt = e.results[0][0].transcript as string;
+          const num = parseFloat(txt.replace(/[^0-9.]/g, ''));
+          if (!isNaN(num)) setValue(String(num));
+        } catch {}
+      };
+      rec.onend = () => setListening(false);
+      recognitionRef.current = rec;
+    }
+  }, []);
+
+  const startDictation = () => {
+    if (!recognitionRef.current) {
+      toast({ title: 'Voice not supported', description: 'Speech recognition unavailable.' });
+      return;
+    }
+    try {
+      setListening(true);
+      recognitionRef.current.start();
+    } catch {
+      setListening(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -125,14 +159,19 @@ export const AddMeasurementDialog = ({ onAddMeasurement }: AddMeasurementDialogP
 
           <div className="space-y-2">
             <Label htmlFor="value">Value</Label>
-            <Input
+            <div className="flex gap-2">
+              <Input
               id="value"
               type="number"
               step="0.1"
               placeholder="Enter measurement value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-            />
+              />
+              <Button type="button" variant="outline" onClick={startDictation}>
+                {listening ? 'Listening…' : 'Dictate'}
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">

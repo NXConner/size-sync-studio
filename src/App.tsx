@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
 import { PwaUpdate } from "./components/PwaUpdate";
+import { Onboarding } from "./components/Onboarding";
 const HealthScreening = lazy(() => import("./pages/HealthScreening"));
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -21,6 +22,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const AchievementsDetail = lazy(() => import("./pages/AchievementsDetail"));
 const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
 const WellnessSettings = lazy(() => import("./features/mediax/pages/Settings"));
 const MediaXExplore = lazy(() => import("./features/mediax/pages/Explore"));
@@ -67,6 +69,7 @@ const App = () => (
           <Navbar />
           {/* PWA update notifier */}
           <PwaUpdate />
+          <Onboarding />
           <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-background border rounded px-2 py-1">Skip to content</a>
           <main role="main" id="main-content">
           <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
@@ -80,6 +83,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/screening" element={<HealthScreening />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/achievements" element={<AchievementsDetail />} />
               <Route path="/run-session" element={<SessionRunner />} />
               <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
               <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />

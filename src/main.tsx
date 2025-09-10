@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import * as Sentry from '@sentry/react'
+import { detectLang, isRtl } from './lib/i18n'
 
 if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -38,6 +39,24 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
           });
         });
       } catch {}
+      // schedule local reminders after SW ready
+      try {
+        import('./utils/notifications').then(async (mod) => {
+          try {
+            const readyReg = await navigator.serviceWorker.ready
+            await mod.scheduleAllActive(readyReg)
+          } catch {
+            await mod.scheduleAllActive(null)
+          }
+        })
+      } catch {}
     }).catch(() => {});
   });
 }
+
+// Apply language and direction
+try {
+  const lang = detectLang()
+  document.documentElement.lang = lang
+  document.documentElement.dir = isRtl(lang) ? 'rtl' : 'ltr'
+} catch {}

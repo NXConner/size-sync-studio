@@ -161,6 +161,28 @@ Size Seeker is a Vite + React + TypeScript app with an Express API focused on sa
 - Dev proxy: Vite proxies API requests to the Express server
 - Mobile: Capacitor config is present for Android builds
 
+### Mobile (Capacitor)
+
+Build and generate Android project:
+
+```bash
+npm run build
+npm run build:android
+npm run cap:sync
+npx cap open android
+```
+
+Icons & splash generation:
+
+```bash
+npx @capacitor/assets generate --iconPath ./assets/icon.png --splashPath ./assets/splash.png --android --ios
+```
+
+Android network security (dev):
+
+- Cleartext enabled in `capacitor.config.ts` and `android/app/src/main/res/xml/network_security_config.xml` for `localhost`/`10.0.2.2`.
+- For production, set `cleartext: false` and ensure APIs are HTTPS.
+
 ## Features
 - Guided Sessions with presets and a live Session Runner
 - Camera‑assisted Measure page with manual/auto calibration, overlays, and OpenCV.js
