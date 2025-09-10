@@ -202,7 +202,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Profile
@@ -222,6 +222,10 @@ export default function Settings() {
             <TabsTrigger value="data" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Data
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Integrations
             </TabsTrigger>
           </TabsList>
 
@@ -674,6 +678,40 @@ export default function Settings() {
                     const ics = buildIcsEvent({ title: 'Daily measurement reminder', start, description: 'Record your measurement.' });
                     downloadIcs('measurement-reminder.ics', ics);
                   }}>Download calendar (.ics) reminder</UIButton>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="integrations" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Telemedicine & Health Apps</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <UIButton onClick={async () => {
+                    try {
+                      const jsPDF = (await import('jspdf')).jsPDF;
+                      const doc = new jsPDF();
+                      doc.setFontSize(14); doc.text('Provider Summary', 14, 16);
+                      doc.setFontSize(10); doc.text('Measurements and trends summary for provider review.', 14, 24);
+                      const blob = doc.output('blob');
+                      const { shareFileBlob } = await import('@/utils/share');
+                      const shared = await shareFileBlob('provider-summary.pdf', blob, 'Provider Summary', 'Sharing report with provider');
+                      if (!shared) {
+                        // fallback to download
+                        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'provider-summary.pdf'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                        toast({ title: 'Downloaded', description: 'Provider PDF saved locally.' })
+                      } else {
+                        toast({ title: 'Shared', description: 'Provider report shared.' })
+                      }
+                    } catch {
+                      toast({ title: 'Error', description: 'Could not generate provider summary.', variant: 'destructive' })
+                    }
+                  }}>Share with provider</UIButton>
+                  <UIButton variant="secondary" onClick={() => toast({ title: 'Health Apps', description: 'HealthKit/Health Connect sync coming soon.' })}>Connect Health Apps</UIButton>
+                  <UIButton variant="outline" onClick={() => toast({ title: 'Calendar', description: 'Use Data → Download .ics to add reminders.' })}>Calendar Tips</UIButton>
                 </div>
               </CardContent>
             </Card>
