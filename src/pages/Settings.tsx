@@ -9,8 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { User, Camera, Bell, Shield, Palette, Save, Mail, Phone, MapPin } from 'lucide-react';
+import { User, Camera, Bell, Shield, Palette, Save, Mail, Phone, MapPin, Download, FileText } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { Button as UIButton } from '@/components/ui/button';
+import { exportAllJson, exportMeasurementsCsv, exportPdfSummary } from '@/utils/exporters';
+import { importAll } from '@/utils/storage';
 
 interface UserProfile {
   id: string;
@@ -81,6 +84,7 @@ export default function Settings() {
   const [preferences, setPreferences] = useState<AppPreferences>(defaultPreferences);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  // no-op state removed: importing indicator not required for simple import flow
 
   // Load saved data on mount
   useEffect(() => {
@@ -172,7 +176,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Profile
@@ -188,6 +192,10 @@ export default function Settings() {
             <TabsTrigger value="privacy" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Privacy
+            </TabsTrigger>
+            <TabsTrigger value="data" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Data
             </TabsTrigger>
           </TabsList>
 
@@ -504,6 +512,45 @@ export default function Settings() {
                   >
                     Clear All Data
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="data" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Export & Import</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <UIButton onClick={() => exportAllJson()} className="flex items-center gap-2">
+                    <Download className="w-4 h-4" /> Export JSON
+                  </UIButton>
+                  <UIButton variant="secondary" onClick={() => exportMeasurementsCsv()} className="flex items-center gap-2">
+                    <Download className="w-4 h-4" /> Export CSV
+                  </UIButton>
+                  <UIButton variant="outline" onClick={() => exportPdfSummary()} className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Export PDF
+                  </UIButton>
+                </div>
+
+                <div className="pt-4">
+                  <label className="block text-sm font-medium mb-2">Import JSON</label>
+                  <input
+                    type="file"
+                    accept="application/json"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        await importAll(file);
+                        toast({ title: 'Import complete', description: 'Your data has been imported.' });
+                      } catch (err) {
+                        toast({ title: 'Import failed', description: 'Could not import file.', variant: 'destructive' });
+                      }
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>

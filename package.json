@@ -78,6 +78,7 @@
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.2.0",
     "input-otp": "^1.4.2",
+    "jspdf": "^3.0.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "node-fetch": "^3.3.2",
