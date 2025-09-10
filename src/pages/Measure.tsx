@@ -59,7 +59,7 @@ export default function Measure() {
   const [girthDisplay, setGirthDisplay] = useState<string>("0.0");
   const { toast } = useToast();
   const [prevPhotos, setPrevPhotos] = useState<Measurement[]>([]);
-  const [selectedPrevId, setSelectedPrevId] = useState<string>("");
+  const [selectedPrevId, setSelectedPrevId] = useState<string>("none");
   const [prevOverlayUrl, setPrevOverlayUrl] = useState<string>("");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(30); // percent
   const [showPrevOverlay, setShowPrevOverlay] = useState<boolean>(false);
@@ -676,7 +676,7 @@ export default function Measure() {
   useEffect(() => {
     let revokeUrl: string | null = null;
     const load = async () => {
-      if (!selectedPrevId) {
+      if (!selectedPrevId || selectedPrevId === "none") {
         setPrevOverlayUrl("");
         return;
       }
@@ -2960,9 +2960,7 @@ export default function Measure() {
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent>
-                    {prevPhotos.length === 0 && (
-                      <SelectItem value="">None</SelectItem>
-                    )}
+                    <SelectItem value="none">None</SelectItem>
                     {prevPhotos.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {new Date(p.date).toLocaleString()}
