@@ -2755,7 +2755,7 @@ export default function Measure() {
                     <SelectTrigger className="w-full"><SelectValue placeholder="System default" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="system-default">System default</SelectItem>
-                      {voiceList.map((v) => (
+                      {voiceList.filter(v => v.name && v.name.trim()).map((v) => (
                         <SelectItem key={v.name} value={v.name}>{v.name} ({v.lang})</SelectItem>
                       ))}
                     </SelectContent>
@@ -2961,7 +2961,7 @@ export default function Measure() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {prevPhotos.map((p) => (
+                    {prevPhotos.filter(p => p.id && p.id.trim()).map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {new Date(p.date).toLocaleString()}
                       </SelectItem>
