@@ -16,6 +16,7 @@ import { createDailyMeasurementReminder, ensureNotificationPermission, getRemind
 import { exportAllJson, exportMeasurementsCsv, exportPdfSummary } from '@/utils/exporters';
 import { importAll } from '@/utils/storage';
 import { buildIcsEvent, downloadIcs } from '@/utils/calendar';
+import { PwaQueueStatus } from '@/components/PwaQueueStatus';
 
 interface UserProfile {
   id: string;
@@ -643,6 +644,7 @@ export default function Settings() {
                 <CardTitle>Data Export & Import</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <PwaQueueStatus />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <UIButton onClick={() => exportAllJson()} className="flex items-center gap-2">
                     <Download className="w-4 h-4" /> Export JSON
