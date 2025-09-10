@@ -22,7 +22,8 @@
     "e2e:smoke": "playwright test -g \"Measure smoke\"",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap add ios && npx cap sync ios",
-    "cap:ios:open": "npx cap open ios"
+    "cap:ios:open": "npx cap open ios",
+    "cap:assets": "npx @capacitor/assets generate --iconPath ./assets/icon.png --splashPath ./assets/splash.png --android --ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

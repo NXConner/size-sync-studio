@@ -19,6 +19,13 @@ Add iOS platform and sync
 npm run cap:ios
 ```
 
+Generate icons/splash
+---------------------
+Provide `assets/icon.png` (1024x1024) and `assets/splash.png` (2732x2732), then run:
+```bash
+npm run cap:assets
+```
+
 Open Xcode
 ----------
 ```bash
@@ -51,7 +58,7 @@ Push notifications (optional)
 
 Store assets
 ------------
-- Add app icons and splash screens via Xcode asset catalogs
+- You can use `@capacitor/assets` (see above) to generate assets into the iOS project, or manage app icons/splash via Xcode asset catalogs.
 
 Troubleshooting
 ---------------
