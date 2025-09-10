@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "SizeSeekerAndroid"
 include(":app")
 
+apply(from = "capacitor.settings.gradle")
+

@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "app.lovable.16d96009e5184ad6887bccbb25d2315a"
-    compileSdk = rootProject.ext.compileSdkVersion as Int
+    namespace = "com.sizeseeker"
+    compileSdk = rootProject.ext.get("compileSdkVersion") as Int
 
     defaultConfig {
-        applicationId = "app.lovable.16d96009e5184ad6887bccbb25d2315a"
-        minSdk = rootProject.ext.minSdkVersion as Int
-        targetSdk = rootProject.ext.targetSdkVersion as Int
+        applicationId = "com.sizeseeker"
+        minSdk = rootProject.ext.get("minSdkVersion") as Int
+        targetSdk = rootProject.ext.get("targetSdkVersion") as Int
         versionCode = 1
         versionName = "1.0"
 
