@@ -11,6 +11,7 @@ import swaggerUi from "swagger-ui-express";
 import { openapiSpec } from "./openapi.js";
 import { z } from "zod";
 import path from "node:path";
+import webpush from 'web-push';
 
 const app = express();
 app.disable("x-powered-by");
@@ -76,6 +77,38 @@ const cache = {
   redditAuth: { token: null, expiresAt: 0 },
 };
 app.use(express.json({ limit: "1mb" }));
+// Web Push
+try {
+  if (config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails('mailto:admin@example.com', config.VAPID_PUBLIC_KEY, config.VAPID_PRIVATE_KEY)
+  }
+} catch {}
+
+const pushSubscriptions = new Set();
+router.get(`/push/public-key`, (_req, res) => {
+  if (!config.VAPID_PUBLIC_KEY) return res.status(400).json({ error: 'Push not configured' })
+  res.json({ publicKey: config.VAPID_PUBLIC_KEY })
+})
+router.post(`/push/subscribe`, (req, res) => {
+  try {
+    pushSubscriptions.add(req.body)
+    res.json({ ok: true })
+  } catch {
+    res.status(400).json({ error: 'Invalid subscription' })
+  }
+})
+router.post(`/push/test`, async (_req, res) => {
+  try {
+    const payload = JSON.stringify({ title: 'Size Seeker', body: 'Push test notification' })
+    const results = []
+    for (const sub of pushSubscriptions) {
+      try { await webpush.sendNotification(sub, payload); results.push({ ok: true }) } catch { results.push({ ok: false }) }
+    }
+    res.json({ sent: results.length })
+  } catch {
+    res.status(500).json({ error: 'Failed to send' })
+  }
+})
 app.use(`${config.API_PREFIX}/docs`, swaggerUi.serve, swaggerUi.setup(openapiSpec));
 // Serve raw OpenAPI JSON for tooling/clients
 app.get(`${config.API_PREFIX}/openapi.json`, (_req, res) => {

@@ -527,6 +527,23 @@ export default function Settings() {
                     </div>
                   </div>
                 )}
+
+                <div className="pt-2">
+                  <UIButton variant="secondary" onClick={async () => {
+                    try {
+                      const { subscribeToPush, sendTestPush } = await import('@/utils/push')
+                      const sub = await subscribeToPush()
+                      if (!sub.ok) {
+                        toast({ title: 'Push unsupported or not configured', description: 'Check server VAPID keys.', variant: 'destructive' })
+                        return
+                      }
+                      const ok = await sendTestPush()
+                      toast({ title: ok ? 'Push sent' : 'Push failed', description: ok ? 'Check for a browser notification.' : 'Server error.' })
+                    } catch {
+                      toast({ title: 'Push error', description: 'Failed to subscribe or send.', variant: 'destructive' })
+                    }
+                  }}>Enable Push & Send Test</UIButton>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -19,6 +19,7 @@ const { count, size, warnings } = await generateSW({
   sourcemap: false,
   skipWaiting: true,
   clientsClaim: true,
+  importScripts: ['push-handler.js'],
   runtimeCaching: [
     {
       urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
