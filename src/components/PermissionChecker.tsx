@@ -44,10 +44,10 @@ export function PermissionChecker() {
     setIsChecking(true);
     
     try {
-      // Request camera and microphone access
+      // Request camera access only (no microphone needed for this app)
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: true
+        audio: false
       });
       
       // Stop the stream immediately - we just needed permission

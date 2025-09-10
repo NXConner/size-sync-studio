@@ -11,9 +11,6 @@ const config: CapacitorConfig = {
     // Set cleartext false for production builds; override via env if needed
     cleartext: process.env.NODE_ENV === 'development',
   },
-  android: {
-    allowMixedContent: true
-  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1200,
@@ -22,9 +19,24 @@ const config: CapacitorConfig = {
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false
+    },
+    Camera: {
+      permissions: ['camera']
     }
+  },
+  android: {
+    allowMixedContent: true,
+    permissions: [
+      'android.permission.CAMERA',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE'
+    ]
+  },
+  ios: {
+    permissions: [
+      'NSCameraUsageDescription'
+    ]
   }
 };
 
 export default config;
-
