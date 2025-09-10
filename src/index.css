@@ -135,6 +135,30 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  
+  /* High contrast mode overrides */
+  .hc {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 190 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 60 100% 50%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 95%;
+    --accent: 280 100% 60%;
+    --accent-foreground: 0 0% 0%;
+    --success: 142 76% 50%;
+    --warning: 38 92% 60%;
+    --destructive: 0 100% 60%;
+    --border: 0 0% 50%;
+    --input: 0 0% 10%;
+    --ring: 190 100% 50%;
+  }
 }
 
 @layer base {

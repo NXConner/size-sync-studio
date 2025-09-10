@@ -389,6 +389,22 @@ export default function Settings() {
                     </Select>
                   </div>
 
+                  <div>
+                    <Label>Language</Label>
+                    <Select onValueChange={(value: 'en' | 'es') => {
+                      try { localStorage.setItem('lang', value) } catch {}
+                      toast({ title: 'Language updated', description: value.toUpperCase() })
+                    }}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Español</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Separator />
 
                   <div>
@@ -415,7 +431,14 @@ export default function Settings() {
                         <Label>High Contrast</Label>
                         <Switch
                           checked={preferences.accessibility.highContrast}
-                          onCheckedChange={(checked) => handlePreferenceUpdate('accessibility', 'highContrast', checked)}
+                          onCheckedChange={(checked) => {
+                            handlePreferenceUpdate('accessibility', 'highContrast', checked)
+                            try {
+                              const root = document.documentElement
+                              if (checked) root.classList.add('hc')
+                              else root.classList.remove('hc')
+                            } catch {}
+                          }}
                         />
                       </div>
                       
