@@ -101,7 +101,7 @@ export const MeasureDetection = ({
       
       if (useWebGPU) {
         // Use WebGPU-accelerated detection
-        result = await webGPUML.detectFromImageData(imageData, { onProgress });
+        result = await webGPUML.detectFromImageData(imageData, {});
       } else {
         // Fallback to OpenCV worker
         result = await opencvWorker.detect({
@@ -126,24 +126,6 @@ export const MeasureDetection = ({
         variant: "destructive", 
         title: "Detection Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    }
-  };
-        onDetection(result);
-        toast({
-          title: "Detection Complete",
-          description: `Confidence: ${(result.confidence * 100).toFixed(1)}%`
-        });
-      } else {
-        throw new Error(`Low confidence: ${((result?.confidence || 0) * 100).toFixed(1)}%`);
-      }
-
-    } catch (error: any) {
-      errorHaptic();
-      toast({
-        title: "Detection Failed",
-        description: error.message || "Detection algorithm failed",
-        variant: "destructive"
       });
     } finally {
       setIsDetecting(false);

@@ -173,7 +173,7 @@ class WebGPUMLEngine {
     const sizeFraction = objectPixels / totalPixels;
 
     // Edge proximity - calculate distance from edges
-    const edgeProximity = this.calculateEdgeProximity(canvas, maskImage);
+    const edgeProximity = this.calculateEdgeProximity(canvas, maskImage || undefined);
 
     return {
       brightness: Math.max(0, Math.min(1, avgBrightness / 255)),

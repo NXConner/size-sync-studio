@@ -27,6 +27,7 @@ import {
 } from "@/utils/camera";
 import { getVoiceEnabled, setVoiceEnabled, playHumDetect, playCompliment, getUseCustomVoiceLines, setUseCustomVoiceLines, getCustomVoiceLines, setCustomVoiceLines, playCustomLine, getVoicesAsync, getVoiceName, setVoiceName, getVoiceRate, setVoiceRate, getVoicePitch, setVoicePitch, getVoiceVolume, setVoiceVolume, getAutoplayEnabled, setAutoplayEnabled, getAutoplayIntervalMs, setAutoplayIntervalMs, getSpeakOnCapture, setSpeakOnCapture, getSpeakOnLock, setSpeakOnLock, playComplimentWithContext, stopSpeaking } from "@/utils/audio";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PermissionChecker } from "@/components/PermissionChecker";
 import { MeasureQuickSettings } from "@/components/measure/MeasureQuickSettings";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -2296,6 +2297,10 @@ export default function Measure() {
                 <CardTitle className="flex items-center gap-2 flex-shrink-0">
                   <Ruler className="w-5 h-5" /> Measure
                 </CardTitle>
+                {/* Permission Checker */}
+                <div className="ml-4">
+                  <PermissionChecker />
+                </div>
                 <Tabs value={mode} onValueChange={(v) => setMode(v as "live" | "upload")} className="flex-shrink-0">
                   <TabsList>
                     <TabsTrigger value="live">Live</TabsTrigger>
