@@ -8,8 +8,8 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    // Allow cleartext for local dev API proxy if needed
-    cleartext: true,
+    // Set cleartext false for production builds; override via env if needed
+    cleartext: process.env.NODE_ENV === 'development',
   },
   android: {
     allowMixedContent: true

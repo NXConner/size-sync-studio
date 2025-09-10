@@ -1,5 +1,6 @@
 import { getMeasurements, exportAll } from "@/utils/storage";
 import type { Measurement } from "@/types";
+import { getPhoto } from "@/utils/storage";
 
 // Lightweight browser download helper
 export function downloadBlob(filename: string, blob: Blob) {
@@ -167,5 +168,65 @@ export async function exportAppointmentSummaryPdf(): Promise<void> {
     doc.setFontSize(10); doc.text('No measurements available.', 14, y); y += 5;
   }
   doc.save(`appointment_summary_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+export async function exportClinicalPdf(): Promise<void> {
+  const jsPDF = (await import('jspdf')).jsPDF;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 40;
+  doc.setFontSize(18); doc.text('Clinical Health Report', 40, y); y += 20;
+  doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleString()}`, 40, y); y += 20;
+
+  const measurements = getMeasurements().sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const xs = measurements.map((m, i) => i);
+  const lenVals = measurements.map(m => m.length);
+  const girVals = measurements.map(m => m.girth);
+
+  // Draw simple line charts
+  const chart = (title: string, values: number[], color: string) => {
+    doc.setFontSize(12); doc.text(title, 40, y); y += 6;
+    const left = 40, top = y, width = pageW - 80, height = 120;
+    doc.setDrawColor(200); doc.rect(left, top, width, height);
+    if (values.length >= 2) {
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = Math.max(0.0001, max - min);
+      doc.setDrawColor(color);
+      for (let i = 0; i < values.length; i++) {
+        const x = left + (i / (values.length - 1)) * width;
+        const v = values[i];
+        const yv = top + height - ((v - min) / range) * height;
+        if (i === 0) doc.line(x, yv, x, yv); else doc.line(prevX, prevY, x, yv);
+        var prevX = x, prevY = yv;
+      }
+    } else {
+      doc.setFontSize(10); doc.text('Not enough data', left + 10, top + 20);
+    }
+    y = top + height + 20;
+  }
+
+  chart('Length Trend', lenVals, '#3b82f6');
+  chart('Girth Trend', girVals, '#f59e0b');
+
+  // Insert first available photo
+  for (const m of measurements) {
+    if (m.photoUrl) {
+      try {
+        const blob = await getPhoto(m.id);
+        if (blob) {
+          const dataUrl = await new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.readAsDataURL(blob) });
+          const imgW = (pageW - 80);
+          const imgH = imgW * 0.5625;
+          doc.setFontSize(12); doc.text('Progress Photo', 40, y); y += 6;
+          doc.addImage(dataUrl, 'JPEG', 40, y, imgW, imgH, undefined, 'FAST');
+          y += imgH + 20;
+        }
+      } catch {}
+      break;
+    }
+  }
+
+  doc.save(`clinical_report_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 

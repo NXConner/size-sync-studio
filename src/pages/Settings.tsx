@@ -708,6 +708,11 @@ export default function Settings() {
                     await exportAppointmentSummaryPdf()
                     toast({ title: 'Appointment summary', description: 'PDF downloaded.' })
                   }}>Appointment Summary PDF</UIButton>
+                  <UIButton variant="outline" onClick={async () => {
+                    const { exportClinicalPdf } = await import('@/utils/exporters')
+                    await exportClinicalPdf()
+                    toast({ title: 'Clinical PDF', description: 'PDF downloaded.' })
+                  }}>Clinical PDF</UIButton>
                 </div>
               </CardContent>
             </Card>

@@ -45,9 +45,37 @@ export function PwaQueueStatus() {
     return () => { mounted = false; window.clearInterval(id) }
   }, [])
 
+  const clearQueue = async () => {
+    try {
+      const dbReq = indexedDB.open('workbox-background-sync', 1)
+      dbReq.onsuccess = () => {
+        try {
+          const db = dbReq.result
+          const tx = db.transaction(['requests'], 'readwrite')
+          const store = tx.objectStore('requests')
+          const getAll = store.getAll()
+          getAll.onsuccess = () => {
+            (getAll.result || []).forEach((item: any) => store.delete(item.id))
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  const retryNow = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready
+        reg.sync?.register?.('workbox-background-sync:api-queue')
+      }
+    } catch {}
+  }
+
   return (
-    <div className="text-xs text-muted-foreground">
-      Offline queue: <span className="font-semibold">{count}</span> pending
+    <div className="text-xs text-muted-foreground flex items-center gap-3">
+      <span>Offline queue: <span className="font-semibold">{count}</span> pending</span>
+      <button className="underline" onClick={retryNow}>Retry</button>
+      <button className="underline" onClick={clearQueue}>Clear</button>
     </div>
   )
 }
