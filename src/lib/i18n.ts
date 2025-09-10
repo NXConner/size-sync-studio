@@ -14,7 +14,14 @@ const es: Dict = {
   export_pdf: 'Exportar PDF',
 }
 
-const locales: Record<string, Dict> = { en, es }
+const ar: Dict = {
+  settings_title: 'الإعدادات',
+  export_json: 'تصدير JSON',
+  export_csv: 'تصدير CSV',
+  export_pdf: 'تصدير PDF',
+}
+
+const locales: Record<string, Dict> = { en, es, ar }
 
 export function t(key: string, lang?: string): string {
   const l = lang || (localStorage.getItem('lang') || 'en')
@@ -23,5 +30,20 @@ export function t(key: string, lang?: string): string {
 
 export function setLang(lang: string) {
   localStorage.setItem('lang', lang)
+}
+
+export function detectLang(): string {
+  try {
+    const stored = localStorage.getItem('lang')
+    if (stored) return stored
+  } catch {}
+  const nav = typeof navigator !== 'undefined' ? (navigator.language || (navigator as any).userLanguage || 'en') : 'en'
+  const code = nav.toLowerCase().split('-')[0]
+  return locales[code] ? code : 'en'
+}
+
+export function isRtl(lang?: string): boolean {
+  const l = lang || detectLang()
+  return ['ar', 'he', 'fa', 'ur'].includes(l)
 }
 

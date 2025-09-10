@@ -396,8 +396,9 @@ export default function Settings() {
 
                   <div>
                     <Label>Language</Label>
-                    <Select onValueChange={(value: 'en' | 'es') => {
-                      try { localStorage.setItem('lang', value) } catch {}
+                    <Select onValueChange={(value: any) => {
+                      const v = String(value)
+                      try { localStorage.setItem('lang', v); document.documentElement.lang = v; document.documentElement.dir = (v === 'ar') ? 'rtl' : 'ltr' } catch {}
                       toast({ title: 'Language updated', description: value.toUpperCase() })
                     }}>
                       <SelectTrigger className="mt-2">
@@ -406,6 +407,7 @@ export default function Settings() {
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
                         <SelectItem value="es">Español</SelectItem>
+                        <SelectItem value="ar">العربية</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
