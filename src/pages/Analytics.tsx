@@ -8,6 +8,7 @@ import { getScreeningResults } from "@/utils/screeningCalculator";
 import type { Measurement } from "@/types";
 import { PhotosTimeline } from "@/components/PhotosTimeline";
 import { Achievements } from "@/components/Achievements";
+import { generateRecommendations } from "@/features/insights/recommendations";
 
 export default function Analytics() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -57,6 +58,8 @@ export default function Analytics() {
     }
     return out;
   }, [measurements]);
+
+  const recommendations = useMemo(() => generateRecommendations(), [measurements]);
 
   return (
     <div className="container mx-auto px-4 py-6 min-h-screen animate-fade-in">
@@ -167,6 +170,19 @@ export default function Analytics() {
         </div>
 
         <Achievements />
+
+        <Card className="gradient-card shadow-card">
+          <CardHeader>
+            <CardTitle>Recommendations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground">
+              {recommendations.map(r => (
+                <li key={r.id}>{r.text}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
 
         {anomalyFlags.length > 0 && (
           <Card className="gradient-card shadow-card">
