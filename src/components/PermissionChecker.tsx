@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Mic, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Camera, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 interface PermissionStatus {
   camera: PermissionState | "unknown";
-  microphone: PermissionState | "unknown";
 }
 
 export function PermissionChecker() {
   const [permissions, setPermissions] = useState<PermissionStatus>({
-    camera: "unknown",
-    microphone: "unknown"
+    camera: "unknown"
   });
   const [isChecking, setIsChecking] = useState(false);
 
@@ -29,11 +27,9 @@ export function PermissionChecker() {
 
     try {
       const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
-      const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
       
       setPermissions({
-        camera: cameraPermission.state,
-        microphone: micPermission.state
+        camera: cameraPermission.state
       });
     } catch (error) {
       console.warn("Could not check permissions:", error);
@@ -62,13 +58,13 @@ export function PermissionChecker() {
       let message = "Permission denied";
       
       if (error.name === 'NotAllowedError') {
-        message = "Camera/microphone access denied. Please check your browser settings.";
+        message = "Camera access denied. Please check your browser settings.";
       } else if (error.name === 'NotFoundError') {
-        message = "No camera or microphone found on this device.";
+        message = "No camera found on this device.";
       } else if (error.name === 'NotSupportedError') {
-        message = "Camera/microphone not supported in this browser.";
+        message = "Camera not supported in this browser.";
       } else if (error.name === 'NotReadableError') {
-        message = "Camera/microphone is already in use by another application.";
+        message = "Camera is already in use by another application.";
       }
       
       toast.error(message);
@@ -104,8 +100,8 @@ export function PermissionChecker() {
     }
   };
 
-  const hasRequiredPermissions = permissions.camera === "granted" && permissions.microphone === "granted";
-  const hasAnyDenied = permissions.camera === "denied" || permissions.microphone === "denied";
+  const hasRequiredPermissions = permissions.camera === "granted";
+  const hasAnyDenied = permissions.camera === "denied";
 
   return (
     <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -119,13 +115,6 @@ export function PermissionChecker() {
           </span>
         </Badge>
         
-        <Badge className={`text-xs ${getPermissionColor(permissions.microphone)}`}>
-          <Mic className="w-3 h-3 mr-1" />
-          {getPermissionIcon(permissions.microphone)}
-          <span className="ml-1 capitalize">
-            {permissions.microphone === "unknown" ? "Mic" : permissions.microphone}
-          </span>
-        </Badge>
       </div>
 
       {/* Permission Request Button */}
