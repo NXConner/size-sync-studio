@@ -181,7 +181,7 @@ class AdvancedMLPipeline {
     const stability = this.analyzeStability();
     
     // Perspective analysis
-    const perspective = this.analyzePerspective();
+    const perspective = this.analyzePerspective(imageData);
     
     // Background noise analysis
     const backgroundNoise = this.analyzeBackgroundNoise(data);
@@ -268,13 +268,69 @@ class AdvancedMLPipeline {
     return difference / (data1.length / 16);
   }
 
-  private analyzePerspective() {
-    // Simple perspective analysis based on edge detection
-    // A perpendicular view should have more horizontal edges than diagonal
+  private analyzePerspective(imageData: ImageData): number {
+    // Comprehensive perspective analysis using edge detection and vanishing point estimation
+    const { data, width, height } = imageData;
     
-    // This is a simplified implementation
-    // In a real system, this would use proper vanishing point detection
-    return 0.8; // Placeholder - assume decent perspective
+    // Convert to grayscale and detect edges
+    const edges = this.detectEdges(data, width, height);
+    
+    // Analyze dominant edge orientations
+    const orientationHist = new Array(180).fill(0);
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = y * width + x;
+        if (edges[idx] > 50) { // Strong edge
+          // Calculate gradient orientation
+          const gx = edges[idx + 1] - edges[idx - 1];
+          const gy = edges[idx + width] - edges[idx - width];
+          const angle = Math.atan2(gy, gx) * 180 / Math.PI;
+          const binAngle = Math.round(angle + 90) % 180; // Convert to 0-179
+          orientationHist[binAngle]++;
+        }
+      }
+    }
+    
+    // Ideal perspective should have strong horizontal (0°) and vertical (90°) components
+    const horizontalStrength = orientationHist[0] + orientationHist[179] + orientationHist[1] + orientationHist[178];
+    const verticalStrength = orientationHist[89] + orientationHist[90] + orientationHist[91];
+    
+    const totalEdges = orientationHist.reduce((sum, count) => sum + count, 0);
+    const perspectiveScore = totalEdges > 0 
+      ? (horizontalStrength + verticalStrength) / totalEdges 
+      : 0.5;
+    
+    return Math.max(0, Math.min(1, perspectiveScore * 2)); // Scale to 0-1 range
+  }
+
+  private detectEdges(data: Uint8ClampedArray, width: number, height: number): number[] {
+    // Sobel edge detection
+    const edges = new Array(width * height).fill(0);
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = y * width + x;
+        
+        // Get grayscale values of surrounding pixels
+        const getGray = (i: number) => {
+          const pixelIdx = i * 4;
+          return 0.299 * data[pixelIdx] + 0.587 * data[pixelIdx + 1] + 0.114 * data[pixelIdx + 2];
+        };
+        
+        // Sobel operators
+        const gx = (-1 * getGray(idx - width - 1) + 1 * getGray(idx - width + 1) +
+                   -2 * getGray(idx - 1) + 2 * getGray(idx + 1) +
+                   -1 * getGray(idx + width - 1) + 1 * getGray(idx + width + 1));
+        
+        const gy = (-1 * getGray(idx - width - 1) - 2 * getGray(idx - width) - 1 * getGray(idx - width + 1) +
+                    1 * getGray(idx + width - 1) + 2 * getGray(idx + width) + 1 * getGray(idx + width + 1));
+        
+        edges[idx] = Math.sqrt(gx * gx + gy * gy);
+      }
+    }
+    
+    return edges;
   }
 
   private analyzeBackgroundNoise(data: Uint8ClampedArray): number {
@@ -413,11 +469,87 @@ class AdvancedMLPipeline {
     return variance;
   }
 
-  private temporalStabilization(detectionResult: any) {
-    // Implement temporal filtering to smooth detection results
-    // This would use Kalman filtering or similar in a real implementation
-    return detectionResult; // Simplified for now
+  private temporalStabilization(detectionResult: any): any {
+    // Implement Kalman-like filtering for temporal stability
+    if (!detectionResult.end1 || !detectionResult.end2) {
+      return detectionResult;
+    }
+    
+    const currentTime = Date.now();
+    
+    // Initialize temporal state if needed
+    if (!this.temporalState) {
+      this.temporalState = {
+        lastUpdate: currentTime,
+        smoothedEnd1: { ...detectionResult.end1 },
+        smoothedEnd2: { ...detectionResult.end2 },
+        velocity1: { x: 0, y: 0 },
+        velocity2: { x: 0, y: 0 },
+        confidence: detectionResult.confidence
+      };
+      return detectionResult;
+    }
+    
+    const dt = (currentTime - this.temporalState.lastUpdate) / 1000; // Convert to seconds
+    const alpha = Math.min(dt / 0.1, 1); // Smoothing factor (0.1 second time constant)
+    
+    // Predict positions based on velocity
+    const predicted1 = {
+      x: this.temporalState.smoothedEnd1.x + this.temporalState.velocity1.x * dt,
+      y: this.temporalState.smoothedEnd1.y + this.temporalState.velocity1.y * dt
+    };
+    
+    const predicted2 = {
+      x: this.temporalState.smoothedEnd2.x + this.temporalState.velocity2.x * dt,
+      y: this.temporalState.smoothedEnd2.y + this.temporalState.velocity2.y * dt
+    };
+    
+    // Update smoothed positions (Kalman-like update)
+    const newEnd1 = {
+      x: predicted1.x * (1 - alpha) + detectionResult.end1.x * alpha,
+      y: predicted1.y * (1 - alpha) + detectionResult.end1.y * alpha
+    };
+    
+    const newEnd2 = {
+      x: predicted2.x * (1 - alpha) + detectionResult.end2.x * alpha,
+      y: predicted2.y * (1 - alpha) + detectionResult.end2.y * alpha
+    };
+    
+    // Update velocities
+    if (dt > 0) {
+      this.temporalState.velocity1 = {
+        x: (newEnd1.x - this.temporalState.smoothedEnd1.x) / dt,
+        y: (newEnd1.y - this.temporalState.smoothedEnd1.y) / dt
+      };
+      
+      this.temporalState.velocity2 = {
+        x: (newEnd2.x - this.temporalState.smoothedEnd2.x) / dt,
+        y: (newEnd2.y - this.temporalState.smoothedEnd2.y) / dt
+      };
+    }
+    
+    // Update state
+    this.temporalState.smoothedEnd1 = newEnd1;
+    this.temporalState.smoothedEnd2 = newEnd2;
+    this.temporalState.lastUpdate = currentTime;
+    this.temporalState.confidence = this.temporalState.confidence * 0.9 + detectionResult.confidence * 0.1;
+    
+    return {
+      ...detectionResult,
+      end1: newEnd1,
+      end2: newEnd2,
+      confidence: this.temporalState.confidence
+    };
   }
+
+  private temporalState: {
+    lastUpdate: number;
+    smoothedEnd1: { x: number; y: number };
+    smoothedEnd2: { x: number; y: number };
+    velocity1: { x: number; y: number };
+    velocity2: { x: number; y: number };
+    confidence: number;
+  } | null = null;
 
   private generateIntelligentSuggestions(
     detection: any,
@@ -465,8 +597,8 @@ class AdvancedMLPipeline {
     return suggestions;
   }
 
-  private predictMeasurements(detection: any) {
-    if (!detection.end1 || !detection.end2 || this.measurementHistory.length === 0) {
+  private predictMeasurements(detection: any): { length: number; girth: number; confidence: number } {
+    if (!detection.end1 || !detection.end2) {
       return {
         length: 0,
         girth: 0,
@@ -474,26 +606,53 @@ class AdvancedMLPipeline {
       };
     }
     
-    // Simple prediction based on recent history
-    const recentMeasurements = this.measurementHistory.slice(-5);
-    const avgLength = recentMeasurements.reduce((sum, m) => sum + m.length, 0) / recentMeasurements.length;
-    const avgGirth = recentMeasurements.reduce((sum, m) => sum + m.girth, 0) / recentMeasurements.length;
-    
-    // Calculate current raw measurements (placeholder calculation)
-    const currentLength = Math.hypot(
+    // Calculate pixel distance for length
+    const pixelLength = Math.hypot(
       detection.end2.x - detection.end1.x,
       detection.end2.y - detection.end1.y
     );
     
-    // Predict based on 70% history, 30% current detection
-    const predictedLength = avgLength * 0.7 + currentLength * 0.3;
-    const predictedGirth = avgGirth * 0.7 + (detection.medianWidth || 50) * 0.3;
+    // Estimate girth based on width measurements along the length
+    const estimatedGirth = detection.medianWidth || detection.widths?.[Math.floor(detection.widths.length / 2)] || 0;
+    
+    // Apply calibration if available (assuming pixels per mm is stored somewhere)
+    const pixelsPerMm = this.getCalibrationScale(); // Default to 1 if no calibration
+    
+    const lengthMm = pixelLength / pixelsPerMm;
+    const girthMm = estimatedGirth / pixelsPerMm;
+    
+    // Use measurement history for smoothing if available
+    if (this.measurementHistory.length > 0) {
+      const recentMeasurements = this.measurementHistory.slice(-3);
+      const avgLength = recentMeasurements.reduce((sum, m) => sum + m.length, 0) / recentMeasurements.length;
+      const avgGirth = recentMeasurements.reduce((sum, m) => sum + m.girth, 0) / recentMeasurements.length;
+      
+      // Weighted average: 40% current, 60% history for stability
+      const smoothedLength = lengthMm * 0.4 + avgLength * 0.6;
+      const smoothedGirth = girthMm * 0.4 + avgGirth * 0.6;
+      
+      return {
+        length: smoothedLength,
+        girth: smoothedGirth,
+        confidence: Math.min(detection.confidence * 1.2, 0.95) // Boost confidence with history
+      };
+    }
     
     return {
-      length: predictedLength,
-      girth: predictedGirth,
-      confidence: Math.min(detection.confidence, 0.8)
+      length: lengthMm,
+      girth: girthMm,
+      confidence: detection.confidence || 0.5
     };
+  }
+
+  private getCalibrationScale(): number {
+    // Get calibration from storage or default
+    try {
+      const calibration = localStorage.getItem('measurement-calibration');
+      return calibration ? JSON.parse(calibration).pixelsPerMm : 10; // Default 10 pixels per mm
+    } catch {
+      return 10;
+    }
   }
 
   private generateErrorCorrections(detection: any, environmental: any) {

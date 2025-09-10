@@ -99,20 +99,9 @@ export const MeasureDetection = ({
 
       let result;
       
-      if (useWebGPU && webGPUML.isWebGPUAvailable()) {
-        // Use WebGPU ML pipeline
-        result = await webGPUML.detectFromImageData({
-          width: imageData.width,
-          height: imageData.height,
-          imageData: imageData.data
-        }, {
-          useWebGPU: true,
-          confidenceThreshold: minConfidence,
-          maxProcessingTime: 5000,
-          onProgress: () => {
-            // Could show progress indicator here
-          }
-        });
+      if (useWebGPU) {
+        // Use WebGPU-accelerated detection
+        result = await webGPUML.detectFromImageData(imageData, { onProgress });
       } else {
         // Fallback to OpenCV worker
         result = await opencvWorker.detect({
@@ -123,6 +112,23 @@ export const MeasureDetection = ({
       }
 
       if (result && result.confidence >= minConfidence) {
+        onDetection(result);
+        toast({
+          title: "Detection Complete",
+          description: `Confidence: ${(result.confidence * 100).toFixed(1)}%`,
+        });
+      } else {
+        throw new Error(`Low confidence: ${((result?.confidence || 0) * 100).toFixed(1)}%`);
+      }
+    } catch (error) {
+      console.warn("Detection failed:", error);
+      toast({
+        variant: "destructive", 
+        title: "Detection Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  };
         onDetection(result);
         toast({
           title: "Detection Complete",

@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 
-type QueueItem = { id: number; queueName: string }
-
 async function readWorkboxQueueCount(queueName: string): Promise<number> {
   try {
     const db = await (window as any).indexedDB.open('workbox-background-sync')
@@ -65,8 +63,10 @@ export function PwaQueueStatus() {
   const retryNow = async () => {
     try {
       if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.ready
-        reg.sync?.register?.('workbox-background-sync:api-queue')
+        const reg = await navigator.serviceWorker.ready;
+        if ('sync' in reg) {
+          (reg as any).sync.register('workbox-background-sync:api-queue');
+        }
       }
     } catch {}
   }
