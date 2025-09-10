@@ -22,6 +22,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const AchievementsDetail = lazy(() => import("./pages/AchievementsDetail"));
 const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
 const WellnessSettings = lazy(() => import("./features/mediax/pages/Settings"));
 const MediaXExplore = lazy(() => import("./features/mediax/pages/Explore"));
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/screening" element={<HealthScreening />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/achievements" element={<AchievementsDetail />} />
               <Route path="/run-session" element={<SessionRunner />} />
               <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
               <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />

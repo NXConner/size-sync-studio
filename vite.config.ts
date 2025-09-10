@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => ({
     })] : []),
   ],
   build: {
-    sourcemap: false,
+    sourcemap: process.env.VITE_SENTRY_DSN ? true : false,
     rollupOptions: {
       output: {
         manualChunks: {

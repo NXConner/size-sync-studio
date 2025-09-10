@@ -179,7 +179,6 @@ export async function exportClinicalPdf(): Promise<void> {
   doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleString()}`, 40, y); y += 20;
 
   const measurements = getMeasurements().sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const xs = measurements.map((m, i) => i);
   const lenVals = measurements.map(m => m.length);
   const girVals = measurements.map(m => m.girth);
 
@@ -193,12 +192,17 @@ export async function exportClinicalPdf(): Promise<void> {
       const max = Math.max(...values);
       const range = Math.max(0.0001, max - min);
       doc.setDrawColor(color);
+      let prevX = 0, prevY = 0
       for (let i = 0; i < values.length; i++) {
         const x = left + (i / (values.length - 1)) * width;
         const v = values[i];
         const yv = top + height - ((v - min) / range) * height;
-        if (i === 0) doc.line(x, yv, x, yv); else doc.line(prevX, prevY, x, yv);
-        var prevX = x, prevY = yv;
+        if (i === 0) {
+          doc.line(x, yv, x, yv)
+        } else {
+          doc.line(prevX, prevY, x, yv)
+        }
+        prevX = x; prevY = yv;
       }
     } else {
       doc.setFontSize(10); doc.text('Not enough data', left + 10, top + 20);
