@@ -2955,18 +2955,21 @@ export default function Measure() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Previous photo</label>
-                <select
-                  value={selectedPrevId}
-                  onChange={(e) => setSelectedPrevId(e.target.value)}
-                  className="w-full bg-card border border-border rounded-md px-2 py-2 text-sm"
-                >
-                  {prevPhotos.length === 0 && <option value="">None</option>}
-                  {prevPhotos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {new Date(p.date).toLocaleString()}
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedPrevId} onValueChange={setSelectedPrevId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prevPhotos.length === 0 && (
+                      <SelectItem value="">None</SelectItem>
+                    )}
+                    {prevPhotos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {new Date(p.date).toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">
