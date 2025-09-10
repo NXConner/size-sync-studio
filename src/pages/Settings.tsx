@@ -683,8 +683,19 @@ export default function Settings() {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       try {
-                        await importAll(file);
-                        toast({ title: 'Import complete', description: 'Your data has been imported.' });
+                        const isEncrypted = await (async () => {
+                          try { const t = await file.text(); return t.includes('salt_b64') && t.includes('data_b64') } catch { return false }
+                        })()
+                        if (isEncrypted) {
+                          const pwd = prompt('Enter password to decrypt:')
+                          if (!pwd) return
+                          const { importEncrypted } = await import('@/utils/exporters')
+                          await importEncrypted(file, pwd)
+                          toast({ title: 'Encrypted import complete', description: 'Data decrypted and imported.' })
+                        } else {
+                          await importAll(file);
+                          toast({ title: 'Import complete', description: 'Your data has been imported.' });
+                        }
                       } catch (err) {
                         toast({ title: 'Import failed', description: 'Could not import file.', variant: 'destructive' });
                       }

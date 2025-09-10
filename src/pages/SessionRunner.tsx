@@ -109,7 +109,16 @@ export default function SessionRunner() {
       endTime: new Date().toISOString(),
       status: "completed",
     };
-    saveSession(finished);
+    try {
+      const prefsRaw = localStorage.getItem('appPreferences');
+      const prefs = prefsRaw ? JSON.parse(prefsRaw) : null;
+      const incognito = Boolean(prefs?.privacy?.incognito);
+      if (!incognito) {
+        saveSession(finished);
+      }
+    } catch {
+      saveSession(finished);
+    }
   };
 
   const fmt = (ms: number) => {

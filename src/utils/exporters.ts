@@ -1,6 +1,7 @@
 import { getMeasurements, exportAll } from "@/utils/storage";
 import type { Measurement } from "@/types";
 import { getPhoto } from "@/utils/storage";
+import { importAll } from "@/utils/storage";
 
 // Lightweight browser download helper
 export function downloadBlob(filename: string, blob: Blob) {
@@ -103,6 +104,23 @@ export async function exportAllEncrypted(password: string): Promise<void> {
   };
   const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
   downloadBlob(`health_data_encrypted_${new Date().toISOString()}.json`, blob);
+}
+
+export async function importEncrypted(file: File, password: string): Promise<void> {
+  const text = await file.text()
+  const payload = JSON.parse(text || '{}')
+  const salt_b64 = payload?.salt_b64
+  const iv_b64 = payload?.iv_b64
+  const data_b64 = payload?.data_b64
+  if (!salt_b64 || !iv_b64 || !data_b64) throw new Error('Invalid encrypted file')
+  const salt = Uint8Array.from(atob(salt_b64), c => c.charCodeAt(0))
+  const iv = Uint8Array.from(atob(iv_b64), c => c.charCodeAt(0))
+  const raw = Uint8Array.from(atob(data_b64), c => c.charCodeAt(0))
+  const key = await deriveAesKey(password, salt)
+  const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, raw)
+  const plainText = new TextDecoder().decode(plainBuf)
+  const plainFile = new File([plainText], 'decrypted.json', { type: 'application/json' })
+  await importAll(plainFile)
 }
 
 // Simple PDF summary (no charts) using jsPDF
