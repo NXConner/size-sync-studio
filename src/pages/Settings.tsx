@@ -679,6 +679,17 @@ export default function Settings() {
                     downloadIcs('measurement-reminder.ics', ics);
                   }}>Download calendar (.ics) reminder</UIButton>
                 </div>
+
+                <div className="pt-2">
+                  <UIButton variant="secondary" onClick={async () => {
+                    const { getMeasurements, getSessions } = await import('@/utils/storage')
+                    const { mapMeasurementToHealth, mapSessionToWorkout } = await import('@/integrations/health/mapping')
+                    const mm = getMeasurements().map(mapMeasurementToHealth)
+                    const ss = getSessions().map(mapSessionToWorkout)
+                    console.log('Health export preview', { measurements: mm.slice(0,3), sessions: ss.slice(0,3) })
+                    toast({ title: 'Health export preview', description: `${mm.length} measurements, ${ss.length} sessions mapped.` })
+                  }}>Preview Health Sync Mapping</UIButton>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -710,7 +721,17 @@ export default function Settings() {
                       toast({ title: 'Error', description: 'Could not generate provider summary.', variant: 'destructive' })
                     }
                   }}>Share with provider</UIButton>
-                  <UIButton variant="secondary" onClick={() => toast({ title: 'Health Apps', description: 'HealthKit/Health Connect sync coming soon.' })}>Connect Health Apps</UIButton>
+                  <UIButton variant="secondary" onClick={async () => {
+                    try {
+                      const { getHealthAdapter } = await import('@/integrations/health/webStub')
+                      const adapter = getHealthAdapter()
+                      const info = await adapter.getInfo()
+                      if (!info.available) {
+                        toast({ title: 'Health Apps', description: 'Connect on mobile app (HealthKit/Health Connect).', })
+                        return
+                      }
+                    } catch {}
+                  }}>Connect Health Apps</UIButton>
                   <UIButton variant="outline" onClick={() => toast({ title: 'Calendar', description: 'Use Data → Download .ics to add reminders.' })}>Calendar Tips</UIButton>
                 </div>
               </CardContent>
