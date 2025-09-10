@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Camera, Bell, Shield, Palette, Save, Mail, Phone, MapPin, Download, FileText } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Button as UIButton } from '@/components/ui/button';
+import { createDailyMeasurementReminder, ensureNotificationPermission, getReminders, scheduleAllActive, upsertReminder } from '@/utils/notifications';
 import { exportAllJson, exportMeasurementsCsv, exportPdfSummary } from '@/utils/exporters';
 import { importAll } from '@/utils/storage';
 
@@ -102,6 +103,26 @@ export default function Settings() {
       console.error('Failed to load settings:', error);
     }
   }, []);
+
+  // Ensure daily reminder scheduled if enabled
+  useEffect(() => {
+    (async () => {
+      if (preferences.notifications.reminders) {
+        await ensureNotificationPermission();
+        const existing = getReminders().find(r => r.id === 'reminder-measurement-daily');
+        if (!existing) {
+          const reminder = createDailyMeasurementReminder('09:00');
+          upsertReminder(reminder);
+        }
+        try {
+          const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.ready : null;
+          await scheduleAllActive(reg);
+        } catch {
+          await scheduleAllActive(null);
+        }
+      }
+    })();
+  }, [preferences.notifications.reminders]);
 
   const handleProfileUpdate = (field: keyof UserProfile, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
@@ -446,6 +467,31 @@ export default function Settings() {
                     onCheckedChange={(checked) => handlePreferenceUpdate('notifications', 'reminders', checked)}
                   />
                 </div>
+
+                {preferences.notifications.reminders && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="md:col-span-1">
+                      <Label htmlFor="reminder-time">Daily reminder time</Label>
+                      <Input id="reminder-time" type="time" defaultValue="09:00" onChange={(e) => {
+                        const r = createDailyMeasurementReminder(e.target.value || '09:00');
+                        upsertReminder(r);
+                        toast({ title: 'Reminder updated', description: `Daily reminder set for ${e.target.value}` });
+                      }} />
+                    </div>
+                    <div className="flex items-end">
+                      <UIButton variant="outline" onClick={async () => {
+                        await ensureNotificationPermission();
+                        try {
+                          const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.ready : null;
+                          await scheduleAllActive(reg);
+                          toast({ title: 'Reminders scheduled', description: 'Daily notifications are active.' });
+                        } catch {
+                          toast({ title: 'Reminders scheduled', description: 'Daily notifications are active.' });
+                        }
+                      }}>Apply Schedule</UIButton>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

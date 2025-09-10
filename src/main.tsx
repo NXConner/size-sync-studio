@@ -38,6 +38,17 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
           });
         });
       } catch {}
+      // schedule local reminders after SW ready
+      try {
+        import('./utils/notifications').then(async (mod) => {
+          try {
+            const readyReg = await navigator.serviceWorker.ready
+            await mod.scheduleAllActive(readyReg)
+          } catch {
+            await mod.scheduleAllActive(null)
+          }
+        })
+      } catch {}
     }).catch(() => {});
   });
 }
