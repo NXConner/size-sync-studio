@@ -692,6 +692,21 @@ export default function Settings() {
                     toast({ title: 'Health export preview', description: `${mm.length} measurements, ${ss.length} sessions mapped.` })
                   }}>Preview Health Sync Mapping</UIButton>
                 </div>
+
+                <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <UIButton variant="outline" onClick={async () => {
+                    const password = prompt('Set a password to encrypt your export:')
+                    if (!password) return
+                    const { exportAllEncrypted } = await import('@/utils/exporters')
+                    await exportAllEncrypted(password)
+                    toast({ title: 'Encrypted export', description: 'Download saved.' })
+                  }}>Export Encrypted JSON</UIButton>
+                  <UIButton variant="outline" onClick={async () => {
+                    const { exportAppointmentSummaryPdf } = await import('@/utils/exporters')
+                    await exportAppointmentSummaryPdf()
+                    toast({ title: 'Appointment summary', description: 'PDF downloaded.' })
+                  }}>Appointment Summary PDF</UIButton>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
