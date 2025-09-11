@@ -15,7 +15,11 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
 
-class MainActivity : ComponentActivity() {
+/**
+ * Legacy native CameraX activity retained for potential future native mode.
+ * Not used as launcher when Capacitor Bridge is the entry point.
+ */
+class CameraActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var overlayView: OverlayView
     private lateinit var scoreText: TextView
