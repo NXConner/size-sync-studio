@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.sizeseeker"
+    namespace = "com.sizeseeker.app"
     compileSdk = rootProject.ext.get("compileSdkVersion") as Int
 
     defaultConfig {
-        applicationId = "com.sizeseeker"
+        applicationId = "com.sizeseeker.app"
         minSdk = rootProject.ext.get("minSdkVersion") as Int
         targetSdk = rootProject.ext.get("targetSdkVersion") as Int
         versionCode = 1
