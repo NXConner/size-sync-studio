@@ -32,11 +32,11 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "21"
+        jvmTarget = "17"
     }
 
     androidResources {
@@ -56,6 +56,16 @@ dependencies {
     implementation("androidx.coordinatorlayout:coordinatorlayout:${rootProject.ext.get("androidxCoordinatorLayoutVersion")}")
     implementation("androidx.core:core-splashscreen:${rootProject.ext.get("coreSplashScreenVersion")}")
     implementation(project(":capacitor-android"))
+    
+    // CameraX
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
+    // TensorFlow Lite
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
     
     testImplementation("junit:junit:${rootProject.ext.get("junitVersion")}")
     androidTestImplementation("androidx.test.ext:junit:${rootProject.ext.get("androidxJunitVersion")}")
