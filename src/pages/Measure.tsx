@@ -708,10 +708,26 @@ export default function Measure() {
     const ctx = overlay.getContext("2d");
     if (!ctx) return;
 
-    const render = () => {
-      // match overlay size to media container
-      overlay.width = container.clientWidth;
-      overlay.height = container.clientHeight;
+    // Throttle to ~30 FPS to reduce main-thread work on Android WebView/Chrome
+    const targetIntervalMs = 1000 / 30;
+    let lastTs = 0;
+
+    const render = (ts?: number) => {
+      if (typeof ts === "number") {
+        if (ts - lastTs < targetIntervalMs) {
+          rafRef.current = requestAnimationFrame(render);
+          return;
+        }
+        lastTs = ts;
+      }
+
+      // Match overlay size to media container only when it actually changes (avoids costly reallocation each frame)
+      const nextW = container.clientWidth;
+      const nextH = container.clientHeight;
+      if (overlay.width !== nextW || overlay.height !== nextH) {
+        overlay.width = nextW;
+        overlay.height = nextH;
+      }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
       // Optional grid background
@@ -2388,6 +2404,7 @@ export default function Measure() {
                     className="w-full max-h-[70vh] rounded-lg bg-black"
                     playsInline
                     muted
+                    style={{ willChange: 'transform' }}
                   />
                 )
               ) : uploadedUrl ? (
