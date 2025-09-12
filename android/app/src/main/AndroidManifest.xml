@@ -11,6 +11,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
+        android:hardwareAccelerated="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
         <activity
@@ -19,7 +20,8 @@
             android:label="@string/title_activity_main"
             android:launchMode="singleTask"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
-            android:theme="@style/AppTheme.NoActionBarLaunch">
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:hardwareAccelerated="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
