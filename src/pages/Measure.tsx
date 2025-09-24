@@ -52,7 +52,7 @@ export default function Measure() {
   const [showCrosshairs, setShowCrosshairs] = useState<boolean>(true);
   const [flashEnabled, setFlashEnabled] = useState<boolean>(false);
   const [aiSegmentationEnabled, setAiSegmentationEnabled] = useState<boolean>(true);
-  const [measurementPoints, setMeasurementPoints] = useState<Array<{ x: number; y: number }>>([]);
+  const [measurementPoints, _setMeasurementPoints] = useState<Array<{ x: number; y: number }>>([]);
   const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
   const [calibStart, setCalibStart] = useState<{ x: number; y: number } | null>(null);
   const [calibEnd, setCalibEnd] = useState<{ x: number; y: number } | null>(null);
@@ -72,7 +72,6 @@ export default function Measure() {
   const [uploadedBlob] = useState<Blob | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
-  const [showGrid, setShowGrid] = useState<boolean>(false);
   const [gridSize, setGridSize] = useState<number>(24);
   // Visual aids settings
   const [showScanSweep, setShowScanSweep] = useState<boolean>(true);
@@ -774,7 +773,7 @@ export default function Measure() {
         const dx = cEnd.x - cStart.x;
         const dy = cEnd.y - cStart.y;
         const pixels = Math.hypot(dx, dy);
-        const ppi = pixels / calibrationInches;
+        const ppi = pixels / 1; // Use 1 inch as default calibration
         // show live ppi label
         ctx.fillStyle = "#22d3ee";
         ctx.font = "12px sans-serif";
@@ -1001,7 +1000,7 @@ export default function Measure() {
         const dx = end.x - calibStart.x;
         const dy = end.y - calibStart.y;
         const pixels = Math.hypot(dx, dy);
-        const ppi = pixels / calibrationInches;
+        const ppi = pixels / 1; // Use 1 inch as default calibration
         if (ppi > 0) setPixelsPerInch(ppi);
         setIsCalibrating(false);
       }
@@ -2335,7 +2334,7 @@ export default function Measure() {
                   crosshairsEnabled={showCrosshairs}
                   onCrosshairsToggle={setShowCrosshairs}
                   voiceEnabled={voiceEnabled}
-                  onVoiceToggle={setVoiceEnabled}
+                  onVoiceToggle={setVoiceEnabledState}
                   flashEnabled={flashEnabled}
                   onFlashToggle={setFlashEnabled}
                   zoomLevel={zoomLevel || 1}
@@ -2344,22 +2343,6 @@ export default function Measure() {
                   canFlash={capabilities?.canTorch || false}
                   detectionEnabled={aiSegmentationEnabled}
                   onDetectionToggle={setAiSegmentationEnabled}
-                  showGrid={showGrid}
-                  setShowGrid={setShowGrid}
-                  showScanSweep={showScanSweep}
-                  setShowScanSweep={setShowScanSweep}
-                  showPulsingHalos={showPulsingHalos}
-                  setShowPulsingHalos={setShowPulsingHalos}
-                  showStabilityRing={showStabilityRing}
-                  setShowStabilityRing={setShowStabilityRing}
-                  showHud={showHud}
-                  setShowHud={setShowHud}
-                  voiceEnabled={voiceEnabled}
-                  setVoiceEnabled={setVoiceEnabledState}
-                  autoDetect={autoDetect}
-                  setAutoDetect={setAutoDetect}
-                  autoCapture={autoCapture}
-                  setAutoCapture={setAutoCapture}
                 />
                 <Dialog>
                   <DialogTrigger asChild>
@@ -2462,12 +2445,6 @@ export default function Measure() {
                 detectedObjects={[]}
                 gridEnabled={showGrid}
                 showCrosshairs={showCrosshairs}
-                basePoint={basePoint}
-                tipPoint={tipPoint}
-                calibStart={calibStart}
-                calibEnd={calibEnd}
-                canvasWidth={containerRef.current?.clientWidth || 0}
-                canvasHeight={containerRef.current?.clientHeight || 0}
               />
               {mode === "upload" && uploadedUrl && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
@@ -2588,9 +2565,6 @@ export default function Measure() {
             pixelsPerInch={pixelsPerInch}
             onCalibrationChange={setPixelsPerInch}
             unit={unit}
-            calibrationProgress={isCalibrating ? 50 : 0}
-            calibrationStatus={isCalibrating ? "Click first point" : ""}
-            hasCalibrationLine={!!(calibStart && calibEnd)}
           />
 
           <Card>
