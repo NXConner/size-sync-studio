@@ -48,7 +48,11 @@ export default function Measure() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [unit, setUnit] = useState<"in" | "cm">("in");
   const [pixelsPerInch, setPixelsPerInch] = useState<number>(96); // default guess
-  const [calibrationInches, setCalibrationInches] = useState<number>(1);
+  const [showGrid, setShowGrid] = useState<boolean>(false);
+  const [showCrosshairs, setShowCrosshairs] = useState<boolean>(true);
+  const [flashEnabled, setFlashEnabled] = useState<boolean>(false);
+  const [aiSegmentationEnabled, setAiSegmentationEnabled] = useState<boolean>(true);
+  const [measurementPoints, setMeasurementPoints] = useState<Array<{ x: number; y: number }>>([]);
   const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
   const [calibStart, setCalibStart] = useState<{ x: number; y: number } | null>(null);
   const [calibEnd, setCalibEnd] = useState<{ x: number; y: number } | null>(null);
@@ -2326,18 +2330,20 @@ export default function Measure() {
               </div>
               <div className="flex items-center gap-2">
                 <MeasureQuickSettings
-                  unit={unit}
-                  setUnit={setUnit}
-                  mode={mode}
-                  devices={devices}
-                  deviceId={deviceId}
-                  setDeviceId={setDeviceId}
-                  resolution={resolution}
-                  setResolution={setResolution}
-                  targetFps={targetFps}
-                  setTargetFps={setTargetFps}
-                  facingMode={facingMode}
-                  setFacingMode={setFacingMode}
+                  gridEnabled={showGrid}
+                  onGridToggle={setShowGrid}
+                  crosshairsEnabled={showCrosshairs}
+                  onCrosshairsToggle={setShowCrosshairs}
+                  voiceEnabled={voiceEnabled}
+                  onVoiceToggle={setVoiceEnabled}
+                  flashEnabled={flashEnabled}
+                  onFlashToggle={setFlashEnabled}
+                  zoomLevel={zoomLevel || 1}
+                  onZoomChange={(z) => setZoomLevel(z)}
+                  canZoom={capabilities?.canZoom || false}
+                  canFlash={capabilities?.canTorch || false}
+                  detectionEnabled={aiSegmentationEnabled}
+                  onDetectionToggle={setAiSegmentationEnabled}
                   showGrid={showGrid}
                   setShowGrid={setShowGrid}
                   showScanSweep={showScanSweep}
@@ -2450,14 +2456,12 @@ export default function Measure() {
                 onMouseUp={handleOverlayMouseUp}
               />
               <VisualFeedbackOverlay
-                isDetecting={isDetecting}
-                confidence={confidence}
-                qualityScore={qualityScore}
-                isCalibrating={isCalibrating}
-                autoStatus={autoStatus}
-                showScanSweep={showScanSweep}
-                showStabilityRing={showStabilityRing}
-                showPulsingHalos={showPulsingHalos}
+                containerRef={containerRef}
+                measurementPoints={measurementPoints}
+                isRecording={false}
+                detectedObjects={[]}
+                gridEnabled={showGrid}
+                showCrosshairs={showCrosshairs}
                 basePoint={basePoint}
                 tipPoint={tipPoint}
                 calibStart={calibStart}
@@ -2581,13 +2585,9 @@ export default function Measure() {
           <InstructionPanel />
           
           <EnhancedCalibrationCard
-            calibrationInches={calibrationInches}
-            onChangeCalibrationInches={(val) => setCalibrationInches(val)}
-            onStartCalibrating={() => setIsCalibrating(true)}
-            onAutoCalibrate={mode === "upload" ? autoCalibrateFromImage : autoCalibrateFromLive}
             pixelsPerInch={pixelsPerInch}
-            isCalibrating={isCalibrating}
-            isAutoCalibrating={isAutoCalibrating}
+            onCalibrationChange={setPixelsPerInch}
+            unit={unit}
             calibrationProgress={isCalibrating ? 50 : 0}
             calibrationStatus={isCalibrating ? "Click first point" : ""}
             hasCalibrationLine={!!(calibStart && calibEnd)}

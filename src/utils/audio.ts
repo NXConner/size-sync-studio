@@ -1,4 +1,6 @@
 // Voice feedback system for measurements
+import { speakWithElevenLabs, stopElevenLabsSpeech, setElevenLabsApiKey, type VoiceName } from './elevenlabs';
+
 export function getVoiceEnabled(): boolean {
   return localStorage.getItem('voice-enabled') !== 'false';
 }
@@ -12,7 +14,7 @@ export async function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
 }
 
 export function getVoiceName(): string {
-  return localStorage.getItem('voice-name') || '';
+  return localStorage.getItem('voice-name') || 'Sarah';
 }
 
 export function setVoiceName(name: string): void {
@@ -93,24 +95,34 @@ export function setSpeakOnLock(enabled: boolean): void {
 }
 
 export function stopSpeaking(): void {
+  stopElevenLabsSpeech();
   speechSynthesis.cancel();
 }
 
 async function speak(text: string): Promise<void> {
   if (!getVoiceEnabled()) return;
   
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = getVoiceRate();
-  utterance.pitch = getVoicePitch();
-  utterance.volume = getVoiceVolume();
+  const voiceName = getVoiceName() as VoiceName;
   
-  const voiceName = getVoiceName();
-  if (voiceName) {
-    const voice = speechSynthesis.getVoices().find(v => v.name === voiceName);
-    if (voice) utterance.voice = voice;
+  try {
+    // Try ElevenLabs first, fallback to browser TTS
+    await speakWithElevenLabs(text, voiceName);
+  } catch (error) {
+    console.warn('ElevenLabs failed, using browser TTS:', error);
+    // Fallback to browser TTS
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = getVoiceRate();
+    utterance.pitch = getVoicePitch();
+    utterance.volume = getVoiceVolume();
+    
+    const browserVoiceName = getVoiceName();
+    if (browserVoiceName) {
+      const voice = speechSynthesis.getVoices().find(v => v.name === browserVoiceName);
+      if (voice) utterance.voice = voice;
+    }
+    
+    speechSynthesis.speak(utterance);
   }
-  
-  speechSynthesis.speak(utterance);
 }
 
 export async function playHumDetect(): Promise<void> {
@@ -144,3 +156,6 @@ export async function playComplimentWithContext(context?: string | { length_in: 
 export async function playCustomLine(line: string): Promise<void> {
   await speak(line);
 }
+
+// Export ElevenLabs utilities
+export { setElevenLabsApiKey, type VoiceName };
