@@ -1,6 +1,5 @@
 import { 
   getVoiceEnabled, 
-  playComplimentWithContext, 
   playCustomLine,
   getCustomVoiceLines,
   getUseCustomVoiceLines 
@@ -176,7 +175,8 @@ class VoiceCoachingEngine {
     if (getUseCustomVoiceLines()) {
       const customLines = getCustomVoiceLines();
       if (customLines.length > 0) {
-        await playComplimentWithContext(context);
+        const randomLine = customLines[Math.floor(Math.random() * customLines.length)];
+        await playCustomLine(randomLine);
         return;
       }
     }

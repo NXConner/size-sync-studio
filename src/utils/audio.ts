@@ -123,8 +123,22 @@ export async function playCompliment(): Promise<void> {
   await speak(random);
 }
 
-export async function playComplimentWithContext(context?: string): Promise<void> {
-  await speak(context || "Measurement complete");
+export async function playComplimentWithContext(context?: string | { length_in: number; length_cm: number; girth_in: number; girth_cm: number; confidence: number }): Promise<void> {
+  if (typeof context === 'object' && context) {
+    // Create a contextual message from measurement data
+    const lengthText = context.length_in > 10 ? 
+      `${context.length_cm.toFixed(1)} centimeters` : 
+      `${context.length_in.toFixed(1)} inches`;
+    
+    const girthText = context.girth_in > 10 ? 
+      `${context.girth_cm.toFixed(1)} centimeters` : 
+      `${context.girth_in.toFixed(1)} inches`;
+    
+    const message = `Measurement complete. Length: ${lengthText}. Girth: ${girthText}. Confidence: ${Math.round(context.confidence * 100)} percent.`;
+    await speak(message);
+  } else {
+    await speak(context || "Measurement complete");
+  }
 }
 
 export async function playCustomLine(line: string): Promise<void> {
