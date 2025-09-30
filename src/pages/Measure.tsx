@@ -33,6 +33,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { opencvWorker } from "@/lib/opencvWorkerClient";
 import { segWorker } from "@/lib/segWorkerClient";
+import { AdvancedAnalyticsPanel } from "@/components/measure/AdvancedAnalyticsPanel";
+import { PredictiveMeasurementAssistant } from "@/components/measure/PredictiveMeasurementAssistant";
+import { IntelligentErrorCorrection } from "@/components/measure/IntelligentErrorCorrection";
+import type { MLAnalysisResult } from "@/lib/advancedML";
 
 // Helper: convert cm <-> inches
 const cmToIn = (cm: number) => cm / 2.54;
@@ -158,6 +162,62 @@ export default function Measure() {
   const [targetFps, setTargetFps] = useState<number>(30);
   const [measuredFps, setMeasuredFps] = useState<number>(0);
   const [resolution, setResolution] = useState<{ w: number; h: number }>({ w: 1280, h: 720 });
+
+  // Advanced ML UI state
+  const [advancedEnabled, setAdvancedEnabled] = useState<boolean>(false);
+  const [analysisResult, setAnalysisResult] = useState<MLAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [mlHistory, setMlHistory] = useState<Array<{ timestamp: number; length: number; girth: number; confidence: number }>>([]);
+
+  // Feed basic data into advanced panels from existing states
+  useEffect(() => {
+    // Update measurement history with latest readings when they are non-zero
+    const len = parseFloat(lengthDisplay);
+    const gir = parseFloat(girthDisplay);
+    if (!Number.isFinite(len) || !Number.isFinite(gir)) return;
+    if (len <= 0 && gir <= 0) return;
+    setMlHistory((prev: Array<{ timestamp: number; length: number; girth: number; confidence: number }>) => {
+      const next = prev.concat({ timestamp: Date.now(), length: len, girth: gir, confidence });
+      return next.slice(-50);
+    });
+  }, [lengthDisplay, girthDisplay, confidence]);
+
+  useEffect(() => {
+    // Provide a lightweight analysisResult so panels render meaningful UI
+    const quality = Math.max(0, Math.min(1, qualityScore));
+    const conf = Math.max(0, Math.min(1, confidence));
+    const envLighting = qualityDetail ? Math.max(0, Math.min(1, (qualityDetail.brightness - 30) / 200)) : 0.6;
+    const envStability = Math.max(0, Math.min(1, 1 - (retakeSuggested ? 0.5 : 0.2)));
+    const envPerspective = 0.7; // placeholder until full pipeline feeds value
+    const envNoise = qualityDetail ? Math.max(0, Math.min(1, qualityDetail.edgeProximity)) : 0.3;
+
+    setAnalysisResult({
+      confidence: conf,
+      qualityScore: quality,
+      suggestions: [],
+      corrections: {
+        basePoint: basePoint ? { ...basePoint, confidence: conf } : undefined,
+        tipPoint: tipPoint ? { ...tipPoint, confidence: conf } : undefined,
+      },
+      predictedMeasurements: {
+        length: parseFloat(lengthDisplay) || 0,
+        girth: parseFloat(girthDisplay) || 0,
+        confidence: Math.max(conf, quality * 0.8),
+      },
+      environmentalFactors: {
+        lighting: envLighting,
+        stability: envStability,
+        perspective: envPerspective,
+        backgroundNoise: envNoise,
+      },
+      qualityMetrics: {
+        sharpness: qualityDetail ? Math.max(0, Math.min(1, qualityDetail.blurVar / 400)) : 0.6,
+        contrast: 0.6,
+        exposure: quality,
+        colorBalance: 0.7,
+      },
+    });
+  }, [qualityScore, confidence, qualityDetail, basePoint, tipPoint, lengthDisplay, girthDisplay, retakeSuggested]);
 
   // Refs to avoid stale closures inside the RAF overlay loop
   const calibStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -2683,6 +2743,38 @@ export default function Measure() {
               )}
             </CardContent>
           </Card>
+
+          {/* Advanced ML Panels */}
+          <AdvancedAnalyticsPanel
+            analysisResult={analysisResult}
+            measurementHistory={mlHistory}
+            isAnalyzing={isAnalyzing}
+            onToggleAdvancedMode={(enabled) => setAdvancedEnabled(enabled)}
+            advancedModeEnabled={advancedEnabled}
+          />
+
+          <PredictiveMeasurementAssistant
+            analysisResult={analysisResult}
+            measurementHistory={mlHistory}
+            onAcceptSuggestion={(type, point) => {
+              if (type === 'basePoint') setBasePoint(point);
+              if (type === 'tipPoint') setTipPoint(point);
+            }}
+          />
+
+          <IntelligentErrorCorrection
+            analysisResult={analysisResult}
+            basePoint={basePoint}
+            tipPoint={tipPoint}
+            pixelsPerInch={pixelsPerInch}
+            measurementHistory={mlHistory}
+            onApplyCorrection={(type, correction) => {
+              if (type === 'basePoint' && correction) setBasePoint(correction);
+              if (type === 'tipPoint' && correction) setTipPoint(correction);
+              if (type === 'perspective' && correction?.scaleAdjustment) setPixelsPerInch((p: number) => Math.max(1, p * correction.scaleAdjustment));
+            }}
+            onDismissError={() => {}}
+          />
 
           <Card>
             <CardHeader>
