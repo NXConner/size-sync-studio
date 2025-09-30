@@ -166,7 +166,6 @@ export default function Measure() {
   // Advanced ML UI state
   const [advancedEnabled, setAdvancedEnabled] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<MLAnalysisResult | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [mlHistory, setMlHistory] = useState<Array<{ timestamp: number; length: number; girth: number; confidence: number }>>([]);
 
   // Feed basic data into advanced panels from existing states
@@ -2748,7 +2747,7 @@ export default function Measure() {
           <AdvancedAnalyticsPanel
             analysisResult={analysisResult}
             measurementHistory={mlHistory}
-            isAnalyzing={isAnalyzing}
+            isAnalyzing={false}
             onToggleAdvancedMode={(enabled) => setAdvancedEnabled(enabled)}
             advancedModeEnabled={advancedEnabled}
           />
