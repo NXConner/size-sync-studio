@@ -36,12 +36,19 @@ export const MediaGallery = React.memo(function MediaGallery({ mediaItems, onMed
           onClick={() => onMediaSelect(item)}
           onMouseEnter={() => { void import('@mediax/components/MediaViewer'); }}
         >
-          {/* Media Thumbnail or Locked State */}
+          {/* Media Thumbnail or Locked/Encrypted State */}
           {item.encIvHex && item.encData && item.encMimeType && !key ? (
             <div className="w-full h-full flex items-center justify-center bg-gray-900/60">
               <div className="flex flex-col items-center gap-2 text-gray-300">
                 <Lock className="w-6 h-6" />
                 <span className="text-xs">Locked</span>
+              </div>
+            </div>
+          ) : item.encIvHex && item.encData && item.encMimeType && key ? (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900/40">
+              <div className="flex flex-col items-center gap-2 text-gray-200">
+                <Image className="w-6 h-6 opacity-80" />
+                <span className="text-xs">Encrypted (tap to view)</span>
               </div>
             </div>
           ) : (
