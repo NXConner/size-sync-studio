@@ -118,6 +118,12 @@ Android model inference
 2) Build & run; wire `SegmentationInterpreter` where needed to obtain masks
 3) Next steps: integrate marker detection, geometry metrics, and quality gating
 
+Quick commands (from repo root):
+```bash
+mkdir -p android/app/src/main/assets
+cp /absolute/path/to/segmentation.tflite android/app/src/main/assets/segmentation.tflite
+```
+
 Plans
 - Android native geometry: docs/mobile/ANDROID_NATIVE_GEOMETRY_PLAN.md
 - Training execution: docs/mobile/TRAINING_EXEC_PLAN.md

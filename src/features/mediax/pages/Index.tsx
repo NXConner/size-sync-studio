@@ -75,12 +75,20 @@ const Index = () => {
         const loaded = seed.map(r => ({ ...r, uploadDate: new Date(r.uploadDate) })) as unknown as MediaItem[]
         setMediaItems(loaded)
       } else {
-        const loaded = records.map(r => ({ ...r, uploadDate: new Date(r.uploadDate) } as unknown as MediaItem))
+        const loaded = records.map(r => {
+          const base = { ...r, uploadDate: new Date(r.uploadDate) } as any
+          // If encrypted and no key present, blank any stray plaintext URLs
+          if (base.encIvHex && base.encData && base.encMimeType && !key) {
+            base.url = ''
+            base.thumbnail = ''
+          }
+          return base as MediaItem
+        })
         setMediaItems(loaded)
       }
     }
     load()
-  }, [])
+  }, [key])
 
   // Load wallpaper from localStorage
   useEffect(() => {
