@@ -11,6 +11,7 @@ import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
 import { PwaUpdate } from "./components/PwaUpdate";
 import { Onboarding } from "./components/Onboarding";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 const HealthScreening = lazy(() => import("./pages/HealthScreening"));
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -63,38 +64,40 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename={APP_BASENAME}>
-        <TitleUpdater />
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          {/* PWA update notifier */}
-          <PwaUpdate />
-          <Onboarding />
-          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-background border rounded px-2 py-1">Skip to content</a>
-          <main role="main" id="main-content">
-          <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/sessions" element={<Sessions />} />
-              <Route path="/safety" element={<Safety />} />
-              <Route path="/tips" element={<Tips />} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/measure" element={<Measure />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/screening" element={<HealthScreening />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/achievements" element={<AchievementsDetail />} />
-              <Route path="/run-session" element={<SessionRunner />} />
-              <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
-              <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />
-              <Route path="/mediax/explore" element={<WellnessErrorBoundary><MediaXExplore /></WellnessErrorBoundary>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-          </main>
-        </div>
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter basename={APP_BASENAME}>
+          <TitleUpdater />
+          <div className="min-h-screen bg-background">
+            <Navbar />
+            {/* PWA update notifier */}
+            <PwaUpdate />
+            <Onboarding />
+            <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-background border rounded px-2 py-1">Skip to content</a>
+            <main role="main" id="main-content">
+            <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/sessions" element={<Sessions />} />
+                <Route path="/safety" element={<Safety />} />
+                <Route path="/tips" element={<Tips />} />
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/measure" element={<Measure />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/screening" element={<HealthScreening />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/achievements" element={<AchievementsDetail />} />
+                <Route path="/run-session" element={<SessionRunner />} />
+                <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
+                <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />
+                <Route path="/mediax/explore" element={<WellnessErrorBoundary><MediaXExplore /></WellnessErrorBoundary>} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            </main>
+          </div>
+        </BrowserRouter>
+      </ErrorBoundary>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </TooltipProvider>
   </PersistQueryClientProvider>
