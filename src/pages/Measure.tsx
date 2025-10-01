@@ -55,7 +55,6 @@ export default function Measure() {
   const [showGrid, setShowGrid] = useState<boolean>(false);
   const [showCrosshairs, setShowCrosshairs] = useState<boolean>(true);
   const [flashEnabled, setFlashEnabled] = useState<boolean>(false);
-  const [aiSegmentationEnabled, setAiSegmentationEnabled] = useState<boolean>(true);
   const [measurementPoints, _setMeasurementPoints] = useState<Array<{ x: number; y: number }>>([]);
   const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
   const [calibStart, setCalibStart] = useState<{ x: number; y: number } | null>(null);
@@ -111,6 +110,9 @@ export default function Measure() {
   const [confidence, setConfidence] = useState<number>(0);
   const [qualityScore, setQualityScore] = useState<number>(0);
   const [curvatureDeg, setCurvatureDeg] = useState<number>(0);
+  // Throttle for mask preview URL updates to avoid main-thread stalls
+  const lastMaskPreviewTsRef = useRef<number>(0);
+  const prevMaskBlobUrlRef = useRef<string | null>(null);
   const confidenceRef = useRef<number>(0);
   const [minConfidence, setMinConfidence] = useState<number>(0.6);
   const [showHud, setShowHud] = useState<boolean>(true);
@@ -1029,6 +1031,10 @@ export default function Measure() {
         cancelAnimationFrame(rafRef.current);
       }
       if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
+      if (prevMaskBlobUrlRef.current) {
+        try { URL.revokeObjectURL(prevMaskBlobUrlRef.current); } catch {}
+        prevMaskBlobUrlRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1620,9 +1626,28 @@ export default function Measure() {
                 const arr = det.maskImage instanceof Uint8ClampedArray ? det.maskImage : new Uint8ClampedArray(det.maskImage);
                 const img = new ImageData(new Uint8ClampedArray(arr), w, h);
                 mctx.putImageData(img, 0, 0);
-                const url = maskCanvas.toDataURL("image/png");
-                setMaskUrl(url);
-                setMaskGeom({ offsetX, offsetY, drawW, drawH });
+                // Only update preview when enabled and at most 5x/sec
+                if (showMask) {
+                  const now = performance.now();
+                  if (now - lastMaskPreviewTsRef.current > 200) {
+                    lastMaskPreviewTsRef.current = now;
+                    await new Promise<void>((resolve) => {
+                      maskCanvas.toBlob((blob) => {
+                        if (blob) {
+                          const url = URL.createObjectURL(blob);
+                          // Revoke previous URL to avoid leaks
+                          if (prevMaskBlobUrlRef.current) {
+                            try { URL.revokeObjectURL(prevMaskBlobUrlRef.current); } catch {}
+                          }
+                          prevMaskBlobUrlRef.current = url;
+                          setMaskUrl(url);
+                          setMaskGeom({ offsetX, offsetY, drawW, drawH });
+                        }
+                        resolve();
+                      }, 'image/png');
+                    });
+                  }
+                }
               }
             } catch {}
           }
@@ -1732,10 +1757,27 @@ export default function Measure() {
           const maskCanvas = document.createElement("canvas");
           maskCanvas.width = w;
           maskCanvas.height = h;
-          (cv as any).imshow(maskCanvas, mask);
-          const url = maskCanvas.toDataURL("image/png");
-          setMaskUrl(url);
-          setMaskGeom({ offsetX, offsetY, drawW, drawH });
+          if (showMask) {
+            (cv as any).imshow(maskCanvas, mask);
+            const now = performance.now();
+            if (now - lastMaskPreviewTsRef.current > 200) {
+              lastMaskPreviewTsRef.current = now;
+              await new Promise<void>((resolve) => {
+                maskCanvas.toBlob((blob) => {
+                  if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    if (prevMaskBlobUrlRef.current) {
+                      try { URL.revokeObjectURL(prevMaskBlobUrlRef.current); } catch {}
+                    }
+                    prevMaskBlobUrlRef.current = url;
+                    setMaskUrl(url);
+                    setMaskGeom({ offsetX, offsetY, drawW, drawH });
+                  }
+                  resolve();
+                }, 'image/png');
+              });
+            }
+          }
         } catch {}
       }
 
@@ -2081,10 +2123,27 @@ export default function Measure() {
           const maskCanvas = document.createElement("canvas");
           maskCanvas.width = w;
           maskCanvas.height = h;
-          (cv as any).imshow(maskCanvas, mask);
-          const url = maskCanvas.toDataURL("image/png");
-          setMaskUrl(url);
-          setMaskGeom({ offsetX, offsetY, drawW, drawH });
+          if (showMask) {
+            (cv as any).imshow(maskCanvas, mask);
+            const now = performance.now();
+            if (now - lastMaskPreviewTsRef.current > 200) {
+              lastMaskPreviewTsRef.current = now;
+              await new Promise<void>((resolve) => {
+                maskCanvas.toBlob((blob) => {
+                  if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    if (prevMaskBlobUrlRef.current) {
+                      try { URL.revokeObjectURL(prevMaskBlobUrlRef.current); } catch {}
+                    }
+                    prevMaskBlobUrlRef.current = url;
+                    setMaskUrl(url);
+                    setMaskGeom({ offsetX, offsetY, drawW, drawH });
+                  }
+                  resolve();
+                }, 'image/png');
+              });
+            }
+          }
         } catch {}
       }
 
@@ -2400,8 +2459,8 @@ export default function Measure() {
                   onZoomChange={(z) => setZoomLevel(z)}
                   canZoom={capabilities?.canZoom || false}
                   canFlash={capabilities?.canTorch || false}
-                  detectionEnabled={aiSegmentationEnabled}
-                  onDetectionToggle={setAiSegmentationEnabled}
+                  detectionEnabled={autoDetect}
+                  onDetectionToggle={setAutoDetect}
                 />
                 <Dialog>
                   <DialogTrigger asChild>
