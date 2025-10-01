@@ -1,15 +1,19 @@
+// @ts-nocheck
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { fileURLToPath } from 'url'
 import { componentTagger } from "lovable-tagger";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
 import viteCompression from 'vite-plugin-compression'
 
+// __dirname for ESM
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isMobile = Boolean(process.env.CAPACITOR_PLATFORM) || process.env.VITE_MOBILE === '1'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }: { mode: string }) => ({
   base: process.env.VITE_APP_BASENAME || './',
   server: {
     host: "::",
@@ -53,6 +57,18 @@ export default defineConfig(({ mode }) => ({
   ],
   build: {
     sourcemap: process.env.VITE_SENTRY_DSN ? true : false,
+    /**
+     * On mobile (Capacitor), avoid inlining assets to reduce memory spikes
+     * during WebView load and keep files cacheable by Android WebView.
+     */
+    assetsInlineLimit: isMobile ? 0 : 4096,
+    /**
+     * Strip dev-only code paths in production builds.
+     */
+    minify: 'esbuild',
+    esbuild: {
+      drop: isMobile ? ['console', 'debugger'] : [],
+    },
     rollupOptions: {
       output: {
         manualChunks: {
@@ -70,6 +86,12 @@ export default defineConfig(({ mode }) => ({
           opencv: ["/public/opencv/opencv.js"],
         },
       },
+    },
+    /**
+     * Define globals to allow dead-code elimination of debug branches.
+     */
+    commonjsOptions: {
+      transformMixedEsModules: true,
     },
   },
   resolve: {
