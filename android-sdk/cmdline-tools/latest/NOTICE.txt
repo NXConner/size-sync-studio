@@ -1,10 +1,10 @@
 ============================================================
 Notices for file(s):
-kotlin-stdlib-common-1.8.20-RC2.NOTICE
-kotlin-stdlib-1.8.20-RC2.NOTICE
-kotlin-stdlib-jdk7-1.8.20-RC2.NOTICE
-kotlin-stdlib-jdk8-1.8.20-RC2.NOTICE
-kotlin-reflect-1.8.20-RC2.NOTICE
+kotlin-stdlib-common-1.9.0.NOTICE
+kotlin-stdlib-1.9.0.NOTICE
+kotlin-stdlib-jdk7-1.9.0.NOTICE
+kotlin-stdlib-jdk8-1.9.0.NOTICE
+kotlin-reflect-1.9.0.NOTICE
 ------------------------------------------------------------
 /*
  * Copyright 2010-2015 JetBrains s.r.o.
@@ -133,17 +133,17 @@ annotations-13.0.NOTICE
 failureaccess-1.0.1.NOTICE
 listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.NOTICE
 jsr305-3.0.2.NOTICE
-error_prone_annotations-2.11.0.NOTICE
+error_prone_annotations-2.16.NOTICE
 j2objc-annotations-1.3.NOTICE
 guava-31.1-jre.NOTICE
-gson-2.8.9.NOTICE
+gson-2.10.NOTICE
 jimfs-1.1.NOTICE
 commons-compress-1.21.NOTICE
 FastInfoset-1.2.16.NOTICE
-httpcore-4.4.15.NOTICE
+httpcore-4.4.16.NOTICE
 commons-logging-1.2.NOTICE
-commons-codec-1.11.NOTICE
-httpclient-4.5.13.NOTICE
+commons-codec-1.15.NOTICE
+httpclient-4.5.14.NOTICE
 httpmime-4.5.6.NOTICE
 ------------------------------------------------------------
 
@@ -1286,9 +1286,9 @@ That's all there is to it!
 
 ============================================================
 Notices for file(s):
-smali-dexlib2-3.0.0.NOTICE
-smali-util-3.0.0.NOTICE
-smali-baksmali-3.0.0.NOTICE
+smali-dexlib2-3.0.3.NOTICE
+smali-util-3.0.3.NOTICE
+smali-baksmali-3.0.3.NOTICE
 ------------------------------------------------------------
 The majority of smali/baksmali is written and copyrighted by me (Ben Gruver)
 and released under the following license:
