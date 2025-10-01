@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 
 export function Onboarding() {
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const [dontShow, setDontShow] = useState(false)
 
@@ -13,6 +15,11 @@ export function Onboarding() {
       if (!seen) setOpen(true)
     } catch {}
   }, [])
+
+  // Do not show onboarding on the measurements page to avoid blocking interactions
+  if (location.pathname === '/measure') {
+    return null
+  }
 
   const close = () => {
     if (dontShow) try { localStorage.setItem('onboarding-seen', '1') } catch {}

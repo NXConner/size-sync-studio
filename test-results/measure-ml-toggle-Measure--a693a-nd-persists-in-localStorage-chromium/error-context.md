@@ -1,0 +1,394 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - generic [ref=e3]:
+    - navigation "Primary" [ref=e4]:
+      - generic [ref=e6]:
+        - link "SS Size Seeker" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e9] [cursor=pointer]: SS
+          - generic [ref=e10] [cursor=pointer]: Size Seeker
+        - generic [ref=e11]:
+          - link "Dashboard" [ref=e12] [cursor=pointer]:
+            - /url: /
+            - img [ref=e13] [cursor=pointer]
+            - generic [ref=e16] [cursor=pointer]: Dashboard
+          - link "Sessions" [ref=e17] [cursor=pointer]:
+            - /url: /sessions
+            - img [ref=e18] [cursor=pointer]
+            - generic [ref=e20] [cursor=pointer]: Sessions
+          - link "Safety" [ref=e21] [cursor=pointer]:
+            - /url: /safety
+            - img [ref=e22] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Safety
+          - link "Tips" [ref=e25] [cursor=pointer]:
+            - /url: /tips
+            - img [ref=e26] [cursor=pointer]
+            - generic [ref=e28] [cursor=pointer]: Tips
+          - link "Measure" [ref=e29] [cursor=pointer]:
+            - /url: /measure
+            - img [ref=e30] [cursor=pointer]
+            - generic [ref=e36] [cursor=pointer]: Measure
+          - link "Gallery" [ref=e37] [cursor=pointer]:
+            - /url: /gallery
+            - img [ref=e38] [cursor=pointer]
+            - generic [ref=e41] [cursor=pointer]: Gallery
+          - link "Screening" [ref=e42] [cursor=pointer]:
+            - /url: /screening
+            - img [ref=e43] [cursor=pointer]
+            - generic [ref=e46] [cursor=pointer]: Screening
+          - link "Analytics" [ref=e47] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e48] [cursor=pointer]
+            - generic [ref=e51] [cursor=pointer]: Analytics
+          - link "Settings" [ref=e52] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e53] [cursor=pointer]
+            - generic [ref=e56] [cursor=pointer]: Settings
+    - link "Skip to content" [ref=e57] [cursor=pointer]:
+      - /url: "#main-content"
+    - main [ref=e58]:
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e63]:
+            - generic [ref=e64]:
+              - heading "Measure" [level=3] [ref=e65]:
+                - img [ref=e66]
+                - text: Measure
+              - generic [ref=e73]:
+                - generic [ref=e75]:
+                  - img [ref=e76]
+                  - img [ref=e79]
+                  - generic [ref=e81]: prompt
+                - button "Grant Permissions" [ref=e82] [cursor=pointer]:
+                  - img
+                  - text: Grant Permissions
+              - tablist [ref=e84]:
+                - tab "Live" [selected] [ref=e85] [cursor=pointer]
+                - tab "Upload" [ref=e86] [cursor=pointer]
+            - generic [ref=e87]:
+              - heading "Quick Settings Cross Voice" [level=3] [ref=e91] [cursor=pointer]:
+                - generic [ref=e92] [cursor=pointer]:
+                  - img [ref=e93] [cursor=pointer]
+                  - text: Quick Settings
+                - generic [ref=e96] [cursor=pointer]:
+                  - generic [ref=e97] [cursor=pointer]: Cross
+                  - generic [ref=e98] [cursor=pointer]: Voice
+              - button "Help (shortcuts)" [ref=e99] [cursor=pointer]:
+                - img
+          - generic [ref=e100]:
+            - alert [ref=e102]:
+              - generic [ref=e103]:
+                - text: "Tip: Calibrate first for accurate units. For Live, use good lighting and contrast. You can enable Voice Coach to auto-speak on capture and lock."
+                - button "Got it" [ref=e104] [cursor=pointer]
+            - generic [ref=e105]:
+              - generic [ref=e108]:
+                - button "Flip" [ref=e109] [cursor=pointer]
+                - button "Freeze" [ref=e110] [cursor=pointer]
+                - button "Auto-detect" [ref=e111] [cursor=pointer]
+              - generic:
+                - generic:
+                  - generic: idle
+                  - generic:
+                    - progressbar
+                  - generic:
+                    - generic: Quality
+                    - progressbar
+                  - generic: "0.00"
+                  - generic: min 0.60
+                  - generic: 0 fps
+            - alert [ref=e113]:
+              - generic [ref=e114]: Camera access denied or not available.. Please allow camera permissions or switch to Upload mode.
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - heading "Instructions" [level=3] [ref=e118]:
+                - img [ref=e119]
+                - text: Instructions
+              - generic [ref=e121]: Step 1 of 4
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - img [ref=e124]
+                - heading "Camera Setup" [level=3] [ref=e127]
+              - list [ref=e128]:
+                - listitem [ref=e129]:
+                  - img [ref=e130]
+                  - generic [ref=e133]: Position camera at comfortable distance
+                - listitem [ref=e134]:
+                  - img [ref=e135]
+                  - generic [ref=e138]: Ensure good lighting
+                - listitem [ref=e139]:
+                  - img [ref=e140]
+                  - generic [ref=e143]: Use stable surface or tripod
+                - listitem [ref=e144]:
+                  - img [ref=e145]
+                  - generic [ref=e148]: Grant camera permissions
+              - generic [ref=e150]:
+                - generic [ref=e151]: Progress
+                - generic [ref=e152]: 1/4
+          - generic [ref=e155]:
+            - generic [ref=e156]:
+              - heading "Calibration" [level=3] [ref=e157]:
+                - img [ref=e158]
+                - text: Calibration
+              - generic [ref=e164]:
+                - generic [ref=e165]:
+                  - img [ref=e166]
+                  - generic [ref=e169]: Good
+                - generic [ref=e170]: 96.0 PPI
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - button "Standard (96)" [ref=e173] [cursor=pointer]
+                - button "Mobile (150)" [ref=e174] [cursor=pointer]
+              - combobox [ref=e176] [cursor=pointer]:
+                - generic: Reference object
+                - img [ref=e177] [cursor=pointer]
+              - generic [ref=e179]:
+                - spinbutton [ref=e180]
+                - spinbutton [ref=e181]
+              - button "Apply Calibration" [disabled]
+          - generic [ref=e182]:
+            - heading "Girth" [level=3] [ref=e184]
+            - generic [ref=e185]:
+              - generic [ref=e186]: Drag to match on-screen width at mid-shaft; we estimate circumference.
+              - generic [ref=e187]:
+                - generic [ref=e188]: Snap to edge (S)
+                - switch [checked] [ref=e189] [cursor=pointer]
+              - generic [ref=e190]:
+                - generic [ref=e191]: "Snap radius: 18px"
+                - slider [ref=e196]
+              - slider [ref=e200]
+              - generic [ref=e201]:
+                - text: "Girth:"
+                - generic [ref=e202]: 0.0 in
+          - generic [ref=e203]:
+            - heading "Readouts" [level=3] [ref=e205]
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - text: "Length:"
+                - generic [ref=e208]: 0.0 in
+              - generic [ref=e209]: "Unit scale: 96.0 px/in"
+              - generic [ref=e210]: "Grid: off"
+              - generic [ref=e211]:
+                - switch [ref=e212] [cursor=pointer]
+                - generic [ref=e213]: Show grid
+              - generic [ref=e214]:
+                - switch [checked] [ref=e215] [cursor=pointer]
+                - generic [ref=e216]: Scan sweep
+              - generic [ref=e217]:
+                - generic [ref=e218]: "Sweep intensity: 15%"
+                - slider [ref=e223]
+              - generic [ref=e224]:
+                - switch [checked] [ref=e225] [cursor=pointer]
+                - generic [ref=e226]: Pulsing halos
+              - generic [ref=e227]:
+                - generic [ref=e228]: "Halo intensity: 60%"
+                - slider [ref=e233]
+              - generic [ref=e234]:
+                - switch [checked] [ref=e235] [cursor=pointer]
+                - generic [ref=e236]: Stability ring
+              - generic [ref=e237]:
+                - generic [ref=e238]: "Ring size: 16px"
+                - slider [ref=e243]
+              - generic [ref=e244]:
+                - button "Capture" [ref=e245] [cursor=pointer]:
+                  - img
+                  - text: Capture
+                - button "Copy values" [ref=e246] [cursor=pointer]:
+                  - img
+                  - text: Copy values
+          - generic [ref=e247]:
+            - generic [ref=e249]:
+              - heading "Advanced Analytics" [level=3] [ref=e250]:
+                - img [ref=e251]
+                - text: Advanced Analytics
+              - generic [ref=e261]:
+                - generic [ref=e262]: Basic Mode
+                - button "Enable AI" [ref=e263] [cursor=pointer]:
+                  - img
+                  - text: Enable AI
+            - alert [ref=e265]:
+              - img [ref=e266]
+              - generic [ref=e276]: Enable AI mode for advanced analysis, quality assessment, intelligent suggestions, and predictive measurements.
+          - generic [ref=e277]:
+            - generic [ref=e279]:
+              - heading "AI Measurement Assistant" [level=3] [ref=e280]:
+                - img [ref=e281]
+                - text: AI Measurement Assistant
+              - generic [ref=e291]:
+                - generic [ref=e292]: 0 insights
+                - button "Detailed" [ref=e293] [cursor=pointer]
+            - alert [ref=e295]:
+              - img [ref=e296]
+              - generic [ref=e306]: Take a few measurements to get AI-powered insights and recommendations.
+          - generic [ref=e307]:
+            - generic [ref=e309]:
+              - heading "Intelligent Error Correction" [level=3] [ref=e310]:
+                - img [ref=e311]
+                - text: Intelligent Error Correction
+              - generic [ref=e313]: 0 issues detected
+            - alert [ref=e315]:
+              - img [ref=e316]
+              - generic [ref=e319]: No correction issues detected. Measurement conditions are optimal.
+          - generic [ref=e320]:
+            - heading "Experimental" [level=3] [ref=e322]
+            - generic [ref=e323]:
+              - generic [ref=e324]: Quality thresholds
+              - generic [ref=e325]:
+                - generic [ref=e326]:
+                  - generic [ref=e327]: "Min brightness: 70"
+                  - slider [ref=e332]
+                - generic [ref=e333]:
+                  - generic [ref=e334]: "Max brightness: 210"
+                  - slider [ref=e339]
+                - generic [ref=e340]:
+                  - generic [ref=e341]: "Min blur variance: 60"
+                  - slider [ref=e346]
+                - generic [ref=e347]:
+                  - generic [ref=e348]: "Min size fraction: 0.08"
+                  - slider [ref=e353]
+                - generic [ref=e354]:
+                  - generic [ref=e355]: "Max size fraction: 0.45"
+                  - slider [ref=e360]
+                - generic [ref=e361]:
+                  - generic [ref=e362]: "Max edge proximity: 20%"
+                  - slider [ref=e367]
+              - generic [ref=e368]:
+                - generic [ref=e369]: Use ML segmentation (ONNXRuntime) [experimental]
+                - switch [ref=e370] [cursor=pointer]
+              - generic [ref=e371]: When enabled, segmentation runs in a web worker. If no model is available, it falls back to classical masking.
+          - generic [ref=e372]:
+            - heading "Voice Coach" [level=3] [ref=e374]
+            - generic [ref=e375]:
+              - generic [ref=e376]:
+                - generic [ref=e377]: Enable voice
+                - switch [checked] [ref=e378] [cursor=pointer]
+              - generic [ref=e379]:
+                - generic [ref=e380]: Use custom lines
+                - switch [ref=e381] [cursor=pointer]
+              - generic [ref=e382]:
+                - generic [ref=e383]:
+                  - generic [ref=e384]: Voice
+                  - combobox [ref=e385] [cursor=pointer]:
+                    - img [ref=e386] [cursor=pointer]
+                - generic [ref=e388]:
+                  - generic [ref=e389]: "Rate: 1.00"
+                  - slider [ref=e394]
+                - generic [ref=e395]:
+                  - generic [ref=e396]: "Pitch: 1.00"
+                  - slider [ref=e401]
+                - generic [ref=e402]:
+                  - generic [ref=e403]: "Volume: 80%"
+                  - slider [ref=e408]
+              - button "Reset voice defaults" [ref=e410] [cursor=pointer]
+              - generic [ref=e411]:
+                - generic [ref=e412]: Custom lines (one per line)
+                - combobox [ref=e414] [cursor=pointer]:
+                  - generic: Load preset
+                  - img [ref=e415] [cursor=pointer]
+                - textbox "Enter phrases, one per line" [ref=e417]
+                - generic [ref=e418]:
+                  - button "Test custom line" [ref=e419] [cursor=pointer]
+                  - button "Test compliment" [ref=e420] [cursor=pointer]
+                  - button "Test with values" [ref=e421] [cursor=pointer]
+                  - button "Stop voice" [ref=e422] [cursor=pointer]
+                - generic [ref=e423]:
+                  - generic [ref=e424]: "Placeholders:"
+                  - generic [ref=e425] [cursor=pointer]: "{length_in}"
+                  - generic [ref=e426] [cursor=pointer]: "{length_cm}"
+                  - generic [ref=e427] [cursor=pointer]: "{girth_in}"
+                  - generic [ref=e428] [cursor=pointer]: "{girth_cm}"
+                  - generic [ref=e429] [cursor=pointer]: "{confidence}"
+              - generic [ref=e430]:
+                - generic [ref=e431]: Speak on capture
+                - switch [checked] [ref=e432] [cursor=pointer]
+              - generic [ref=e433]:
+                - generic [ref=e434]: Speak when detection locks
+                - switch [checked] [ref=e435] [cursor=pointer]
+              - generic [ref=e436]:
+                - generic [ref=e437]: Auto-play compliments
+                - switch [checked] [ref=e438] [cursor=pointer]
+              - generic [ref=e439]:
+                - generic [ref=e440]: "Auto-play interval: 5s"
+                - slider [ref=e445]
+          - generic [ref=e446]:
+            - heading "Overlay Tools" [level=3] [ref=e448]:
+              - img [ref=e449]
+              - text: Overlay Tools
+            - generic [ref=e453]:
+              - generic [ref=e454]:
+                - generic [ref=e455]: Selected handle
+                - generic [ref=e456]:
+                  - button "Base" [ref=e457] [cursor=pointer]
+                  - button "Tip" [ref=e458] [cursor=pointer]
+              - generic [ref=e459]:
+                - generic [ref=e460]: "Nudge step: 1px (Shift = x5)"
+                - slider [ref=e464]
+                - generic [ref=e465]:
+                  - button [ref=e467] [cursor=pointer]:
+                    - img
+                  - button [ref=e469] [cursor=pointer]:
+                    - img
+                  - button [ref=e471] [cursor=pointer]:
+                    - img
+                  - button [ref=e473] [cursor=pointer]:
+                    - img
+              - generic [ref=e475]:
+                - generic [ref=e476]: Show HUD
+                - switch [checked] [ref=e477] [cursor=pointer]
+              - generic [ref=e478]:
+                - generic [ref=e479]: Live auto-detect
+                - switch [ref=e480] [cursor=pointer]
+              - generic [ref=e481]:
+                - generic [ref=e482]: Auto-capture when stable
+                - switch [ref=e483] [cursor=pointer]
+              - generic [ref=e484]: "Status: idle"
+              - generic [ref=e485]:
+                - generic [ref=e486]: "Minimum confidence: 0.60"
+                - slider [ref=e491]
+              - generic [ref=e492]:
+                - generic [ref=e493]: "Detection interval: 800 ms"
+                - slider [ref=e498]
+              - generic [ref=e499]:
+                - generic [ref=e500]: "Stability window: 1.5 s"
+                - slider [ref=e505]
+              - generic [ref=e506]:
+                - generic [ref=e507]: "Length tolerance: 0.05 in"
+                - slider [ref=e512]
+              - generic [ref=e513]:
+                - generic [ref=e514]: "Girth tolerance: 0.10 in"
+                - slider [ref=e519]
+              - generic [ref=e520]:
+                - generic [ref=e521]: "Auto-capture cooldown: 10s"
+                - slider [ref=e526]
+              - generic [ref=e527]:
+                - generic [ref=e528]: Show mask preview
+                - switch [ref=e529] [cursor=pointer]
+              - generic [ref=e530]:
+                - generic [ref=e531]: Show previous photo
+                - switch [ref=e532] [cursor=pointer]
+              - generic [ref=e533]:
+                - generic [ref=e534]: Auto-calibration
+                - generic [ref=e535]:
+                  - button "From live" [ref=e536] [cursor=pointer]
+                  - button "From image" [disabled]
+              - generic [ref=e537]:
+                - generic [ref=e538]: Previous photo
+                - combobox [ref=e539] [cursor=pointer]:
+                  - generic: None
+                  - img [ref=e540] [cursor=pointer]
+              - generic [ref=e542]:
+                - generic [ref=e543]: "Overlay opacity: 30%"
+                - slider [ref=e548]
+              - button "Export overlay PNG" [ref=e550] [cursor=pointer]:
+                - img
+                - text: Export overlay PNG
+  - generic [ref=e551]:
+    - img [ref=e553]
+    - button "Open Tanstack query devtools" [ref=e601] [cursor=pointer]:
+      - img [ref=e602] [cursor=pointer]
+```
