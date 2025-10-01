@@ -32,4 +32,13 @@ export default tseslint.config(
       "prefer-const": "off",
     },
   },
+  // Node environment overrides for config/build scripts
+  {
+    files: ["vite.config.ts", "scripts/**/*.{ts,js,mjs}", "playwright.config.ts"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.node,
+    },
+    rules: {},
+  },
 );

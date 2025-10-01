@@ -19,7 +19,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -46,6 +47,8 @@ android {
     packaging {
         resources {
             excludes += setOf("**/*.gz")
+            // Ensure TFLite models are not compressed so they can be memory-mapped
+            doNotCompress += setOf("tflite", "lite")
         }
     }
 }
