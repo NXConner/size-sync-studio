@@ -7,8 +7,8 @@ test.describe('Measure smoke', () => {
   test('loads and toggles modes, basic controls present', async ({ page }) => {
     await page.goto('/measure');
 
-    // Title or navbar present
-    await expect(page.getByText('Measure')).toBeVisible();
+    // Ensure we're on the Measure page by checking a unique section
+    await expect(page.getByText('Readouts')).toBeVisible();
 
     // Tabs: Live / Upload
     const liveTab = page.getByRole('tab', { name: 'Live' });
@@ -26,9 +26,13 @@ test.describe('Measure smoke', () => {
     await expect(page.getByRole('button', { name: /Capture/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Copy values/i })).toBeVisible();
 
-    // Voice Coach controls visible
-    await expect(page.getByText('Voice Coach')).toBeVisible();
-    await expect(page.getByText('Enable voice')).toBeVisible();
+    // Scroll to reveal lower sections
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+
+    // Voice Coach controls visible (scope within the card to avoid onboarding text)
+    const voiceCoachCard = page.locator('div:has(h3:has-text("Voice Coach"))').last()
+    await expect(voiceCoachCard).toBeVisible()
+    await expect(voiceCoachCard.getByText('Enable voice', { exact: true })).toBeVisible()
 
     // Overlay tools present
     await expect(page.getByText('Overlay Tools')).toBeVisible();

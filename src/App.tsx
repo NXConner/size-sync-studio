@@ -10,7 +10,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
 import { PwaUpdate } from "./components/PwaUpdate";
-import { Onboarding } from "./components/Onboarding";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 const HealthScreening = lazy(() => import("./pages/HealthScreening"));
 const Index = lazy(() => import("./pages/Index"));
@@ -71,7 +70,6 @@ const App = () => (
             <Navbar />
             {/* PWA update notifier */}
             <PwaUpdate />
-            <Onboarding />
             <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-background border rounded px-2 py-1">Skip to content</a>
             <main role="main" id="main-content">
             <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>

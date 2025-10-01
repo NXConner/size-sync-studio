@@ -8,7 +8,8 @@ const __dirname = path.dirname(__filename)
 
 const distDir = path.resolve(__dirname, '..', 'dist')
 
-const { count, size, warnings } = await generateSW({
+async function main() {
+  const { count, size, warnings } = await generateSW({
   globDirectory: distDir,
   globPatterns: [
     '**/*.{html,js,css,svg,png,webp,avif,woff2}',
@@ -71,10 +72,16 @@ const { count, size, warnings } = await generateSW({
       options: { cacheName: 'opencv', expiration: { maxEntries: 4 } },
     },
   ],
-})
+  })
 
-if (warnings?.length) {
-  for (const w of warnings) console.warn('[workbox]', w)
+  if (warnings?.length) {
+    for (const w of warnings) console.warn('[workbox]', w)
+  }
+  console.log(`[workbox] generated sw.js with ${count} files, ${(size/1024).toFixed(1)} KiB`)
 }
-console.log(`[workbox] generated sw.js with ${count} files, ${(size/1024).toFixed(1)} KiB`)
+
+main().catch((err) => {
+  console.error('[workbox] failed to generate service worker', err)
+  process.exit(1)
+})
 
