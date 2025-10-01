@@ -42,13 +42,13 @@ android {
 
     androidResources {
         ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:*.gz"
+        // Ensure TFLite models are not compressed so they can be memory-mapped
+        noCompress += setOf("tflite", "lite")
     }
 
     packaging {
         resources {
             excludes += setOf("**/*.gz")
-            // Ensure TFLite models are not compressed so they can be memory-mapped
-            doNotCompress += setOf("tflite", "lite")
         }
     }
 }

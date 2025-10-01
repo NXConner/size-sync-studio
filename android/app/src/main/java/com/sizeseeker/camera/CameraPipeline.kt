@@ -11,7 +11,7 @@ class CameraPipeline(context: Context) : ImageAnalysis.Analyzer {
     private val interpreter = SegmentationInterpreter(context)
 
     init {
-        interpreter.load(useGpu = true)
+        interpreter.load(preferGpu = true)
     }
 
     override fun analyze(image: ImageProxy) {

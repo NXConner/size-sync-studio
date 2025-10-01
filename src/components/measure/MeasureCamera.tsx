@@ -75,6 +75,7 @@ export const MeasureCamera = forwardRef<MeasureCameraRef, MeasureCameraProps>(({
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const { toast } = useToast();
   const { errorHaptic } = useMeasurementHaptics();
+  const orientationEpochRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     getVideoElement: () => videoRef.current,
@@ -188,6 +189,61 @@ export const MeasureCamera = forwardRef<MeasureCameraRef, MeasureCameraProps>(({
       }
     };
   }, [mode, deviceId, facingMode, resolution.w, resolution.h, targetFps, onStreamError, onVideoReady, toast, errorHaptic]);
+
+  // Restart camera on orientation/resize visibility changes to avoid WebView video freeze on Android
+  useEffect(() => {
+    if (mode !== 'live') return;
+    const restart = async () => {
+      // Debounce via epoch to avoid rapid consecutive restarts
+      const myEpoch = ++orientationEpochRef.current;
+      try {
+        const stream = streamRef.current;
+        if (stream) {
+          stopStream(stream);
+          streamRef.current = null;
+          trackRef.current = null;
+        }
+      } catch {}
+      // small delay to allow WebView layout settle
+      setTimeout(async () => {
+        if (orientationEpochRef.current !== myEpoch) return;
+        // re-init using current props
+        try {
+          const video = videoRef.current;
+          if (!video) return;
+          const constraints: CameraStartOptions = {
+            deviceId: deviceId || undefined,
+            facingMode: deviceId ? undefined : facingMode,
+            width: resolution.w,
+            height: resolution.h,
+            frameRate: targetFps,
+          };
+          const result = await startCamera(constraints);
+          if (orientationEpochRef.current !== myEpoch) {
+            stopStream(result.stream);
+            return;
+          }
+          video.srcObject = result.stream;
+          streamRef.current = result.stream;
+          trackRef.current = result.track;
+          await video.play().catch(() => {});
+        } catch {}
+      }, 150);
+    };
+
+    const onResize = () => restart();
+    const onOrientation = () => restart();
+    const onVisibility = () => { if (!document.hidden) restart(); };
+
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onOrientation);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onOrientation);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [mode, deviceId, facingMode, resolution.w, resolution.h, targetFps]);
 
   // Apply zoom when it changes
   useEffect(() => {
