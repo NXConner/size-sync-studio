@@ -104,7 +104,7 @@ self.onmessage = async (event) => {
       cv.inRange(hsv, low2, high2, mask2);
       cv.bitwise_or(mask1, mask2, mask);
 
-      const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7));
+      const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
       cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
       cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
 

@@ -86,16 +86,19 @@ export const MeasureDetection = ({
         throw new Error("Video or container not available");
       }
 
-      // Create canvas for frame capture
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
+      // Create offscreen canvas when supported to reduce main-thread overhead
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      const supportsOffscreen = typeof (window as any).OffscreenCanvas !== 'undefined';
+      const canvas: HTMLCanvasElement | OffscreenCanvas = supportsOffscreen
+        ? new (window as any).OffscreenCanvas(w, h)
+        : Object.assign(document.createElement('canvas'), { width: w, height: h });
+      const ctx = (canvas as any).getContext('2d');
       
       if (!ctx) throw new Error('Could not get canvas context');
       
       ctx.drawImage(video, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, w, h);
 
       let result;
       

@@ -982,18 +982,20 @@ export default function Measure() {
         }
       }
 
-      // Live scanning sweep when auto-detect is enabled
+      // Live scanning sweep when auto-detect is enabled (throttled)
       if (autoDetect && mode === "live" && showScanSweep) {
         const t = performance.now() / 1000;
         const bandW = Math.max(24, Math.floor(overlay.width * 0.12));
-        const xCenter = ((t * 160) % (overlay.width + bandW)) - bandW / 2;
+        // Reduce fill calls by drawing a partial rect area only around the band
+        const xCenter = ((t * 100) % (overlay.width + bandW)) - bandW / 2; // slower animation
         const grad = ctx.createLinearGradient(xCenter - bandW / 2, 0, xCenter + bandW / 2, 0);
-        const alpha = Math.max(0, Math.min(0.4, sweepIntensity / 100));
+        const alpha = Math.max(0, Math.min(0.25, sweepIntensity / 120));
         grad.addColorStop(0, `rgba(59,130,246,0.0)`);
         grad.addColorStop(0.5, `rgba(59,130,246,${alpha})`);
         grad.addColorStop(1, `rgba(59,130,246,0.0)`);
         ctx.fillStyle = grad as any;
-        ctx.fillRect(0, 0, overlay.width, overlay.height);
+        const clipX = Math.max(0, Math.floor(xCenter - bandW));
+        ctx.fillRect(clipX, 0, Math.min(overlay.width - clipX, bandW * 2), overlay.height);
       }
 
       // Stability progress ring near tip or top-left
@@ -1029,6 +1031,11 @@ export default function Measure() {
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
+      }
+      // Ensure detection loop is stopped
+      if (autoDetectRafRef.current) {
+        cancelAnimationFrame(autoDetectRafRef.current);
+        autoDetectRafRef.current = null;
       }
       if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
       if (prevMaskBlobUrlRef.current) {
@@ -1843,25 +1850,30 @@ export default function Measure() {
       if (!silent) toast({ title: "Camera not ready", description: "Wait for the camera stream to start.", variant: "destructive" });
       return;
     }
+    // Prevent overlapping runs
+    if (isDetecting) return;
     setIsDetecting(true);
     try {
       const cv = await loadOpenCV();
       const w0 = video.videoWidth;
       const h0 = video.videoHeight;
-      const targetMax = 640;
+      // Bound processing resolution to reduce per-frame cost
+      const targetMax = 512;
       const scaleDown = Math.min(1, targetMax / Math.max(w0, h0));
       const w = Math.max(1, Math.round(w0 * scaleDown));
       const h = Math.max(1, Math.round(h0 * scaleDown));
 
       // Draw current frame to processing canvas
-      const procCanvas = document.createElement("canvas");
-      procCanvas.width = w;
-      procCanvas.height = h;
-      const pctx = procCanvas.getContext("2d");
+      // Use OffscreenCanvas when available to minimize main-thread layout cost
+      const supportsOffscreen = typeof (window as any).OffscreenCanvas !== 'undefined';
+      const procCanvas: HTMLCanvasElement | OffscreenCanvas = supportsOffscreen
+        ? new (window as any).OffscreenCanvas(w, h)
+        : Object.assign(document.createElement("canvas"), { width: w, height: h });
+      const pctx = (procCanvas as any).getContext("2d");
       if (!pctx) throw new Error("Canvas context unavailable");
       pctx.drawImage(video, 0, 0, w, h);
 
-      const src = cv.imread(procCanvas);
+      const src = cv.imread(procCanvas as any);
       const rgba = new cv.Mat();
       cv.cvtColor(src, rgba, cv.COLOR_RGBA2RGB);
       const hsv = new cv.Mat();
@@ -1916,7 +1928,7 @@ export default function Measure() {
       }
 
       // Morphology
-      const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7, 7));
+      const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
       try {
         const tmp = new cv.Mat();
         cv.bilateralFilter(rgba, tmp, 5, 75, 75, cv.BORDER_DEFAULT);
@@ -2069,7 +2081,7 @@ export default function Measure() {
         setConfidence(confidence);
         // Update temporal edge map for snapping/stabilization via worker (fallback to main thread on failure)
         try {
-          const ctx2 = procCanvas.getContext("2d");
+          const ctx2 = (procCanvas as any).getContext("2d");
           if (ctx2) {
             const frame = ctx2.getImageData(0, 0, w, h);
             const result = await opencvWorker.edges({ width: w, height: h, imageData: frame.data });
@@ -2321,9 +2333,19 @@ export default function Measure() {
       setRetakeSuggested(false);
       return;
     }
-    const loop = async () => {
+    const targetIntervalMs = Math.max(200, detectionIntervalMs); // enforce minimum interval to avoid thrash
+    let lastTs = 0;
+    const loop = async (ts?: number) => {
       const now = performance.now();
-      if (!isDetecting && now - lastDetectTsRef.current > detectionIntervalMs) {
+      // Frame throttle using RAF timestamp and detectionIntervalMs
+      if (typeof ts === 'number') {
+        if (ts - lastTs < targetIntervalMs) {
+          autoDetectRafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        lastTs = ts;
+      }
+      if (!isDetecting && now - lastDetectTsRef.current > targetIntervalMs) {
         lastDetectTsRef.current = now;
         try {
           await detectFromLive({ silent: true });
