@@ -19,6 +19,7 @@ export function VisualFeedbackOverlay({
 }: VisualFeedbackOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const needsRedrawRef = useRef<boolean>(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -28,14 +29,15 @@ export function VisualFeedbackOverlay({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const render = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    const drawOnce = () => {
+      needsRedrawRef.current = false;
+      // Resize only when needed
       if (canvas.width !== container.clientWidth || canvas.height !== container.clientHeight) {
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
       }
 
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = "#ffffff";
       ctx.fillStyle = "#ffffff";
       ctx.lineWidth = 2;
@@ -55,16 +57,26 @@ export function VisualFeedbackOverlay({
       if (isRecording) {
         drawRecordingIndicator(ctx, canvas.width);
       }
-
-      animationRef.current = requestAnimationFrame(render);
     };
 
-    render();
+    const schedule = () => {
+      if (needsRedrawRef.current) return;
+      needsRedrawRef.current = true;
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      animationRef.current = requestAnimationFrame(drawOnce);
+    };
+
+    // Redraw on prop changes
+    schedule();
+
+    // Redraw on resize
+    const ro = new ResizeObserver(() => schedule());
+    ro.observe(container);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      ro.disconnect();
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      needsRedrawRef.current = false;
     };
   }, [containerRef, measurementPoints, isRecording, detectedObjects, gridEnabled, showCrosshairs]);
 
