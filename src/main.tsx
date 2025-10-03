@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import * as Sentry from '@sentry/react'
 import { detectLang, isRtl } from './lib/i18n'
+import { APP_BASENAME } from './lib/config'
 
 if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -26,7 +27,10 @@ createRoot(document.getElementById("root")!).render(
 // Register service worker for PWA in production
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
+    // Resolve SW path correctly when app is served under a sub-path
+    const base = (import.meta.env.BASE_URL || APP_BASENAME || '/').replace(/\/$/, '')
+    const swUrl = `${base}/sw.js`
+    navigator.serviceWorker.register(swUrl).then((reg) => {
       try {
         reg.addEventListener('updatefound', () => {
           const installing = reg.installing;

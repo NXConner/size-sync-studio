@@ -8,7 +8,9 @@ export class SegWorkerClient {
   constructor() {
     if (typeof window !== 'undefined' && 'Worker' in window) {
       try {
-        this.worker = new Worker('/seg-worker.js')
+        const base = (import.meta as any).env?.BASE_URL || '/'
+        const url = new URL('seg-worker.js', base).toString()
+        this.worker = new Worker(url)
         this.worker.onmessage = (ev: MessageEvent<any>) => {
           const msg = ev.data
           const p = this.pending.get(msg?.id)
