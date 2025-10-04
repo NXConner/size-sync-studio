@@ -153,6 +153,8 @@ Size Seeker is a Vite + React + TypeScript app with an Express API focused on sa
 - Getting Started (Local)
 - Environment Configuration
 - Running with Docker
+- Supabase Setup (Schema, Migrations, RLS)
+- Compliance Evaluator (DB + Edge Function)
 - OpenCV.js Local Hosting
 - Scripts
 - Testing
@@ -261,6 +263,72 @@ VITE_API_BASE=/api
 VITE_SENTRY_DSN=
 ```
 
+### Supabase Environment (optional, if enabling cloud persistence)
+- Create a Supabase project and obtain keys.
+- In frontend `.env.local`:
+```env
+VITE_SUPABASE_URL=https://YOUR_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=ey...
+```
+- For Edge Functions and local tooling, you'll also use the Service Role key in CI/ops (never ship to the client).
+
+## Supabase Setup (Schema, Migrations, RLS)
+This repo includes initial migrations under `supabase/migrations` to persist profiles, measurements, sessions, logs, goals, and preferences with strict RLS.
+
+Steps:
+1) Install the Supabase CLI: https://supabase.com/docs/guides/cli
+2) Link your project (once):
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+```
+3) Apply migrations to your remote project:
+```bash
+supabase db push
+# or
+supabase db remote commit && supabase db push
+```
+4) Alternatively, paste the SQL directly into the Supabase SQL Editor:
+   - `supabase/migrations/202510041200_init_app_schema.sql`
+   - `supabase/migrations/202510041205_compliance_evaluator.sql`
+
+After applying, confirm:
+- Tables exist under schema `app`.
+- RLS is enabled and policies are present.
+- View `app.latest_measurement` is present.
+
+## Compliance Evaluator (DB + Edge Function)
+We provide two layers:
+- Postgres function `app.compliance_evaluator(text)` that returns a JSON flag set.
+- Public wrapper `public.compliance_evaluator(text)` for RPC access via PostgREST.
+- BEFORE triggers on `app.measurements` keep `compliance` column up to date when `notes` changes.
+
+Edge Function: `supabase/functions/compliance-evaluator`
+Use this when you prefer calling a function endpoint rather than the RPC directly.
+
+Deploy:
+```bash
+supabase functions deploy compliance-evaluator --project-ref YOUR_PROJECT_REF
+# set env for the function to call RPC using service key
+supabase secrets set SUPABASE_URL=https://YOUR_REF.supabase.co SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE --project-ref YOUR_PROJECT_REF
+```
+
+Test the function locally:
+```bash
+cd supabase/functions/compliance-evaluator
+deno task start
+# POST {"text":"sample message"} to http://localhost:8000
+```
+
+Direct RPC example (no Edge Function):
+```bash
+curl -s \
+  -H "apikey: $SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"some input"}' \
+  https://YOUR_REF.supabase.co/rest/v1/rpc/compliance_evaluator
+```
+
 ## Running with Docker
 Build and run both services via Compose:
 ```bash
@@ -349,9 +417,9 @@ Endpoints:
 Security middleware: Helmet (CSP in prod), rate limit, CORS restricted by `WEB_ORIGIN`, compression.
 
 ## Privacy & Data Storage
-- Measurements, sessions, goals: stored in `localStorage` keys `size-seeker-*`
-- Photos: stored in IndexedDB (`SizeSeekerPhotos` store)
-- Data remains in the browser unless you export or clear it
+- Measurements, sessions, goals: currently local in `localStorage` keys `size-seeker-*`.
+- Photos: stored in IndexedDB (`SizeSeekerPhotos` store).
+- To switch to Supabase persistence, wire CRUD in `src/utils/storage.ts` to Supabase tables and use Supabase Storage for photos, storing signed URLs in `photo_url`.
 
 ## Troubleshooting
 - OpenCV load failures: ensure `public/opencv/opencv.js` and matching `opencv_js.wasm` exist and are reachable. Check console for CORS/404.
