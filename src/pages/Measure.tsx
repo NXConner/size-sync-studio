@@ -98,6 +98,10 @@ export default function Measure() {
   const [maskGeom, setMaskGeom] = useState<{ offsetX: number; offsetY: number; drawW: number; drawH: number } | null>(null);
   const [maskOpacity, setMaskOpacity] = useState<number>(35);
   const [useMlSegmentation, setUseMlSegmentation] = useState<boolean>(false);
+  // Premium/performance controls
+  const [workerAutoDetect, setWorkerAutoDetect] = useState<boolean>(true);
+  const [watchdogEnabled, setWatchdogEnabled] = useState<boolean>(true);
+  const longTaskCountRef = useRef<number>(0);
   const autoDetectRafRef = useRef<number | null>(null);
   const lastDetectTsRef = useRef<number>(0);
   const lastAutoCaptureTsRef = useRef<number>(0);
@@ -540,6 +544,8 @@ export default function Measure() {
           if (typeof q.maxSizeFraction === 'number') maxSizeFractionRef.current = q.maxSizeFraction;
           if (typeof q.maxEdgeProximity === 'number') maxEdgeProximityRef.current = q.maxEdgeProximity;
         }
+        if (typeof p.workerAutoDetect === "boolean") setWorkerAutoDetect(p.workerAutoDetect);
+        if (typeof p.watchdogEnabled === "boolean") setWatchdogEnabled(p.watchdogEnabled);
       }
     } catch {}
   }, []);
@@ -571,6 +577,8 @@ export default function Measure() {
         sweepIntensity,
         haloIntensity,
         ringSize,
+        workerAutoDetect,
+        watchdogEnabled,
         quality: {
           minBrightness: minBrightnessRef.current,
           maxBrightness: maxBrightnessRef.current,
@@ -582,7 +590,7 @@ export default function Measure() {
       };
       localStorage.setItem("measure.prefs", JSON.stringify(prefs));
     } catch {}
-  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, useMlSegmentation, showPrevOverlay, overlayOpacity, unit, showScanSweep, showPulsingHalos, showStabilityRing, sweepIntensity, haloIntensity, ringSize]);
+  }, [showGrid, gridSize, showHud, autoDetect, autoCapture, minConfidence, detectionIntervalMs, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, showMask, maskOpacity, useMlSegmentation, showPrevOverlay, overlayOpacity, unit, showScanSweep, showPulsingHalos, showStabilityRing, sweepIntensity, haloIntensity, ringSize, workerAutoDetect, watchdogEnabled]);
 
   // Persist voice customization
   useEffect(() => {
@@ -2184,6 +2192,97 @@ export default function Measure() {
     }
   };
 
+  // Worker-first detection path for auto loop to avoid main-thread stalls
+  const detectFromLiveWorkerOnly = async (opts?: { silent?: boolean }) => {
+    const silent = !!opts?.silent;
+    if (mode !== "live") {
+      if (!silent) toast({ title: "Switch to Live", description: "Use the camera to auto-detect.", variant: "destructive" });
+      return;
+    }
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      if (!silent) toast({ title: "Camera not ready", description: "Wait for the camera stream to start.", variant: "destructive" });
+      return;
+    }
+    if (isDetecting) return;
+    setIsDetecting(true);
+    try {
+      const w0 = video.videoWidth;
+      const h0 = video.videoHeight;
+      const targetMax = 320;
+      const scaleDown = Math.min(1, targetMax / Math.max(w0, h0));
+      const w = Math.max(1, Math.round(w0 * scaleDown));
+      const h = Math.max(1, Math.round(h0 * scaleDown));
+      const supportsOffscreen = typeof (window as any).OffscreenCanvas !== 'undefined';
+      const procCanvas: HTMLCanvasElement | OffscreenCanvas = supportsOffscreen
+        ? new (window as any).OffscreenCanvas(w, h)
+        : Object.assign(document.createElement("canvas"), { width: w, height: h });
+      const pctx = (procCanvas as any).getContext("2d");
+      if (!pctx) throw new Error("Canvas context unavailable");
+      pctx.drawImage(video, 0, 0, w, h);
+      const frame = pctx.getImageData(0, 0, w, h);
+      let det: any = null;
+      try {
+        det = await opencvWorker.detect({ width: w, height: h, imageData: frame.data });
+      } catch (err) {
+        if (!silent) throw err;
+        return;
+      }
+      if (!det || !det.end1 || !det.end2) {
+        if (!silent) toast({ title: "Detection incomplete", description: "No object detected.", variant: "destructive" });
+        return;
+      }
+      const container = containerRef.current;
+      if (!container) return;
+      const containerW = container.clientWidth;
+      const containerH = container.clientHeight;
+      const wOrig = Math.round(w0);
+      const hOrig = Math.round(h0);
+      const scale = Math.min(containerW / wOrig, containerH / hOrig);
+      const drawW = wOrig * scale;
+      const drawH = hOrig * scale;
+      const offsetX = (containerW - drawW) / 2;
+      const offsetY = (containerH - drawH) / 2;
+      const invScale = 1 / (scaleDown || 1);
+      const mapPoint = (ix: number, iy: number) => ({ x: offsetX + (ix * invScale) * scale, y: offsetY + (iy * invScale) * scale });
+      const p1 = mapPoint(det.end1.x, det.end1.y);
+      const p2 = mapPoint(det.end2.x, det.end2.y);
+      const chosen = chooseBaseAndTip(p1, p2);
+      const conf = det.confidence || 0;
+      setConfidence(conf);
+      if (conf >= minConfidence) {
+        const alpha = 1.0;
+        const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
+        const smTip = smoothPoint(tipPointRef.current, chosen.tip, alpha);
+        setBasePoint(smBase);
+        setTipPoint(smTip);
+        if (Array.isArray(det.widths) && det.widths.length) {
+          const sorted = [...det.widths].sort((a, b) => a - b);
+          const median = sorted[Math.floor(sorted.length / 2)] * scale;
+          setGirthPixels(median);
+        }
+      } else {
+        setRetakeSuggested(true);
+      }
+      try {
+        if (det.maskImage) {
+          const edgeImage = new ImageData(
+            det.maskImage instanceof Uint8ClampedArray ? det.maskImage : new Uint8ClampedArray(det.maskImage),
+            w,
+            h
+          );
+          updateEdgeOverlayFromImageData(edgeImage, w, h, offsetX, offsetY, drawW, drawH);
+        }
+      } catch {}
+    } catch (error: any) {
+      if (!opts?.silent) {
+        toast({ title: "Detection failed", description: error?.message || String(error), variant: "destructive" });
+      }
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
   const capture = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -2357,7 +2456,11 @@ export default function Measure() {
       if (!isDetecting && now - lastDetectTsRef.current > targetIntervalMs) {
         lastDetectTsRef.current = now;
         try {
-          await detectFromLive({ silent: true });
+          if (workerAutoDetect) {
+            await detectFromLiveWorkerOnly({ silent: true });
+          } else {
+            await detectFromLive({ silent: true });
+          }
           // Update stability history after a detect pass
           const len = parseFloat(lengthDisplayRef.current || "0") || 0;
           const girth = parseFloat(girthDisplayRef.current || "0") || 0;
@@ -2422,7 +2525,7 @@ export default function Measure() {
       if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
       autoDetectRafRef.current = null;
     };
-  }, [autoDetect, mode, isFrozen, isDetecting, detectionIntervalMs, autoCapture, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec]);
+  }, [autoDetect, mode, isFrozen, isDetecting, detectionIntervalMs, autoCapture, stabilitySeconds, stabilityLenTolInches, stabilityGirthTolInches, autoCaptureCooldownSec, workerAutoDetect]);
 
   const exportOverlayPNG = async () => {
     const overlay = overlayRef.current;
@@ -2447,6 +2550,39 @@ export default function Measure() {
     a.remove();
     URL.revokeObjectURL(url);
   };
+
+  // Performance watchdog: pause auto-detect when main-thread stalls are detected
+  useEffect(() => {
+    if (!watchdogEnabled || !autoDetect) return;
+    let cancelled = false;
+    let observer: PerformanceObserver | null = null;
+    try {
+      observer = new PerformanceObserver((list) => {
+        // Count long tasks (>= 50ms). Penalize very long tasks more heavily
+        for (const entry of list.getEntries() as any) {
+          const over = Math.max(1, Math.floor((entry.duration || 0) / 120));
+          longTaskCountRef.current += over;
+        }
+      });
+      // @ts-ignore: "longtask" type may not exist in lib.dom typings
+      observer.observe({ type: 'longtask', buffered: true });
+    } catch {}
+    const timer = window.setInterval(() => {
+      if (cancelled) return;
+      if (longTaskCountRef.current >= 3) {
+        setAutoDetect(false);
+        longTaskCountRef.current = 0;
+        toast({ title: 'Auto-detect paused', description: 'Performance watchdog detected UI stalls.', variant: 'destructive' });
+      } else {
+        longTaskCountRef.current = 0;
+      }
+    }, 2000);
+    return () => {
+      cancelled = true;
+      if (observer) observer.disconnect();
+      window.clearInterval(timer);
+    };
+  }, [watchdogEnabled, autoDetect]);
 
   // Load previous to suggest overlay easing
   const latestPrev = (() => {
@@ -2493,6 +2629,17 @@ export default function Measure() {
                   detectionEnabled={autoDetect}
                   onDetectionToggle={setAutoDetect}
                 />
+                {/* Premium quick toggles */}
+                <div className="hidden md:flex items-center gap-3 pl-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Worker-only</span>
+                    <Switch checked={workerAutoDetect} onCheckedChange={setWorkerAutoDetect} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Watchdog</span>
+                    <Switch checked={watchdogEnabled} onCheckedChange={setWatchdogEnabled} />
+                  </div>
+                </div>
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="flex-shrink-0" title="Help (shortcuts)">
@@ -2867,7 +3014,7 @@ export default function Measure() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Experimental</CardTitle>
+              <CardTitle>Experimental & Premium</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm font-medium">Quality thresholds</div>
@@ -2903,6 +3050,16 @@ export default function Measure() {
               </div>
               <div className="text-xs text-muted-foreground">
                 When enabled, segmentation runs in a web worker. If no model is available, it falls back to classical masking.
+              </div>
+              <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Worker-only auto-detect (Premium)</span>
+                  <Switch checked={workerAutoDetect} onCheckedChange={setWorkerAutoDetect} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Performance watchdog (Premium)</span>
+                  <Switch checked={watchdogEnabled} onCheckedChange={setWatchdogEnabled} />
+                </div>
               </div>
             </CardContent>
           </Card>
