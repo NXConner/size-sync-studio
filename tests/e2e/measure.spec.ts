@@ -40,4 +40,32 @@ test.describe('Measure smoke', () => {
     // HUD visible
     await expect(page.locator('div').filter({ hasText: 'Status:' }).first()).toBeVisible();
   });
+
+  test('Premium toggles render and persist', async ({ page }) => {
+    await page.goto('/measure');
+    await expect(page.getByText('Readouts')).toBeVisible();
+
+    // Look for Experimental & Premium card title
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    const premiumCard = page.locator('div:has-text("Experimental & Premium")').last()
+    await expect(premiumCard).toBeVisible()
+
+    // Toggle worker-only and watchdog switches
+    const switches = premiumCard.locator('[role="switch"]')
+    const count = await switches.count()
+    // We expect at least 2 switches in this card (seg + worker + watchdog)
+    expect(count).toBeGreaterThanOrEqual(3)
+
+    // Toggle first 2 switches to change preferences
+    await switches.nth(1).click()
+    await switches.nth(2).click()
+
+    // Validate persistence
+    const prefs = await page.evaluate(() => {
+      try { return JSON.parse(localStorage.getItem('measure.prefs') || '{}') } catch { return null }
+    })
+    expect(prefs).toBeTruthy()
+    expect(typeof prefs.workerAutoDetect).toBe('boolean')
+    expect(typeof prefs.watchdogEnabled).toBe('boolean')
+  });
 });
