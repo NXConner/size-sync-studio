@@ -911,30 +911,39 @@ export default function Measure() {
         const perpX = -uy;
         const perpY = ux;
         const total = pixels;
-        // Base tick spacing: 0.5 inch in IN mode, 1 cm in CM mode
-        const tickPx = unitRef.current === "in" ? (pixelsPerInchRef.current || 1) * 0.5 : ((pixelsPerInchRef.current || 1) / 2.54) * 1.0;
-        let stepPx = 0;
-        let index = 0;
+        // Compute tick spacing in a unit-aware way and clamp to avoid tiny steps
+        const isInches = unitRef.current === "in";
+        const pxPerUnit = isInches
+          ? (pixelsPerInchRef.current || 1)
+          : ((pixelsPerInchRef.current || 1) / 2.54);
+        const desiredUnitStep = isInches ? 0.5 : 1.0; // 1/2 inch or 1 cm
+        const minPxPerTick = 6; // do not draw ticks closer than 6px
+        const unitStep = Math.max(desiredUnitStep, minPxPerTick / Math.max(1e-3, pxPerUnit));
+        const tickPx = unitStep * pxPerUnit;
+        const maxTicks = Math.min(600, Math.ceil(total / Math.max(1, tickPx)));
+
         ctx.strokeStyle = "#94a3b8"; // slate-400 ticks
         ctx.fillStyle = "#94a3b8";
         ctx.lineWidth = 2;
-        while (stepPx <= total + 0.5) {
-          const isMajor = unitRef.current === "in" ? index % 2 === 0 : true; // label every inch in IN, every cm in CM
+
+        for (let i = 0; i <= maxTicks; i++) {
+          const u = i * unitStep; // distance along in units (in/cm)
+          const stepPxNow = u * pxPerUnit;
+          const cx = bp.x + ux * stepPxNow;
+          const cy = bp.y + uy * stepPxNow;
+          // Major tick labeling rules: inches label at whole inches when dense, otherwise every tick; cm label every tick
+          const nearWholeInch = Math.abs(u - Math.round(u)) < 1e-3;
+          const isMajor = isInches ? (unitStep >= 1 ? true : nearWholeInch) : true;
           const tickLen = isMajor ? 16 : 10;
-          const cx = bp.x + ux * stepPx;
-          const cy = bp.y + uy * stepPx;
           ctx.beginPath();
           ctx.moveTo(cx - perpX * tickLen, cy - perpY * tickLen);
           ctx.lineTo(cx + perpX * tickLen, cy + perpY * tickLen);
           ctx.stroke();
           if (isMajor) {
             ctx.font = "11px sans-serif";
-            const labelVal = unitRef.current === "in" ? (index * 0.5) : index * 1;
-            const label = unitRef.current === "in" ? String(Math.round(labelVal)) : String(Math.round(labelVal));
-            ctx.fillText(label, cx + perpX * (tickLen + 6), cy + perpY * (tickLen + 6));
+            const labelVal = isInches ? Math.round(u) : Math.round(u);
+            ctx.fillText(String(labelVal), cx + perpX * (tickLen + 6), cy + perpY * (tickLen + 6));
           }
-          stepPx += tickPx;
-          index += 1;
         }
 
         // Length label near tip
