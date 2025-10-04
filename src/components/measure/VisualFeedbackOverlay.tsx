@@ -7,6 +7,11 @@ interface VisualFeedbackOverlayProps {
   detectedObjects?: Array<{ x: number; y: number; width: number; height: number; confidence: number }>;
   gridEnabled?: boolean;
   showCrosshairs?: boolean;
+  isDetecting?: boolean;
+  autoDetect?: boolean;
+  confidence?: number;
+  qualityScore?: number;
+  autoStatus?: string;
 }
 
 export function VisualFeedbackOverlay({
@@ -15,7 +20,12 @@ export function VisualFeedbackOverlay({
   isRecording = false,
   detectedObjects = [],
   gridEnabled = false,
-  showCrosshairs = true
+  showCrosshairs = true,
+  isDetecting = false,
+  autoDetect = false,
+  confidence = 0,
+  qualityScore = 0,
+  autoStatus = "idle"
 }: VisualFeedbackOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -57,6 +67,22 @@ export function VisualFeedbackOverlay({
       if (isRecording) {
         drawRecordingIndicator(ctx, canvas.width);
       }
+
+      if (isDetecting || autoDetect) {
+        drawAIProcessingIndicator(ctx, canvas.width, canvas.height, isDetecting);
+      }
+
+      if (autoDetect) {
+        drawAutoDetectStatus(ctx, canvas.width, autoStatus);
+      }
+
+      if (confidence > 0) {
+        drawConfidenceIndicator(ctx, canvas.width, canvas.height, confidence);
+      }
+
+      if (qualityScore > 0) {
+        drawQualityIndicator(ctx, canvas.width, canvas.height, qualityScore);
+      }
     };
 
     const schedule = () => {
@@ -78,7 +104,7 @@ export function VisualFeedbackOverlay({
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       needsRedrawRef.current = false;
     };
-  }, [containerRef, measurementPoints, isRecording, detectedObjects, gridEnabled, showCrosshairs]);
+  }, [containerRef, measurementPoints, isRecording, detectedObjects, gridEnabled, showCrosshairs, isDetecting, autoDetect, confidence, qualityScore, autoStatus]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.save();
@@ -207,6 +233,187 @@ export function VisualFeedbackOverlay({
     ctx.font = "bold 12px sans-serif";
     ctx.textAlign = "right";
     ctx.fillText("REC", width - 45, 35);
+
+    ctx.restore();
+  };
+
+  const drawAIProcessingIndicator = (ctx: CanvasRenderingContext2D, width: number, _height: number, isActive: boolean) => {
+    ctx.save();
+
+    const time = Date.now() / 1000;
+    const baseX = width - 40;
+    const baseY = 70;
+
+    // Animated rotating rings
+    for (let i = 0; i < 3; i++) {
+      const angle = (time * 2 + i * (Math.PI * 2 / 3)) % (Math.PI * 2);
+      const radius = 12 + i * 3;
+      const alpha = isActive ? 0.6 - i * 0.15 : 0.2;
+
+      ctx.strokeStyle = `rgba(0, 200, 255, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(baseX, baseY, radius, angle, angle + Math.PI);
+      ctx.stroke();
+    }
+
+    // Center dot
+    ctx.fillStyle = isActive ? "rgba(0, 200, 255, 0.8)" : "rgba(0, 200, 255, 0.3)";
+    ctx.beginPath();
+    ctx.arc(baseX, baseY, 4, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = isActive ? "#00c8ff" : "rgba(0, 200, 255, 0.5)";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("AI", width - 55, 75);
+
+    ctx.restore();
+  };
+
+  const drawAutoDetectStatus = (ctx: CanvasRenderingContext2D, width: number, status: string) => {
+    ctx.save();
+
+    const time = Date.now() / 1000;
+    const baseX = width - 40;
+    const baseY = 110;
+
+    // Pulsing outer ring
+    const pulseScale = 1 + Math.sin(time * 3) * 0.2;
+    const isActive = status === "detecting" || status === "stable";
+
+    ctx.strokeStyle = isActive ? `rgba(0, 255, 100, ${0.4 + Math.sin(time * 3) * 0.3})` : "rgba(100, 100, 100, 0.3)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(baseX, baseY, 12 * pulseScale, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // Inner filled circle with status color
+    let fillColor = "rgba(100, 100, 100, 0.5)";
+    if (status === "detecting") fillColor = "rgba(255, 200, 0, 0.7)";
+    if (status === "stable") fillColor = "rgba(0, 255, 100, 0.7)";
+    if (status === "captured") fillColor = "rgba(0, 200, 255, 0.7)";
+
+    ctx.fillStyle = fillColor;
+    ctx.beginPath();
+    ctx.arc(baseX, baseY, 8, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Scanning line animation
+    if (isActive) {
+      const scanY = baseY + Math.sin(time * 4) * 8;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(baseX - 10, scanY);
+      ctx.lineTo(baseX + 10, scanY);
+      ctx.stroke();
+    }
+
+    // Label
+    ctx.fillStyle = isActive ? "#00ff64" : "rgba(100, 100, 100, 0.7)";
+    ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("AUTO", width - 55, 115);
+
+    ctx.restore();
+  };
+
+  const drawConfidenceIndicator = (ctx: CanvasRenderingContext2D, width: number, height: number, conf: number) => {
+    ctx.save();
+
+    const barWidth = 120;
+    const barHeight = 8;
+    const x = width - barWidth - 20;
+    const y = height - 60;
+
+    // Background
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(x - 5, y - 5, barWidth + 10, barHeight + 20);
+
+    // Label
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Confidence", x, y - 8);
+
+    // Bar background
+    ctx.fillStyle = "rgba(80, 80, 80, 0.5)";
+    ctx.fillRect(x, y, barWidth, barHeight);
+
+    // Confidence bar with gradient
+    const confWidth = barWidth * Math.min(1, Math.max(0, conf));
+    const gradient = ctx.createLinearGradient(x, 0, x + barWidth, 0);
+    
+    if (conf < 0.3) {
+      gradient.addColorStop(0, "rgba(255, 50, 50, 0.8)");
+      gradient.addColorStop(1, "rgba(255, 150, 50, 0.8)");
+    } else if (conf < 0.7) {
+      gradient.addColorStop(0, "rgba(255, 200, 50, 0.8)");
+      gradient.addColorStop(1, "rgba(255, 255, 50, 0.8)");
+    } else {
+      gradient.addColorStop(0, "rgba(50, 255, 100, 0.8)");
+      gradient.addColorStop(1, "rgba(0, 200, 100, 0.8)");
+    }
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, confWidth, barHeight);
+
+    // Percentage text
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${Math.round(conf * 100)}%`, x + barWidth + 5, y + 7);
+
+    ctx.restore();
+  };
+
+  const drawQualityIndicator = (ctx: CanvasRenderingContext2D, width: number, height: number, quality: number) => {
+    ctx.save();
+
+    const barWidth = 120;
+    const barHeight = 8;
+    const x = width - barWidth - 20;
+    const y = height - 35;
+
+    // Background
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(x - 5, y - 5, barWidth + 10, barHeight + 20);
+
+    // Label
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Quality", x, y - 8);
+
+    // Bar background
+    ctx.fillStyle = "rgba(80, 80, 80, 0.5)";
+    ctx.fillRect(x, y, barWidth, barHeight);
+
+    // Quality bar with gradient
+    const qualityWidth = barWidth * Math.min(1, Math.max(0, quality));
+    const gradient = ctx.createLinearGradient(x, 0, x + barWidth, 0);
+    
+    if (quality < 0.4) {
+      gradient.addColorStop(0, "rgba(255, 50, 50, 0.8)");
+      gradient.addColorStop(1, "rgba(255, 150, 50, 0.8)");
+    } else if (quality < 0.7) {
+      gradient.addColorStop(0, "rgba(255, 180, 50, 0.8)");
+      gradient.addColorStop(1, "rgba(200, 255, 50, 0.8)");
+    } else {
+      gradient.addColorStop(0, "rgba(100, 200, 255, 0.8)");
+      gradient.addColorStop(1, "rgba(50, 150, 255, 0.8)");
+    }
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, qualityWidth, barHeight);
+
+    // Percentage text
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${Math.round(quality * 100)}%`, x + barWidth + 5, y + 7);
 
     ctx.restore();
   };
