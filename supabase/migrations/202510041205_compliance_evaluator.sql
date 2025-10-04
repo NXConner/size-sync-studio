@@ -47,12 +47,12 @@ before update of notes on app.measurements
 for each row execute function app.set_measurement_compliance();
 
 -- Public wrapper to expose RPC via PostgREST (Supabase exposes public schema)
-create or replace function public.compliance_evaluator(text)
+create or replace function public.compliance_evaluator(input text)
 returns jsonb
 language sql
 stable
 as $$
-  select app.compliance_evaluator($1);
+  select app.compliance_evaluator(input);
 $$;
 
 -- Grant execute so RPC calls work via anon/authenticated as needed
