@@ -280,6 +280,92 @@ export type Database = {
           },
         ]
       }
+      goals: {
+        Row: {
+          created_at: string
+          current: number
+          deadline: string | null
+          id: string
+          is_active: boolean
+          target: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current: number
+          deadline?: string | null
+          id?: string
+          is_active?: boolean
+          target: number
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current?: number
+          deadline?: string | null
+          id?: string
+          is_active?: boolean
+          target?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      measurements: {
+        Row: {
+          created_at: string
+          date: string
+          girth: number
+          id: string
+          is_pre_session: boolean | null
+          length: number
+          notes: string | null
+          photo_url: string | null
+          session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          girth: number
+          id?: string
+          is_pre_session?: boolean | null
+          length: number
+          notes?: string | null
+          photo_url?: string | null
+          session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          girth?: number
+          id?: string
+          is_pre_session?: boolean | null
+          length?: number
+          notes?: string | null
+          photo_url?: string | null
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_measurement_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menstrual_cycles: {
         Row: {
           created_at: string
@@ -569,6 +655,132 @@ export type Database = {
         }
         Relationships: []
       }
+      session_breaks: {
+        Row: {
+          end_time: string | null
+          id: string
+          session_id: string
+          start_time: string
+        }
+        Insert: {
+          end_time?: string | null
+          id?: string
+          session_id: string
+          start_time: string
+        }
+        Update: {
+          end_time?: string | null
+          id?: string
+          session_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_breaks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_pressure_logs: {
+        Row: {
+          id: string
+          pressure: number
+          session_id: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          pressure: number
+          session_id: string
+          timestamp: string
+        }
+        Update: {
+          id?: string
+          pressure?: number
+          session_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_pressure_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_tube_intervals: {
+        Row: {
+          end_time: string | null
+          id: string
+          session_id: string
+          start_time: string
+        }
+        Insert: {
+          end_time?: string | null
+          id?: string
+          session_id: string
+          start_time: string
+        }
+        Update: {
+          end_time?: string | null
+          id?: string
+          session_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_tube_intervals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          notes: string | null
+          preset_id: string
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          preset_id: string
+          start_time: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          preset_id?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_status: {
         Row: {
           created_at: string
@@ -636,6 +848,36 @@ export type Database = {
           notifications?: Json | null
           privacy_settings?: Json | null
           theme_preferences?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences_app: {
+        Row: {
+          accessibility: Json | null
+          created_at: string
+          notifications: Json | null
+          privacy: Json | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accessibility?: Json | null
+          created_at?: string
+          notifications?: Json | null
+          privacy?: Json | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accessibility?: Json | null
+          created_at?: string
+          notifications?: Json | null
+          privacy?: Json | null
+          theme?: string | null
           updated_at?: string
           user_id?: string
         }
