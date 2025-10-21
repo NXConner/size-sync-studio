@@ -38,7 +38,11 @@ def main(argv: list[str]) -> int:
     total = 0
     with DDGS() as ddgs:
         for query in w_cfg.queries:
-            for r in ddgs.text(query, max_results=25, safesearch="moderate"):  # type: ignore
+            try:
+                results_iter = ddgs.text(query, max_results=25, safesearch="moderate")  # type: ignore
+            except Exception:
+                results_iter = []
+            for r in results_iter:
                 url = r.get("href") or r.get("url")
                 if not url:
                     continue

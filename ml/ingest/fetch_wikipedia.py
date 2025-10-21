@@ -29,7 +29,11 @@ def main(argv: list[str]) -> int:
     out_dir = base / "wikipedia"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    wiki = wikipediaapi.Wikipedia("en")
+    user_agent = os.environ.get(
+        "WIKI_USER_AGENT",
+        "PavementPerformanceSuite/1.0 (contact: admin@example.com)",
+    )
+    wiki = wikipediaapi.Wikipedia(user_agent=user_agent, language="en")
     total = 0
     for title in w_cfg.pages:
         page = wiki.page(title)
