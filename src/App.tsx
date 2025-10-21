@@ -12,6 +12,7 @@ import { Navbar } from "./components/Navbar";
 import { PwaUpdate } from "./components/PwaUpdate";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 const HealthScreening = lazy(() => import("./pages/HealthScreening"));
+const WellnessPositions = lazy(() => import("./pages/WellnessPositions"));
 const Index = lazy(() => import("./pages/Index"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Safety = lazy(() => import("./pages/Safety"));
@@ -51,6 +52,7 @@ function TitleUpdater() {
     '/measure': 'Size Seeker – Measure',
     '/screening': 'Size Seeker – Health Screening',
     '/settings': 'Size Seeker – Settings',
+    '/wellness': 'Size Seeker – Wellness Positions',
   };
   const base = 'Size Seeker';
   const title = map[location.pathname] || base;
@@ -83,6 +85,7 @@ const App = () => (
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/screening" element={<HealthScreening />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/wellness" element={<WellnessPositions />} />
                 <Route path="/achievements" element={<AchievementsDetail />} />
                 <Route path="/run-session" element={<SessionRunner />} />
                 <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />

@@ -16,5 +16,6 @@ describe('Navbar', () => {
     expect(screen.getAllByRole('link', { name: /Sessions/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: /Measure/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: /Gallery/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /Wellness/i }).length).toBeGreaterThan(0);
   });
 });

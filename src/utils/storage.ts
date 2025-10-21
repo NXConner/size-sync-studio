@@ -1,4 +1,5 @@
 import { Measurement, Session, Goal } from "@/types";
+import type { WellnessPosition, PlaySessionRecord } from "@/types/wellness";
 import { deriveKeyFromPin, encryptBlob, decryptToBlob } from "@/features/mediax/lib/crypto";
 
 const STORAGE_KEYS = {
@@ -6,6 +7,9 @@ const STORAGE_KEYS = {
   SESSIONS: "size-seeker-sessions",
   GOALS: "size-seeker-goals",
   PHOTOS: "size-seeker-photos",
+  POSITIONS: "size-seeker-wellness-positions",
+  FAVORITES: "size-seeker-wellness-favorites",
+  PLAY_RECORDS: "size-seeker-wellness-play-records",
 };
 
 // Helper: safely parse JSON from localStorage
@@ -89,6 +93,44 @@ export const saveGoal = (goal: Goal): void => {
 export const deleteGoal = (id: string): void => {
   const goals = getGoals().filter((g) => g.id !== id);
   localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+};
+
+// Wellness Positions Storage (catalog managed locally; allow overrides/edits)
+export const getPositions = (): WellnessPosition[] => {
+  return safeReadArray<WellnessPosition>(STORAGE_KEYS.POSITIONS);
+};
+
+export const savePositions = (positions: WellnessPosition[]): void => {
+  localStorage.setItem(STORAGE_KEYS.POSITIONS, JSON.stringify(positions));
+};
+
+// Favorites
+export const getFavoritePositionIds = (): string[] => {
+  return safeReadArray<string>(STORAGE_KEYS.FAVORITES);
+};
+
+export const toggleFavoritePosition = (positionId: string): string[] => {
+  const favs = new Set(getFavoritePositionIds());
+  if (favs.has(positionId)) {
+    favs.delete(positionId);
+  } else {
+    favs.add(positionId);
+  }
+  const arr = Array.from(favs);
+  localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(arr));
+  return arr;
+};
+
+// Play session records
+export const getPlaySessionRecords = (): PlaySessionRecord[] => {
+  return safeReadArray<PlaySessionRecord>(STORAGE_KEYS.PLAY_RECORDS);
+};
+
+export const savePlaySessionRecord = (record: PlaySessionRecord): void => {
+  const records = getPlaySessionRecords();
+  const idx = records.findIndex((r) => r.id === record.id);
+  if (idx >= 0) records[idx] = record; else records.push(record);
+  localStorage.setItem(STORAGE_KEYS.PLAY_RECORDS, JSON.stringify(records));
 };
 
 // Photo Storage (using IndexedDB for larger files)
