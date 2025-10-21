@@ -24,6 +24,7 @@ const Gallery = lazy(() => import("./pages/Gallery"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const AchievementsDetail = lazy(() => import("./pages/AchievementsDetail"));
+const Studio = lazy(() => import("./pages/Studio"));
 const WellnessIndex = lazy(() => import("./features/mediax/pages/Index"));
 const WellnessSettings = lazy(() => import("./features/mediax/pages/Settings"));
 const MediaXExplore = lazy(() => import("./features/mediax/pages/Explore"));
@@ -52,7 +53,6 @@ function TitleUpdater() {
     '/measure': 'Size Seeker – Measure',
     '/screening': 'Size Seeker – Health Screening',
     '/settings': 'Size Seeker – Settings',
-    '/wellness': 'Size Seeker – Wellness Positions',
   };
   const base = 'Size Seeker';
   const title = map[location.pathname] || base;
@@ -88,6 +88,7 @@ const App = () => (
                 <Route path="/wellness" element={<WellnessPositions />} />
                 <Route path="/achievements" element={<AchievementsDetail />} />
                 <Route path="/run-session" element={<SessionRunner />} />
+                <Route path="/studio" element={<Studio />} />
                 <Route path="/mediax" element={<WellnessErrorBoundary><WellnessIndex /></WellnessErrorBoundary>} />
                 <Route path="/mediax/settings" element={<WellnessErrorBoundary><WellnessSettings /></WellnessErrorBoundary>} />
                 <Route path="/mediax/explore" element={<WellnessErrorBoundary><MediaXExplore /></WellnessErrorBoundary>} />

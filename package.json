@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:studio": "node scripts/studio-dev.mjs",
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "vite build && node scripts/generate-sw.mjs",
+    "build:studio": "node scripts/studio-build.mjs",
     "build:android": "node scripts/build-android-cap.mjs",
     "build:dev": "vite build --mode development",
     "analyze": "vite build --mode analyze",
