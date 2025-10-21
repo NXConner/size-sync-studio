@@ -58,3 +58,4 @@ export interface Goal {
 }
 
 export * from './screening';
+export * from './wellness';
