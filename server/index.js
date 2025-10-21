@@ -384,6 +384,12 @@ try {
     res.sendFile(path.join(mediaxDir, "index.html"));
   });
 } catch {}
+
+// Serve embedded Size Sync Studio static build under /ssstudio if present
+try {
+  const sssDir = path.resolve(process.cwd(), "public/ssstudio");
+  app.use("/ssstudio", express.static(sssDir));
+} catch {}
 app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });
