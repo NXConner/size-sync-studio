@@ -1,0 +1,25 @@
+# Auto-generated default ingestion config. Adjust as needed.
+sources:
+  github:
+    repos:
+      - huggingface/transformers
+      - facebookresearch/faiss
+    include: ["**/*.md", "**/*.py"]
+    exclude: ["**/node_modules/**", "**/.git/**", "**/tests/**", "**/*.min.*"]
+  huggingface:
+    repos:
+      - sentence-transformers/all-MiniLM-L6-v2
+  wikipedia:
+    pages: ["Asphalt concrete", "Pavement (civil engineering)", "Sealcoating", "Parking lot"]
+  arxiv:
+    queries:
+      - query: "asphalt pavement performance"
+        max_results: 10
+  web_search:
+    queries:
+      - "asphalt sealcoating best practices"
+      - "church parking lot repair guidelines"
+      - "line striping layout maximize spaces"
+output_dir: ml/ingest/out
+rate_limits:
+  per_host_per_minute: 60
