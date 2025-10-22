@@ -1,0 +1,41 @@
+# Ingestion configuration example
+# Copy to config.yaml and adjust sources as needed
+
+sources:
+  github:
+    # List of GitHub repositories to crawl (owner/repo)
+    repos:
+      - huggingface/transformers
+      - facebookresearch/faiss
+    # Path globs to include/exclude
+    include: ["**/*.md", "**/*.py", "**/*.ts", "**/*.tsx"]
+    exclude: ["**/node_modules/**", "**/.git/**", "**/tests/**", "**/*.min.*"]
+
+  huggingface:
+    # List of model or dataset repo IDs to fetch READMEs, model cards, and docs
+    repos:
+      - sentence-transformers/all-MiniLM-L6-v2
+      - deepset/all-mpnet-base-v2
+
+  wikipedia:
+    # Topic pages to pull as seed knowledge
+    pages: ["Asphalt concrete", "Pavement (civil engineering)", "Sealcoating", "Parking lot"]
+
+  arxiv:
+    # Queries to fetch abstracts and PDFs (metadata only by default)
+    queries:
+      - query: "asphalt pavement performance"
+        max_results: 25
+      - query: "parking lot design striping layout"
+        max_results: 25
+
+  web_search:
+    # DuckDuckGo queries for broader web capture (titles/snippets/urls)
+    queries:
+      - "asphalt sealcoating best practices"
+      - "church parking lot repair guidelines"
+      - "line striping layout maximize spaces"
+
+output_dir: ml/ingest/out
+rate_limits:
+  per_host_per_minute: 60
