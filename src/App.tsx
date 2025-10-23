@@ -9,6 +9,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { APP_BASENAME } from "@/lib/config";
 import { Navbar } from "./components/Navbar";
+import { useEffect } from 'react'
+import { applyTheme } from '@/lib/design_system'
 import { PwaUpdate } from "./components/PwaUpdate";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 const HealthScreening = lazy(() => import("./pages/HealthScreening"));
