@@ -15,9 +15,14 @@
     "analyze": "vite build --mode analyze",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "preview": "vite preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "prepare": "husky install",
+    "openapi:export": "node scripts/export-openapi.mjs",
+    "seed": "node scripts/seed.mjs",
+    "audit:high": "npm audit --audit-level=high || true",
     "test": "vitest run --coverage --coverage.enabled true --coverage.lines 0.8 --coverage.functions 0.8 --coverage.branches 0.8 --coverage.statements 0.8",
     "test:ui": "vitest --ui",
     "e2e": "playwright test",
@@ -36,6 +41,12 @@
     "cap:ios": "npx cap add ios && npx cap sync ios",
     "cap:ios:open": "npx cap open ios",
     "cap:assets": "npx @capacitor/assets generate --iconPath ./assets/icon.png --splashPath ./assets/splash.png --android --ios"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,json,md,css}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   },
   "dependencies": {
     "@11labs/react": "^0.2.0",
@@ -135,6 +146,7 @@
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
     "eslint": "^9.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "fake-indexeddb": "^6.2.2",
@@ -146,6 +158,8 @@
     "pino-http": "^10.5.0",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
     "prom-client": "^15.1.3",
     "rollup-plugin-visualizer": "^6.0.3",
     "supertest": "^7.0.0",
