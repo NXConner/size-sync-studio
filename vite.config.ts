@@ -98,6 +98,9 @@ export default defineConfig(({ mode }: { mode: string }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@mediax": path.resolve(__dirname, "./src/features/mediax"),
+      // Avoid pulling canvg's ESM build which imports core-js side-effects.
+      // We do not use canvg directly; alias to a tiny stub to prevent bare core-js imports in dist.
+      "canvg": path.resolve(__dirname, "./src/shims/canvg.ts"),
     },
   },
   test: {

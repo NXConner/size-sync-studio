@@ -3,6 +3,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import * as Sentry from '@sentry/react'
+// Guard against stalled render resulting in blank screen
+window.addEventListener('error', () => {
+  const root = document.getElementById('root')
+  if (root && !root.childElementCount) {
+    root.innerHTML = '<div style="padding:16px;color:#ef4444">An error occurred while loading the app. Please refresh.</div>'
+  }
+})
 import { detectLang, isRtl } from './lib/i18n'
 import { APP_BASENAME } from './lib/config'
 
