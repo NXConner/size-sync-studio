@@ -75,7 +75,9 @@ export default function Measure() {
   const [uploadedBlob] = useState<Blob | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [voiceEnabled, setVoiceEnabledState] = useState<boolean>(getVoiceEnabled());
+  const [lastDetectionTime, setLastDetectionTime] = useState<number>(0);
   const [gridSize, setGridSize] = useState<number>(24);
+  const [performanceIssues, setPerformanceIssues] = useState<number>(0);
   // Visual aids settings
   const [showScanSweep, setShowScanSweep] = useState<boolean>(true);
   const [showPulsingHalos, setShowPulsingHalos] = useState<boolean>(true);
@@ -173,6 +175,13 @@ export default function Measure() {
   const [advancedEnabled, setAdvancedEnabled] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<MLAnalysisResult | null>(null);
   const [mlHistory, setMlHistory] = useState<Array<{ timestamp: number; length: number; girth: number; confidence: number }>>([]);
+  
+  // Object focus and auto-zoom features
+  const [primaryObject, setPrimaryObject] = useState<{ x: number; y: number; width: number; height: number; confidence: number } | null>(null);
+  const [showObjectFocus, setShowObjectFocus] = useState<boolean>(false);
+  const [autoZoomLevel, setAutoZoomLevel] = useState<number>(1);
+  const [focusCenter, setFocusCenter] = useState<{ x: number; y: number } | null>(null);
+  const [detectedObjects, setDetectedObjects] = useState<Array<{ x: number; y: number; width: number; height: number; confidence: number }>>([]);
 
   // Feed basic data into advanced panels from existing states
   useEffect(() => {
@@ -1761,6 +1770,76 @@ export default function Measure() {
         setConfidence(confidence);
         setQualityScore(0);
         setCurvatureDeg(0);
+        
+        // Object detection and auto-zoom logic
+        if (confidence >= minConfidence && chosen) {
+          // Calculate object bounding box
+          const objectX = Math.min(chosen.base.x, chosen.tip.x);
+          const objectY = Math.min(chosen.base.y, chosen.tip.y);
+          const objectWidth = Math.abs(chosen.tip.x - chosen.base.x);
+          const objectHeight = Math.abs(chosen.tip.y - chosen.base.y);
+          
+          // Set primary object for visual feedback
+          const primaryObj = {
+            x: objectX,
+            y: objectY,
+            width: Math.max(objectWidth, 50), // Minimum width for visibility
+            height: Math.max(objectHeight, 50), // Minimum height for visibility
+            confidence: confidence
+          };
+          setPrimaryObject(primaryObj);
+          setDetectedObjects([primaryObj]);
+          
+          // Enable object focus mode
+          setShowObjectFocus(true);
+          
+          // Calculate auto-zoom level based on object size
+          const container = containerRef.current;
+          if (container) {
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            const objectArea = objectWidth * objectHeight;
+            const containerArea = containerWidth * containerHeight;
+            const objectRatio = objectArea / containerArea;
+            
+            // Auto-zoom to make object fill 30-50% of screen
+            let targetZoom = 1;
+            if (objectRatio < 0.2) {
+              targetZoom = Math.min(3, 1 / Math.sqrt(objectRatio / 0.3));
+            } else if (objectRatio > 0.5) {
+              targetZoom = Math.max(0.5, Math.sqrt(0.4 / objectRatio));
+            }
+            
+            setAutoZoomLevel(targetZoom);
+            
+            // Calculate focus center (center of detected object)
+            const focusX = objectX + objectWidth / 2;
+            const focusY = objectY + objectHeight / 2;
+            setFocusCenter({ x: focusX, y: focusY });
+            
+            // Apply zoom to camera if supported
+            if (zoomLevel !== null && targetZoom !== zoomLevel && videoRef.current?.srcObject) {
+              try {
+                const stream = videoRef.current.srcObject as MediaStream;
+                const track = stream.getVideoTracks()[0];
+                if (track) {
+                  await applyZoomTrack(track, targetZoom);
+                  setZoomLevel(targetZoom);
+                }
+              } catch (error) {
+                console.warn("Auto-zoom failed:", error);
+              }
+            }
+          }
+        } else {
+          // Clear object focus when confidence is low
+          setPrimaryObject(null);
+          setDetectedObjects([]);
+          setShowObjectFocus(false);
+          setAutoZoomLevel(1);
+          setFocusCenter(null);
+        }
+        
         if (confidence >= minConfidence) {
           const alpha = 1.0; // single image: snap
           const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -1870,12 +1949,22 @@ export default function Measure() {
     // Prevent overlapping runs
     if (isDetecting) return;
     setIsDetecting(true);
+    
+    // Add timeout to prevent long-running detection
+    const timeoutId = setTimeout(() => {
+      console.warn("Detection timeout - forcing completion");
+      setIsDetecting(false);
+    }, 5000); // 5 second timeout
+    
     try {
+      // Yield control to the main thread before heavy processing
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
       const cv = await loadOpenCV();
       const w0 = video.videoWidth;
       const h0 = video.videoHeight;
-      // Bound processing resolution to reduce per-frame cost
-      const targetMax = 512;
+      // Bound processing resolution to reduce per-frame cost - reduced further for better performance
+      const targetMax = 256; // Reduced from 512 for better performance
       const scaleDown = Math.min(1, targetMax / Math.max(w0, h0));
       const w = Math.max(1, Math.round(w0 * scaleDown));
       const h = Math.max(1, Math.round(h0 * scaleDown));
@@ -2188,6 +2277,7 @@ export default function Measure() {
     } catch (err: any) {
       if (!silent) toast({ title: "Detection failed", description: err?.message || String(err), variant: "destructive" });
     } finally {
+      clearTimeout(timeoutId);
       setIsDetecting(false);
     }
   };
@@ -2250,6 +2340,76 @@ export default function Measure() {
       const chosen = chooseBaseAndTip(p1, p2);
       const conf = det.confidence || 0;
       setConfidence(conf);
+      
+      // Object detection and auto-zoom logic for worker-based detection
+      if (conf >= minConfidence && chosen) {
+        // Calculate object bounding box
+        const objectX = Math.min(chosen.base.x, chosen.tip.x);
+        const objectY = Math.min(chosen.base.y, chosen.tip.y);
+        const objectWidth = Math.abs(chosen.tip.x - chosen.base.x);
+        const objectHeight = Math.abs(chosen.tip.y - chosen.base.y);
+        
+        // Set primary object for visual feedback
+        const primaryObj = {
+          x: objectX,
+          y: objectY,
+          width: Math.max(objectWidth, 50), // Minimum width for visibility
+          height: Math.max(objectHeight, 50), // Minimum height for visibility
+          confidence: conf
+        };
+        setPrimaryObject(primaryObj);
+        setDetectedObjects([primaryObj]);
+        
+        // Enable object focus mode
+        setShowObjectFocus(true);
+        
+        // Calculate auto-zoom level based on object size
+        const container = containerRef.current;
+        if (container) {
+          const containerWidth = container.clientWidth;
+          const containerHeight = container.clientHeight;
+          const objectArea = objectWidth * objectHeight;
+          const containerArea = containerWidth * containerHeight;
+          const objectRatio = objectArea / containerArea;
+          
+          // Auto-zoom to make object fill 30-50% of screen
+          let targetZoom = 1;
+          if (objectRatio < 0.2) {
+            targetZoom = Math.min(3, 1 / Math.sqrt(objectRatio / 0.3));
+          } else if (objectRatio > 0.5) {
+            targetZoom = Math.max(0.5, Math.sqrt(0.4 / objectRatio));
+          }
+          
+          setAutoZoomLevel(targetZoom);
+          
+          // Calculate focus center (center of detected object)
+          const focusX = objectX + objectWidth / 2;
+          const focusY = objectY + objectHeight / 2;
+          setFocusCenter({ x: focusX, y: focusY });
+          
+          // Apply zoom to camera if supported
+          if (zoomLevel !== null && targetZoom !== zoomLevel && videoRef.current?.srcObject) {
+            try {
+              const stream = videoRef.current.srcObject as MediaStream;
+              const track = stream.getVideoTracks()[0];
+              if (track) {
+                await applyZoomTrack(track, targetZoom);
+                setZoomLevel(targetZoom);
+              }
+            } catch (error) {
+              console.warn("Auto-zoom failed:", error);
+            }
+          }
+        }
+      } else {
+        // Clear object focus when confidence is low
+        setPrimaryObject(null);
+        setDetectedObjects([]);
+        setShowObjectFocus(false);
+        setAutoZoomLevel(1);
+        setFocusCenter(null);
+      }
+      
       if (conf >= minConfidence) {
         const alpha = 1.0;
         const smBase = smoothPoint(basePointRef.current, chosen.base, alpha);
@@ -2441,10 +2601,14 @@ export default function Measure() {
       setRetakeSuggested(false);
       return;
     }
-    const targetIntervalMs = Math.max(200, detectionIntervalMs); // enforce minimum interval to avoid thrash
+    
+    const targetIntervalMs = Math.max(500, detectionIntervalMs); // Increased minimum interval to reduce load
     let lastTs = 0;
+    let isProcessing = false; // Prevent overlapping detection calls
+    
     const loop = async (ts?: number) => {
       const now = performance.now();
+      
       // Frame throttle using RAF timestamp and detectionIntervalMs
       if (typeof ts === 'number') {
         if (ts - lastTs < targetIntervalMs) {
@@ -2453,14 +2617,49 @@ export default function Measure() {
         }
         lastTs = ts;
       }
-      if (!isDetecting && now - lastDetectTsRef.current > targetIntervalMs) {
+      
+      // Prevent overlapping detection calls
+      if (isProcessing || isDetecting) {
+        autoDetectRafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+      
+      if (now - lastDetectTsRef.current > targetIntervalMs && now - lastDetectionTime > 1000) {
         lastDetectTsRef.current = now;
+        setLastDetectionTime(now);
+        isProcessing = true;
+        
         try {
+          // Use setTimeout to yield control back to the main thread
+          await new Promise(resolve => setTimeout(resolve, 0));
+          
+          const detectionStart = performance.now();
+          
           if (workerAutoDetect) {
             await detectFromLiveWorkerOnly({ silent: true });
           } else {
             await detectFromLive({ silent: true });
           }
+          
+          const detectionTime = performance.now() - detectionStart;
+          
+          // Monitor performance - if detection takes too long, increment issues counter
+          if (detectionTime > 2000) { // 2 seconds
+            setPerformanceIssues(prev => prev + 1);
+            if (performanceIssues > 3) {
+              setAutoDetect(false);
+              toast({
+                title: "Auto-detect disabled",
+                description: "Performance issues detected. Auto-detect has been disabled.",
+                variant: "destructive"
+              });
+              return;
+            }
+          } else if (detectionTime < 1000) {
+            // Reset issues counter if performance is good
+            setPerformanceIssues(0);
+          }
+          
           // Update stability history after a detect pass
           const len = parseFloat(lengthDisplayRef.current || "0") || 0;
           const girth = parseFloat(girthDisplayRef.current || "0") || 0;
@@ -2468,6 +2667,7 @@ export default function Measure() {
           const cutoff = now - stabilitySeconds * 1000;
           hist.push({ ts: now, len, girth });
           while (hist.length && hist[0].ts < cutoff) hist.shift();
+          
           if (hist.length >= 3) {
             const lenVals = hist.map((h) => h.len);
             const girVals = hist.map((h) => h.girth);
@@ -2476,6 +2676,7 @@ export default function Measure() {
             const stable = lenRange <= stabilityLenTolInches && girRange <= stabilityGirthTolInches && (confidenceRef.current || 0) >= minConfidence;
             const prevStatus = autoStatus;
             const nextStatus = stable ? "locked" : "stabilizing";
+            
             if (nextStatus !== prevStatus) {
               setAutoStatus(nextStatus);
               if (stable && voiceEnabled && speakOnLock) {
@@ -2494,7 +2695,9 @@ export default function Measure() {
             } else {
               setAutoStatus(nextStatus);
             }
+            
             const cooldownOk = now - lastAutoCaptureTsRef.current >= autoCaptureCooldownSec * 1000;
+            
             // Update stability progress timing
             if (stable) {
               if (stableStartTsRef.current == null) stableStartTsRef.current = now;
@@ -2505,22 +2708,32 @@ export default function Measure() {
               stableStartTsRef.current = null;
               setStabilityProgress(0);
             }
+            
             if (stable && autoCapture && cooldownOk) {
               try { await capture(); } catch {}
               lastAutoCaptureTsRef.current = now;
               setAutoStatus("captured");
             }
+            
             // Suggest retake when confidence is low or instability persists
             setRetakeSuggested(!stable || (confidenceRef.current || 0) < minConfidence);
           } else {
             setAutoStatus("scanning");
             setRetakeSuggested(false);
           }
-        } catch {}
+        } catch (error) {
+          console.warn("Auto-detect error:", error);
+          setPerformanceIssues(prev => prev + 1);
+        } finally {
+          isProcessing = false;
+        }
       }
+      
       autoDetectRafRef.current = requestAnimationFrame(loop);
     };
+    
     autoDetectRafRef.current = requestAnimationFrame(loop);
+    
     return () => {
       if (autoDetectRafRef.current) cancelAnimationFrame(autoDetectRafRef.current);
       autoDetectRafRef.current = null;
@@ -2738,9 +2951,18 @@ export default function Measure() {
                 containerRef={containerRef}
                 measurementPoints={measurementPoints}
                 isRecording={false}
-                detectedObjects={[]}
+                detectedObjects={detectedObjects}
                 gridEnabled={showGrid}
                 showCrosshairs={showCrosshairs}
+                isDetecting={isDetecting}
+                autoDetect={autoDetect}
+                confidence={confidence}
+                qualityScore={qualityScore}
+                autoStatus={autoStatus}
+                primaryObject={primaryObject || undefined}
+                showObjectFocus={showObjectFocus}
+                zoomLevel={autoZoomLevel}
+                focusCenter={focusCenter || undefined}
               />
               {mode === "upload" && uploadedUrl && (
                 <div className="absolute right-3 bottom-3 flex gap-2">
@@ -2804,6 +3026,9 @@ export default function Measure() {
                 >
                   <div className="bg-black/50 rounded-md p-2 text-xs text-white flex items-center gap-3">
                     <span className={`whitespace-nowrap ${autoStatus.includes('detect') ? 'text-sky-300' : autoStatus === 'locked' ? 'text-emerald-300' : autoStatus === 'captured' ? 'text-amber-300' : autoStatus.includes('weak') ? 'text-rose-300' : 'text-slate-300'}`}>{autoStatus}</span>
+                    {performanceIssues > 0 && (
+                      <span className="text-yellow-400 text-xs">⚠️ {performanceIssues}</span>
+                    )}
                     <div className="flex-1">
                       <Progress value={Math.max(0, Math.min(100, Math.round(confidence * 100)))} />
                     </div>
@@ -3224,11 +3449,20 @@ export default function Measure() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Live auto-detect</span>
-                <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
+                <div className="flex items-center gap-2">
+                  {performanceIssues > 0 && (
+                    <span className="text-xs text-yellow-500">⚠️ {performanceIssues}</span>
+                  )}
+                  <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Auto-capture when stable</span>
                 <Switch checked={autoCapture} onCheckedChange={setAutoCapture} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Object focus & auto-zoom</span>
+                <Switch checked={showObjectFocus} onCheckedChange={setShowObjectFocus} />
               </div>
               <div className="text-xs text-muted-foreground">
                 Status: {autoStatus}

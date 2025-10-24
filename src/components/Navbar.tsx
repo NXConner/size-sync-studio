@@ -1,6 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
+import { 
+  Home, 
+  Activity, 
+  Shield, 
+  Lightbulb, 
+  Ruler, 
+  Camera, 
+  HeartPulse, 
+  Settings, 
+  Download,
+  Heart
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navigation = [
@@ -12,7 +23,7 @@ const navigation = [
   { name: "Gallery", href: "/gallery", icon: Camera },
   { name: "Screening", href: "/screening", icon: HeartPulse },
   { name: "Analytics", href: "/analytics", icon: HeartPulse },
-
+  { name: "Positions", href: "/positions", icon: Heart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

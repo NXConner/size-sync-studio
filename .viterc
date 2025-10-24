@@ -1,0 +1,7 @@
+{
+  "ignore": [
+    "android/**",
+    "**/android/**",
+    "**/android/**/**"
+  ]
+}

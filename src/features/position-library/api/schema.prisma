@@ -1,0 +1,312 @@
+// Prisma schema for Position Library API
+// This schema defines the database structure for all position library features
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or "mysql", "sqlite", etc.
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  preferences     UserPreferences?
+  sessions        Session[]
+  analytics       Analytics?
+  customPositions CustomPosition[]
+  posts           Post[]
+  comments        Comment[]
+  likes           Like[]
+  challenges      Challenge[]
+  achievements    UserAchievement[]
+
+  @@map("users")
+}
+
+// User Preferences
+model UserPreferences {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  difficulty String   @default("beginner")
+  categories String[] @default([])
+  mood       String   @default("romantic")
+  duration   Int      @default(15)
+  intensity  String   @default("medium")
+  customTags String[] @default([])
+  privacy    String   @default("private")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// Partner Profiles
+model PartnerProfile {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  preferences Json     // Store as JSON for flexibility
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("partner_profiles")
+}
+
+// Achievements
+model Achievement {
+  id           String    @id @default(cuid())
+  name         String
+  category     String
+  type         String
+  description  String?
+  requirements String[]
+  rewards      String[]
+  difficulty   String
+  isPublic     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+// User Achievements (junction table)
+model UserAchievement {
+  id           String     @id @default(cuid())
+  userId       String
+  achievementId String
+  unlockedAt   DateTime?
+  progress     Int        @default(0)
+  maxProgress  Int        @default(100)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// Custom Positions
+model CustomPosition {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String
+  instructions String[]
+  tips        String[]
+  difficulty  String
+  category    String
+  mood        String
+  duration    Int
+  intensity   String
+  tags        String[]
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("custom_positions")
+}
+
+// Sessions
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int      // in seconds
+  positions String[] // array of position IDs/names
+  difficulty String
+  mood      String
+  intensity String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Analytics
+model Analytics {
+  id                    String   @id @default(cuid())
+  userId               String   @unique
+  totalSessions        Int      @default(0)
+  totalDuration        Int      @default(0) // in seconds
+  averageSessionDuration Float?
+  totalPositions       Int      @default(0)
+  averagePositionsPerSession Float?
+  favoritePositions    String[]
+  difficultyDistribution Json
+  categoryDistribution  Json
+  moodDistribution     Json
+  intensityDistribution Json
+  timeOfDayDistribution Json
+  dayOfWeekDistribution Json
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("analytics")
+}
+
+// Position History
+model PositionHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  positionId String
+  positionName String
+  category  String
+  difficulty String
+  mood      String
+  intensity String
+  duration  Int
+  timestamp DateTime @default(now())
+
+  @@map("position_history")
+}
+
+// Community Posts
+model Post {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  tags      String[]
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    Like[]
+
+  @@map("posts")
+}
+
+// Comments
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// Likes
+model Like {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+// Challenges
+model Challenge {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  description String
+  type        String
+  difficulty  String
+  duration    Int       // in minutes
+  requirements String[]
+  rewards     String[]
+  status      String    @default("pending") // pending, active, completed, failed
+  progress    Int       @default(0)
+  maxProgress Int       @default(100)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("challenges")
+}
+
+// Challenge Progress
+model ChallengeProgress {
+  id         String   @id @default(cuid())
+  challengeId String
+  userId     String
+  progress   Int
+  timestamp  DateTime @default(now())
+
+  @@map("challenge_progress")
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // achievement, challenge, community, etc.
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  data      Json?    // additional data
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// Settings
+model Settings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  notifications Json
+  privacy   Json
+  display   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// Indexes for better performance
+@@index([User.email])
+@@index([Session.userId])
+@@index([Session.createdAt])
+@@index([Post.userId])
+@@index([Post.createdAt])
+@@index([Post.tags])
+@@index([Comment.postId])
+@@index([Challenge.userId])
+@@index([Challenge.status])
+@@index([PositionHistory.userId])
+@@index([PositionHistory.timestamp])
+@@index([UserAchievement.userId])
+@@index([UserAchievement.achievementId])

@@ -1,6 +1,5 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
 
 interface DataPoint {
   date: string;
@@ -21,14 +20,19 @@ export const ProgressChart = ({
   color = "hsl(var(--primary))",
 }: ProgressChartProps) => {
   const formatXAxis = (tickItem: string) => {
-    return format(new Date(tickItem), "MMM dd");
+    const date = new Date(tickItem);
+    return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="gradient-card p-3 rounded-lg shadow-card border">
-          <p className="text-sm text-muted-foreground">{format(new Date(label), "PPP")}</p>
+          <p className="text-sm text-muted-foreground">{new Date(label).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}</p>
           <p className="text-lg font-semibold text-primary">
             {payload[0].value} {unit}
           </p>

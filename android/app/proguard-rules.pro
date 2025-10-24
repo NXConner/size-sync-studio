@@ -19,21 +19,3 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-# --- Capacitor ---
--keep class com.getcapacitor.** { *; }
--keep class * extends com.getcapacitor.Plugin { *; }
--keepclasseswithmembers class * {
-    @com.getcapacitor.annotation.CapacitorPlugin *;
-}
-
-# --- TensorFlow Lite ---
--keep class org.tensorflow.** { *; }
--dontwarn org.tensorflow.**
-
-# --- AndroidX CameraX ---
--keep class androidx.camera.** { *; }
--dontwarn androidx.camera.**
-
-# Keep annotations to avoid stripping plugin and runtime hints
--keepattributes *Annotation*

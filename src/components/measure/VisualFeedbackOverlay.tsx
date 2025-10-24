@@ -12,6 +12,10 @@ interface VisualFeedbackOverlayProps {
   confidence?: number;
   qualityScore?: number;
   autoStatus?: string;
+  primaryObject?: { x: number; y: number; width: number; height: number; confidence: number } | null;
+  showObjectFocus?: boolean;
+  zoomLevel?: number;
+  focusCenter?: { x: number; y: number } | null;
 }
 
 export function VisualFeedbackOverlay({
@@ -25,7 +29,11 @@ export function VisualFeedbackOverlay({
   autoDetect = false,
   confidence = 0,
   qualityScore = 0,
-  autoStatus = "idle"
+  autoStatus = "idle",
+  primaryObject,
+  showObjectFocus = false,
+  zoomLevel = 1,
+  focusCenter
 }: VisualFeedbackOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -61,8 +69,18 @@ export function VisualFeedbackOverlay({
         drawCrosshairs(ctx, canvas.width, canvas.height);
       }
 
+      // Draw background blur effect if object focus is enabled
+      if (showObjectFocus && primaryObject) {
+        drawBackgroundBlur(ctx, canvas.width, canvas.height, primaryObject);
+      }
+
       drawMeasurementPoints(ctx, measurementPoints);
       drawDetectedObjects(ctx, detectedObjects);
+
+      // Draw primary object outline with enhanced focus
+      if (primaryObject) {
+        drawPrimaryObjectOutline(ctx, primaryObject, showObjectFocus);
+      }
 
       if (isRecording) {
         drawRecordingIndicator(ctx, canvas.width);
@@ -104,7 +122,7 @@ export function VisualFeedbackOverlay({
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       needsRedrawRef.current = false;
     };
-  }, [containerRef, measurementPoints, isRecording, detectedObjects, gridEnabled, showCrosshairs, isDetecting, autoDetect, confidence, qualityScore, autoStatus]);
+  }, [containerRef, measurementPoints, isRecording, detectedObjects, gridEnabled, showCrosshairs, isDetecting, autoDetect, confidence, qualityScore, autoStatus, primaryObject, showObjectFocus, zoomLevel, focusCenter]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.save();
@@ -415,6 +433,122 @@ export function VisualFeedbackOverlay({
     ctx.textAlign = "right";
     ctx.fillText(`${Math.round(quality * 100)}%`, x + barWidth + 5, y + 7);
 
+    ctx.restore();
+  };
+
+  const drawBackgroundBlur = (ctx: CanvasRenderingContext2D, width: number, height: number, primaryObject: { x: number; y: number; width: number; height: number; confidence: number }) => {
+    ctx.save();
+    
+    // Create a mask for the object area (clear area)
+    ctx.globalCompositeOperation = 'source-over';
+    
+    // Draw dark overlay over entire canvas
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Clear the object area to show it clearly
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillRect(primaryObject.x, primaryObject.y, primaryObject.width, primaryObject.height);
+    
+    // Add subtle blur effect around the object
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    
+    // Draw multiple layers for blur effect
+    for (let i = 1; i <= 3; i++) {
+      const offset = i * 2;
+      ctx.fillRect(
+        primaryObject.x - offset, 
+        primaryObject.y - offset, 
+        primaryObject.width + offset * 2, 
+        primaryObject.height + offset * 2
+      );
+    }
+    
+    ctx.restore();
+  };
+
+  const drawPrimaryObjectOutline = (ctx: CanvasRenderingContext2D, primaryObject: { x: number; y: number; width: number; height: number; confidence: number }, isFocused: boolean) => {
+    ctx.save();
+    
+    const time = Date.now() / 1000;
+    const pulseScale = 1 + Math.sin(time * 3) * 0.1;
+    
+    // Outer glow effect
+    if (isFocused) {
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + Math.sin(time * 4) * 0.2})`;
+      ctx.lineWidth = 8;
+      ctx.strokeRect(
+        primaryObject.x - 4, 
+        primaryObject.y - 4, 
+        primaryObject.width + 8, 
+        primaryObject.height + 8
+      );
+    }
+    
+    // Main outline with confidence-based color
+    let outlineColor = '#ff0000'; // Red for low confidence
+    if (primaryObject.confidence > 0.7) {
+      outlineColor = '#00ff00'; // Green for high confidence
+    } else if (primaryObject.confidence > 0.4) {
+      outlineColor = '#ffff00'; // Yellow for medium confidence
+    }
+    
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = isFocused ? 4 : 2;
+    ctx.strokeRect(primaryObject.x, primaryObject.y, primaryObject.width, primaryObject.height);
+    
+    // Corner markers for precise alignment
+    const cornerSize = 12;
+    ctx.fillStyle = outlineColor;
+    
+    // Top-left corner
+    ctx.fillRect(primaryObject.x - 2, primaryObject.y - 2, cornerSize, 4);
+    ctx.fillRect(primaryObject.x - 2, primaryObject.y - 2, 4, cornerSize);
+    
+    // Top-right corner
+    ctx.fillRect(primaryObject.x + primaryObject.width - cornerSize + 2, primaryObject.y - 2, cornerSize, 4);
+    ctx.fillRect(primaryObject.x + primaryObject.width - 2, primaryObject.y - 2, 4, cornerSize);
+    
+    // Bottom-left corner
+    ctx.fillRect(primaryObject.x - 2, primaryObject.y + primaryObject.height - 2, cornerSize, 4);
+    ctx.fillRect(primaryObject.x - 2, primaryObject.y + primaryObject.height - cornerSize + 2, 4, cornerSize);
+    
+    // Bottom-right corner
+    ctx.fillRect(primaryObject.x + primaryObject.width - cornerSize + 2, primaryObject.y + primaryObject.height - 2, cornerSize, 4);
+    ctx.fillRect(primaryObject.x + primaryObject.width - 2, primaryObject.y + primaryObject.height - cornerSize + 2, 4, cornerSize);
+    
+    // Center focus indicator
+    if (isFocused) {
+      const centerX = primaryObject.x + primaryObject.width / 2;
+      const centerY = primaryObject.y + primaryObject.height / 2;
+      
+      // Pulsing center dot
+      ctx.fillStyle = `rgba(0, 255, 255, ${0.6 + Math.sin(time * 6) * 0.4})`;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 6 * pulseScale, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Crosshairs
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 + Math.sin(time * 4) * 0.2})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX - 15, centerY);
+      ctx.lineTo(centerX + 15, centerY);
+      ctx.moveTo(centerX, centerY - 15);
+      ctx.lineTo(centerX, centerY + 15);
+      ctx.stroke();
+    }
+    
+    // Confidence label
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(primaryObject.x, primaryObject.y - 25, 80, 20);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Confidence: ${Math.round(primaryObject.confidence * 100)}%`, primaryObject.x + 5, primaryObject.y - 10);
+    
     ctx.restore();
   };
 

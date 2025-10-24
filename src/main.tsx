@@ -23,11 +23,29 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   })
 }
 
-createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+console.log("main.tsx: Starting app render...");
+console.log("main.tsx: Root element:", document.getElementById("root"));
+
+try {
+  const rootElement = document.getElementById("root");
+  if (!rootElement) {
+    console.error("main.tsx: Root element not found!");
+    throw new Error("main.tsx: Root element not found!");
+  }
+  
+  console.log("main.tsx: Creating React root...");
+  const root = createRoot(rootElement);
+  
+  console.log("main.tsx: Rendering App component...");
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+  console.log("main.tsx: App rendered successfully!");
+} catch (error) {
+  console.error("main.tsx: Error rendering app:", error);
+}
 
 // Removed OpenCV prefetch to avoid potential main-thread stalls on first interaction
 
@@ -70,4 +88,6 @@ try {
   const lang = detectLang()
   document.documentElement.lang = lang
   document.documentElement.dir = isRtl(lang) ? 'rtl' : 'ltr'
-} catch {}
+} catch (error) {
+  console.warn('Failed to apply language settings:', error);
+}
