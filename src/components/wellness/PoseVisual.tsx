@@ -4,10 +4,12 @@ import type { PoseVisualKey } from "@/types/wellness";
 type Props = {
   visualKey: PoseVisualKey;
   className?: string;
+  /** Enable subtle animated accents */
+  animated?: boolean;
 };
 
 // Abstract, non-explicit SVG glyphs conveying orientation only
-export const PoseVisual: React.FC<Props> = ({ visualKey, className }) => {
+export const PoseVisual: React.FC<Props> = ({ visualKey, className, animated }) => {
   const renderPeople = (layout: PoseVisualKey) => {
     const person = (cx: number, cy: number, colorVar: string) => (
       <g>
@@ -88,7 +90,18 @@ export const PoseVisual: React.FC<Props> = ({ visualKey, className }) => {
 
   return (
     <svg viewBox="0 0 120 80" className={className} role="img" aria-label="Abstract position visual">
+      <defs>
+        {animated && (
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+          </radialGradient>
+        )}
+      </defs>
       <rect x="2" y="2" width="116" height="76" rx="10" ry="10" fill="none" stroke="currentColor" opacity={0.2} />
+      {animated && (
+        <circle cx="60" cy="40" r="36" fill="url(#glow)" className="animate-ml-process" />
+      )}
       {renderPeople(visualKey)}
     </svg>
   );

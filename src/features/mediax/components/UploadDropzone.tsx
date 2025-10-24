@@ -7,9 +7,11 @@ interface UploadDropzoneProps {
   isUploading: boolean;
   progress?: number;
   error?: string | null;
+  /** Optional DOM id of a hidden <input type="file"> to trigger on click */
+  inputId?: string;
 }
 
-export const UploadDropzone: React.FC<UploadDropzoneProps> = ({ onFileUpload, isUploading, progress, error }) => {
+export const UploadDropzone: React.FC<UploadDropzoneProps> = ({ onFileUpload, isUploading, progress, error, inputId }) => {
   const [isDragging, setIsDragging] = React.useState(false);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -56,11 +58,14 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({ onFileUpload, is
           ? 'border-purple-500 bg-purple-500/10 scale-105'
           : 'border-gray-600 bg-gray-800/50 hover:border-gray-500 hover:bg-gray-800/70'
       }`}
-      onClick={() => document.getElementById('file-upload')?.click()}
+      onClick={() => {
+        const targetId = inputId || 'file-upload'
+        document.getElementById(targetId)?.click()
+      }}
       role="button"
       tabIndex={0}
       aria-label="Upload media files"
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('file-upload')?.click() } }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const targetId = inputId || 'file-upload'; document.getElementById(targetId)?.click() } }}
     >
       <div className="text-center">
         <div className={`mx-auto mb-4 transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
