@@ -21,6 +21,8 @@ export interface SexPosition {
   tips: string[];
   benefits: string[];
   requirements: string[];
+  // Pose intelligence template: joint angle windows for matching
+  poseTemplate?: PoseTemplate;
   duration: {
     min: number; // minimum recommended time in seconds
     max: number; // maximum recommended time in seconds
@@ -87,4 +89,30 @@ export interface GameSettings {
   difficulty: Difficulty[];
   randomTimer: boolean;
   breakTime: number; // seconds
+}
+
+// --- Pose Template Types ---
+export type BodyJoint =
+  | 'nose' | 'leftEye' | 'rightEye' | 'leftEar' | 'rightEar'
+  | 'leftShoulder' | 'rightShoulder' | 'leftElbow' | 'rightElbow'
+  | 'leftWrist' | 'rightWrist' | 'leftHip' | 'rightHip'
+  | 'leftKnee' | 'rightKnee' | 'leftAnkle' | 'rightAnkle';
+
+export interface AngleWindow {
+  min: number; // degrees inclusive
+  max: number; // degrees inclusive
+}
+
+export interface JointAngleConstraint {
+  id: string; // semantic name, e.g., "hipFlexionLeft"
+  joints: BodyJoint[]; // one to three joints depending on angle definition
+  window: AngleWindow; // acceptable range
+  weight?: number; // importance weight in matching
+}
+
+export interface PoseTemplate {
+  name: string; // e.g., "Missionary baseline"
+  version: number;
+  constraints: JointAngleConstraint[];
+  notes?: string;
 }

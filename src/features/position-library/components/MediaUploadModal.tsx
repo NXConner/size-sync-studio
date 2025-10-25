@@ -21,6 +21,8 @@ import {
   Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { classifyImageFile } from '@/lib/nsfw';
+import { useToast } from '@/hooks/use-toast';
 
 interface MediaFile {
   id: string;
@@ -55,6 +57,7 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [newTag, setNewTag] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   // Animation variants
   const modalVariants = {
@@ -88,12 +91,12 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
   };
 
   // Handle file selection
-  const handleFiles = useCallback((selectedFiles: FileList | null) => {
+  const handleFiles = useCallback(async (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
 
     const newFiles: MediaFile[] = [];
-    
-    Array.from(selectedFiles).forEach(file => {
+
+    for (const file of Array.from(selectedFiles)) {
       // Validate file type
       const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
       if (!validTypes.includes(file.type)) {
@@ -107,29 +110,46 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const preview = e.target?.result as string;
-        const mediaFile: MediaFile = {
-          id: Math.random().toString(36).substr(2, 9),
-          file,
-          preview,
-          type: file.type.startsWith('video/') ? 'video' : 
-                file.type === 'image/gif' ? 'gif' : 'image',
-          name: file.name,
-          description: '',
-          tags: [],
-          isPublic: false
-        };
-        
-        newFiles.push(mediaFile);
-        
-        if (newFiles.length === selectedFiles.length) {
-          setFiles(prev => [...prev, ...newFiles]);
+      // Client-side NSFW check for images only
+      if (file.type.startsWith('image/')) {
+        try {
+          const result = await classifyImageFile(file);
+          if (result.flagged) {
+            toast({
+              title: 'Upload blocked',
+              description: `Image flagged: ${result.reason ?? result.topClass} (${(result.topScore * 100).toFixed(0)}%)`,
+              variant: 'destructive'
+            });
+            continue; // Skip adding this file
+          }
+        } catch (err) {
+          console.warn('NSFW check failed; allowing file by default', err);
         }
+      }
+
+      const reader = new FileReader();
+      const preview: string = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(String(e.target?.result));
+        reader.readAsDataURL(file);
+      });
+
+      const mediaFile: MediaFile = {
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        preview,
+        type: file.type.startsWith('video/') ? 'video' : 
+              file.type === 'image/gif' ? 'gif' : 'image',
+        name: file.name,
+        description: '',
+        tags: [],
+        isPublic: false
       };
-      reader.readAsDataURL(file);
-    });
+      newFiles.push(mediaFile);
+    }
+
+    if (newFiles.length > 0) {
+      setFiles(prev => [...prev, ...newFiles]);
+    }
   }, []);
 
   // Handle drag and drop
