@@ -1,3 +1,16 @@
+export interface MediaItem {
+  id: string;
+  url: string;
+  type: 'image' | 'video' | 'gif';
+  name: string;
+  description?: string;
+  tags: string[];
+  isPublic: boolean;
+  uploadedBy?: string;
+  uploadedAt?: string;
+  thumbnail?: string;
+}
+
 export interface SexPosition {
   id: string;
   name: string;
@@ -14,6 +27,14 @@ export interface SexPosition {
   };
   tags: string[];
   imageUrl?: string;
+  media?: MediaItem[];
+  rating?: number;
+  views?: number;
+  likes?: number;
+  isPublic?: boolean;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type PositionCategory = 
@@ -34,6 +55,9 @@ export type PositionCategory =
   | 'acrobatic';
 
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
+// Type alias for backward compatibility
+export type Position = SexPosition;
 
 export interface GameSession {
   id: string;

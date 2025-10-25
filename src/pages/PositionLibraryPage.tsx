@@ -1,8 +1,8 @@
 import React from 'react';
-import { PositionLibrary } from '@/features/position-library';
+import { EnhancedPositionLibrary } from '@/features/position-library/components/EnhancedPositionLibrary';
 
 const PositionLibraryPage: React.FC = () => {
-  return <PositionLibrary />;
+  return <EnhancedPositionLibrary />;
 };
 
 export default PositionLibraryPage;
