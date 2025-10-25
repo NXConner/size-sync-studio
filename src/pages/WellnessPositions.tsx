@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import PoseVisual from "@/components/wellness/PoseVisual";
+import PositionMediaStrip from "@/components/wellness/PositionMediaStrip";
 import { Heart, Search, TimerReset, Shuffle, Star, Info } from "lucide-react";
 
 function ensureCatalogSeeded() {
@@ -196,7 +197,10 @@ export default function WellnessPositions() {
                 <p className="text-sm text-muted-foreground">{p.summary}</p>
               </CardHeader>
               <CardContent>
-                <PoseVisual visualKey={p.visualKey} className="w-full h-28" />
+                <div className="relative">
+                  <PoseVisual visualKey={p.visualKey} animated className="w-full h-28 animate-fade-in" />
+                </div>
+                <PositionMediaStrip positionId={p.id} positionName={p.name} />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {p.tags.map(t => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}
                   <Badge variant="outline" className="text-[10px] capitalize">{p.difficulty}</Badge>
