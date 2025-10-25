@@ -35,6 +35,7 @@ import { MediaGallery } from './MediaGallery';
 import { MediaUploadModal } from './MediaUploadModal';
 import { AnimationEffects, SparkleEffect, HeartEffect } from './AnimationEffects';
 import { SexPosition, PositionCategory, Difficulty } from '../types';
+import { LivePoseMatch } from './LivePoseMatch';
 import { sexPositions } from '../data/positions';
 import { useGameSession } from '../hooks/useGameSession';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,7 @@ export const EnhancedPositionLibrary: React.FC = () => {
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
+  const [showLiveMatch, setShowLiveMatch] = useState(false);
 
   const {
     currentSession,
@@ -406,6 +408,10 @@ export const EnhancedPositionLibrary: React.FC = () => {
                         <Play className="w-4 h-4 mr-2" />
                         Add to Session
                       </Button>
+                      <Button variant="outline" onClick={() => setShowLiveMatch(true)}>
+                        <Camera className="w-4 h-4 mr-2" />
+                        Live Pose Match
+                      </Button>
                       <Button variant="outline">
                         <Share2 className="w-4 h-4 mr-2" />
                         Share
@@ -657,6 +663,13 @@ export const EnhancedPositionLibrary: React.FC = () => {
         isOpen={showMediaUpload}
         onClose={() => setShowMediaUpload(false)}
       />
+      {selectedPosition && (
+        <LivePoseMatch
+          open={showLiveMatch}
+          onClose={() => setShowLiveMatch(false)}
+          position={selectedPosition}
+        />
+      )}
     </div>
   );
 };
