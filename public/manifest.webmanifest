@@ -1,6 +1,6 @@
 {
-  "name": "Size Seeker Tracker",
-  "short_name": "SizeSeeker",
+  "name": "PumpGuard Performance Suite",
+  "short_name": "PumpGuard",
   "start_url": ".",
   "scope": "/",
   "display": "standalone",
