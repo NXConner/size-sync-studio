@@ -45,42 +45,43 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden gradient-hero">
-        <div className="relative container mx-auto px-4 py-20 text-center">
-          <Badge
-            variant="secondary"
-            className="mb-6 bg-primary/20 text-primary border-primary/30 backdrop-blur-sm animate-float"
-          >
-            Professional Enhancement Tracking
-          </Badge>
+      <div className="min-h-screen bg-background">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden gradient-hero">
+          <div className="relative container mx-auto px-4 py-20 text-center">
+            <Badge
+              variant="secondary"
+              className="mb-6 bg-primary/20 text-primary border-primary/30 backdrop-blur-sm animate-float"
+            >
+              Pump Safety & Performance Command Center
+            </Badge>
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-4">
-            Size Seeker
-            <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Dashboard
-            </span>
-          </h1>
+            <h1 className="text-5xl md:text-7xl font-bold mb-4">
+              PumpGuard
+              <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                Performance Suite
+              </span>
+            </h1>
 
-          <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
-            Guided sessions, safety protocols, and precise measurement tracking — all in one dark,
-            neon-themed experience.
-          </p>
+            <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
+              Evidence-backed coaching for penis pump users including safety protocols, precision analytics,
+              and longitudinal growth tracking — purpose-built for maximizing results without compromising
+              wellbeing.
+            </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/sessions">
-              <Button size="lg" className="gradient-primary hover:shadow-primary shadow-lg">
-                <Play className="w-5 h-5 mr-2" />
-                Start Session
-              </Button>
-            </Link>
-            <Link to="/safety">
-              <Button variant="outline" size="lg" className="border-border">
-                <Shield className="w-5 h-5 mr-2" />
-                Safety Guide
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/sessions">
+                <Button size="lg" className="gradient-primary hover:shadow-primary shadow-lg">
+                  <Play className="w-5 h-5 mr-2" />
+                  Start Session
+                </Button>
+              </Link>
+              <Link to="/safety">
+                <Button variant="outline" size="lg" className="border-border">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Safety Guide
+                </Button>
+              </Link>
           </div>
         </div>
       </section>
