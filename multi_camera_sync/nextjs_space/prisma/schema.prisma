@@ -1,0 +1,59 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/multi_camera_sync/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  status      String   @default("active") // active, recording, completed
+  deviceCount Int      @default(0)
+  
+  devices     Device[]
+  recordings  Recording[]
+  
+  @@index([createdAt])
+}
+
+model Device {
+  id            String   @id @default(uuid())
+  sessionId     String
+  participantId String   @unique
+  deviceLabel   String
+  isOnline      Boolean  @default(true)
+  joinedAt      DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  
+  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@index([sessionId])
+  @@index([participantId])
+}
+
+model Recording {
+  id            String   @id @default(uuid())
+  sessionId     String
+  deviceId      String
+  startTime     DateTime
+  endTime       DateTime?
+  duration      Int?     // in seconds
+  fileName      String
+  fileSize      BigInt?  // in bytes
+  cameraIndex   Int      @default(0)
+  isLocal       Boolean  @default(true)
+  metadata      Json?    // Additional metadata (resolution, codec, etc)
+  createdAt     DateTime @default(now())
+  
+  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@index([sessionId])
+  @@index([deviceId])
+  @@index([startTime])
+}
